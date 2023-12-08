@@ -1,0 +1,56 @@
+{
+    "config": {
+        "error": {
+            "station_id": "Invalid station ID"
+        },
+        "step": {
+            "user": {
+                "description": "Please select either manual station ID or search for a station.",
+                "menu_options": {
+                    "manual": "Enter Station ID Manually",
+                    "search": "Search for a station nearby"
+                }
+            },
+            "manual": {
+                "description": "Please enter the Station ID",
+                "data": {
+                    "station_id": "Station ID"
+                }
+            },
+            "search": {
+                "description": "Search by your configured GPS location or by Postal Code",
+                "menu_options": {
+                    "home": "Use Home Assistant configured coodinates",
+                    "postal": "Use postal code (zip code)"
+                }
+            },           
+            "home": {
+                "description": "Please select a station",
+                "data": {
+                    "station_id": "Station"
+                }
+            },
+            "postal": {
+                "description": "Please enter a postal code (zip code)",
+                "data": {
+                    "zipcode": "Postal Code (zip code)"
+                }
+            },     
+            "postal_list": {
+                "description": "Please select a station",
+                "data": {
+                    "station_id": "Station"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "interval": "Polling interval"
+                }
+            }
+        }
+    }
+}
