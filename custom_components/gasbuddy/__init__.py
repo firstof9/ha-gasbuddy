@@ -106,7 +106,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Update data via library."""
-        station = self._config.get(CONF_STATION_ID)
+        station = self._config.data[CONF_STATION_ID]
         try:
             self._data = await GasBuddy(station_id=station).price_lookup()
         except APIError:

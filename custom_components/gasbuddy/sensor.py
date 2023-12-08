@@ -69,7 +69,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):
         if data is None:
             self._state = None
         if self._type in data.keys():
-            self._state = data[self._type]
+            self._state = data[self._type]["price"]
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         return self._state
@@ -80,7 +80,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):
         uom = self.coordinator.data["unit_of_measure"]
         currency = self.coordinator.data["currency"]
         if uom is not None and currency is not None:
-            return f'{currency}/{uom}'
+            return f'{currency}/{UNIT_OF_MEASURE[uom]}'
         return None
 
     @property

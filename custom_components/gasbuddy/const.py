@@ -27,7 +27,7 @@ PLATFORMS = ['sensor']
 # sensor constants
 UNIT_OF_MEASURE = {
     "dollars_per_gallon": "gallon",
-    "dollars_per_litre": "liter",
+    "cents_per_liter": "liter",
 }
 
 

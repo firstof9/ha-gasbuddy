@@ -31,7 +31,11 @@ async def _get_station_list(hass, user_input) -> list | None:
     """Return list of utilities by lat/lon."""
     lat = None
     lon = None
-    postal = user_input[CONF_POSTAL]
+    postal = ""
+
+    if user_input is not None and CONF_POSTAL in user_input.keys():
+        postal = user_input[CONF_POSTAL]
+    
 
     if not bool(postal):
         lat = hass.config.latitude
@@ -42,8 +46,9 @@ async def _get_station_list(hass, user_input) -> list | None:
         lat=lat, lon=lon, zipcode=postal
     )
     stations_list = {}
+    _LOGGER.debug("search reply: %s", stations)
 
-    for station in stations["results"]:
+    for station in stations["data"]["locationBySearchTerm"]["stations"]["results"]:
         name = station["name"]
         full_name = f'{station["name"]} @ {station["address"]["line1"]}'
         stations_list[station["id"]] = full_name
@@ -129,7 +134,7 @@ def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
 
 @config_entries.HANDLERS.register(DOMAIN)
 class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for NWS Alerts."""
+    """Config flow for GasBuddy."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
@@ -158,9 +163,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 self._data.update(user_input)
                 return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
-        return await self._show_config_zone(user_input)        
+        return await self._show_config_manual(user_input)        
     
-    async def _show_config_zone(self, user_input):
+    async def _show_config_manual(self, user_input):
         """Show the configuration form to edit location data."""
 
         # Defaults
@@ -234,9 +239,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input[CONF_INTERVAL] = 3600
             self._data.update(user_input)
             return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
-        return await self._show_config_postal(user_input)    
+        return await self._show_config_postal_list(user_input)    
     
-    async def _show_config_postal(self, user_input):
+    async def _show_config_postal_list(self, user_input):
         """Show the configuration form to edit location data."""
         defaults = {}
 
