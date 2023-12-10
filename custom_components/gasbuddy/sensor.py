@@ -9,9 +9,17 @@ from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_NAME, CONF_STATION_ID, COORDINATOR, DOMAIN, SENSOR_TYPES, UNIT_OF_MEASURE
+from .const import (
+    CONF_NAME,
+    CONF_STATION_ID,
+    COORDINATOR,
+    DOMAIN,
+    SENSOR_TYPES,
+    UNIT_OF_MEASURE,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GasBuddy sensors."""
@@ -25,6 +33,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         )
 
     async_add_entities(sensors, False)
+
 
 class GasBuddySensor(CoordinatorEntity, SensorEntity):
     """Implementation of a GasBuddy sensor."""
@@ -80,7 +89,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):
         uom = self.coordinator.data["unit_of_measure"]
         currency = self.coordinator.data["currency"]
         if uom is not None and currency is not None:
-            return f'{currency}/{UNIT_OF_MEASURE[uom]}'
+            return f"{currency}/{UNIT_OF_MEASURE[uom]}"
         return None
 
     @property
@@ -88,7 +97,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):
         """Return sesnsor attributes."""
         credit = self.coordinator.data[self._type]["credit"]
         attrs = {}
-        attrs[ATTR_ATTRIBUTION] = f'{credit} via GasBuddy'
+        attrs[ATTR_ATTRIBUTION] = f"{credit} via GasBuddy"
         attrs["last_updated"] = self.coordinator.data[self._type]["last_updated"]
         attrs[CONF_STATION_ID] = self.coordinator.data[CONF_STATION_ID]
         return attrs
@@ -109,4 +118,4 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):
     @property
     def should_poll(self) -> bool:
         """No need to poll. Coordinator notifies entity of updates."""
-        return False    
+        return False

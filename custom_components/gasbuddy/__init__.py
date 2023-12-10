@@ -14,7 +14,15 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from gasbuddy import GasBuddy
 from gasbuddy.exceptions import APIError, LibraryError
 
-from .const import CONF_INTERVAL, CONF_STATION_ID, COORDINATOR, DOMAIN, ISSUE_URL, PLATFORMS, VERSION
+from .const import (
+    CONF_INTERVAL,
+    CONF_STATION_ID,
+    COORDINATOR,
+    DOMAIN,
+    ISSUE_URL,
+    PLATFORMS,
+    VERSION,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,6 +32,7 @@ async def async_setup(  # pylint: disable-next=unused-argument
 ) -> bool:
     """Disallow configuration via YAML."""
     return True
+
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up is called when Home Assistant is loading our component."""
@@ -44,8 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
 
-    hass.data[DOMAIN][config_entry.entry_id] = { COORDINATOR: coordinator }
-
+    hass.data[DOMAIN][config_entry.entry_id] = {COORDINATOR: coordinator}
 
     for platform in PLATFORMS:
         hass.async_create_task(
@@ -53,6 +61,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         )
 
     return True
+
 
 async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Update listener."""
@@ -71,6 +80,7 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
 
     await hass.config_entries.async_reload(config_entry.entry_id)
 
+
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     _LOGGER.debug("Attempting to unload entities from the %s integration", DOMAIN)
@@ -88,7 +98,8 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
         hass.data[DOMAIN].pop(config_entry.entry_id)
 
-    return unload_ok    
+    return unload_ok
+
 
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
@@ -117,5 +128,5 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             self._data = {}
         except Exception as exception:
             raise UpdateFailed() from exception
-        
+
         return self._data

@@ -22,7 +22,7 @@ COORDINATOR = "coordinator"
 DOMAIN = "gasbuddy"
 VERSION = "1.0"
 ISSUE_URL = "https://github.com/firstof9/ha-gasbuddy/issues"
-PLATFORMS = ['sensor']
+PLATFORMS = ["sensor"]
 
 # sensor constants
 UNIT_OF_MEASURE = {
