@@ -19,7 +19,7 @@ jobs:
       - name: "Set version numbmer"
         run: |
           sed -i '/VERSION = /c\VERSION = "${{ steps.get_version.outputs.VERSION }}"' ${{ github.workspace }}/custom_components/gasbuddy/const.py
-          sed -i '/version/c\  \"version\": \"${{ steps.get_version.outputs.VERSION }}\",' ${{ github.workspace }}/custom_components/gasbuddy/manifest.json
+          sed -i '/version/c\  \"version\": \"${{ steps.get_version.outputs.VERSION }}\"' ${{ github.workspace }}/custom_components/gasbuddy/manifest.json
       # Pack the ha-gasbuddy dir as a zip and upload to the release
       - name: Create Zip File
         run: |
