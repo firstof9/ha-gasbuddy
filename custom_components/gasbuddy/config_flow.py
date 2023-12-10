@@ -84,6 +84,7 @@ def _get_schema_home(hass: Any, user_input: list, default_dict: list, station_li
     return vol.Schema(
         {
             vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(station_list),
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
         }
     )
 
@@ -99,6 +100,7 @@ def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
     return vol.Schema(
         {
             vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): str,
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
         }
     )
 
