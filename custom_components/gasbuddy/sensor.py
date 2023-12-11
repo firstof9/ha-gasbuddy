@@ -35,7 +35,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, False)
 
 
-class GasBuddySensor(CoordinatorEntity, SensorEntity):
+class GasBuddySensor(
+    CoordinatorEntity, SensorEntity
+):  # pylint: disable=too-many-instance-attributes
     """Implementation of a GasBuddy sensor."""
 
     def __init__(
