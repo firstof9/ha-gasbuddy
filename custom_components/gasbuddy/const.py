@@ -3,9 +3,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from homeassistant.components.sensor import (
-    SensorEntityDescription,
-)
+from homeassistant.components.sensor import SensorEntityDescription
 
 # config flow
 CONF_STATION_ID = "station_id"

@@ -4,17 +4,16 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import gasbuddy
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.util import slugify
 
-import gasbuddy
-
 from .const import (
-    CONF_NAME,
     CONF_INTERVAL,
+    CONF_NAME,
     CONF_POSTAL,
     CONF_STATION_ID,
     DEFAULT_NAME,

@@ -1,8 +1,12 @@
 """Test config flow."""
 
-from tests.const import CONFIG_DATA
 from unittest.mock import patch
+
+from homeassistant import config_entries, data_entry_flow, setup
+from homeassistant.const import CONF_NAME
+from homeassistant.data_entry_flow import FlowResult, FlowResultType
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import (
     CONF_INTERVAL,
@@ -12,12 +16,7 @@ from custom_components.gasbuddy.const import (
     DEFAULT_NAME,
     DOMAIN,
 )
-from tests.const import STATION_LIST
-
-from homeassistant import config_entries, data_entry_flow, setup
-from homeassistant.const import CONF_NAME
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-from homeassistant.data_entry_flow import FlowResult, FlowResultType
+from tests.const import CONFIG_DATA, STATION_LIST
 
 pytestmark = pytest.mark.asyncio
 

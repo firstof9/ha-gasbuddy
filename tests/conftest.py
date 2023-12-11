@@ -1,7 +1,8 @@
 """Global fixtures for gasbuddy integration."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from tests.const import COORDINATOR_DATA
 
