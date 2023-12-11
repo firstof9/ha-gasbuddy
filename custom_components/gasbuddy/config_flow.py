@@ -188,7 +188,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
-            if not validate_station(user_input[CONF_STATION_ID]):
+            validate = await validate_station(user_input[CONF_STATION_ID])
+            if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
                 self._data.update(user_input)

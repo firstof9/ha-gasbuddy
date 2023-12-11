@@ -201,6 +201,9 @@ async def test_form_manual(
     ) as mock_setup_entry, patch(
         "custom_components.gasbuddy.config_flow._get_station_list",
         return_value=STATION_LIST,
+    ), patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value=True,
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "manual"}
