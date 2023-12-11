@@ -3,11 +3,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntityDescription,
-)
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.components.sensor import SensorEntityDescription
 
 # config flow
 CONF_STATION_ID = "station_id"

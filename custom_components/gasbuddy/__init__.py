@@ -2,17 +2,17 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
 import logging
+from datetime import timedelta
 
+from gasbuddy import GasBuddy  # pylint: disable=import-self
+
+# pylint: disable-next=import-error,no-name-in-module
+from gasbuddy.exceptions import APIError, LibraryError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
-from gasbuddy import GasBuddy
-from gasbuddy.exceptions import APIError, LibraryError
 
 from .const import (
     CONF_INTERVAL,

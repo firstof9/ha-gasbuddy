@@ -5,8 +5,8 @@ import logging
 from typing import Any, Optional
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
-from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -35,7 +35,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, False)
 
 
-class GasBuddySensor(CoordinatorEntity, SensorEntity):
+class GasBuddySensor(
+    CoordinatorEntity, SensorEntity
+):  # pylint: disable=too-many-instance-attributes
     """Implementation of a GasBuddy sensor."""
 
     def __init__(

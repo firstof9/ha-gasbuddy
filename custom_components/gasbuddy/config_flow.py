@@ -4,18 +4,16 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import gasbuddy
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
 
-import gasbuddy
-
 from .const import (
-    CONF_NAME,
     CONF_INTERVAL,
+    CONF_NAME,
     CONF_POSTAL,
     CONF_STATION_ID,
     DEFAULT_NAME,
@@ -57,7 +55,6 @@ async def _get_station_list(hass, user_input) -> list | None:
     _LOGGER.debug("search reply: %s", stations)
 
     for station in stations["data"]["locationBySearchTerm"]["stations"]["results"]:
-        name = station["name"]
         full_name = f'{station["name"]} @ {station["address"]["line1"]}'
         stations_list[station["id"]] = full_name
 
@@ -65,13 +62,14 @@ async def _get_station_list(hass, user_input) -> list | None:
     return stations_list
 
 
+# pylint: disable-next=unused-argument
 def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
-    """Gets a schema using the default_dict as a backup."""
+    """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
     def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Gets default value for key."""
+        """Get default value for key."""
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema(
@@ -83,14 +81,17 @@ def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
 
 
 def _get_schema_home(
-    hass: Any, user_input: list, default_dict: list, station_list: list
+    hass: Any,  # pylint: disable=unused-argument
+    user_input: list,
+    default_dict: list,
+    station_list: list,
 ) -> Any:
-    """Gets a schema using the default_dict as a backup."""
+    """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
     def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Gets default value for key."""
+        """Get default value for key."""
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema(
@@ -103,32 +104,35 @@ def _get_schema_home(
     )
 
 
+# pylint: disable-next=unused-argument
 def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
-    """Gets a schema using the default_dict as a backup."""
+    """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
     def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Gets default value for key."""
+        """Get default value for key."""
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema(
         {
             vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): str,
-            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
         }
     )
 
 
-def _get_schema_postal_list(
-    hass: Any, user_input: list, default_dict: list, station_list: list
+def _get_schema_station_list(
+    hass: Any,  # pylint: disable=unused-argument
+    user_input: list,
+    default_dict: list,
+    station_list: list,
 ) -> Any:
-    """Gets a schema using the default_dict as a backup."""
+    """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
     def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Gets default value for key."""
+        """Get default value for key."""
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema(
@@ -136,17 +140,19 @@ def _get_schema_postal_list(
             vol.Required(
                 CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
             ): vol.In(station_list),
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
         }
     )
 
 
+# pylint: disable-next=unused-argument
 def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
-    """Gets a schema using the default_dict as a backup."""
+    """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
     def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Gets default value for key."""
+        """Get default value for key."""
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema(
@@ -175,14 +181,15 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_menu(step_id="user", menu_options=MENU_OPTIONS)
 
     # Manual Station ID input
-    async def async_step_manual(self, user_input={}):
+    async def async_step_manual(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
 
         if user_input is not None:
             user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
-            if not validate_station(user_input[CONF_STATION_ID]):
+            validate = await validate_station(user_input[CONF_STATION_ID])
+            if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
                 self._data.update(user_input)
@@ -193,7 +200,6 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_manual(self, user_input):
         """Show the configuration form to edit location data."""
-
         # Defaults
         defaults = {
             CONF_NAME: DEFAULT_NAME,
@@ -207,13 +213,14 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     # Search option
     async def async_step_search(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: dict[str, Any] | None = None,  # pylint: disable=unused-argument
     ) -> FlowResult:
         """Handle the flow initialized by the user."""
         return self.async_show_menu(step_id="search", menu_options=MENU_SEARCH)
 
     # Use lat/lon from HA
-    async def async_step_home(self, user_input={}):
+    async def async_step_home(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
 
@@ -237,13 +244,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     # User input postal code
-    async def async_step_postal(self, user_input={}):
+    async def async_step_postal(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
 
         if user_input is not None:
             self._data.update(user_input)
-            return await self.async_step_postal_list()
+            return await self.async_step_station_list()
         return await self._show_config_postal(user_input)
 
     async def _show_config_postal(self, user_input):
@@ -256,26 +263,27 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    async def async_step_postal_list(self, user_input={}):
+    async def async_step_station_list(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
 
         if user_input is not None:
             user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
+            self._data.pop(CONF_POSTAL)
             self._data.update(user_input)
             return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
-        return await self._show_config_postal_list(user_input)
+        return await self._show_config_station_list(user_input)
 
-    async def _show_config_postal_list(self, user_input):
+    async def _show_config_station_list(self, user_input):
         """Show the configuration form to edit location data."""
         defaults = {}
 
-        station_list = await _get_station_list(self.hass, user_input)
+        station_list = await _get_station_list(self.hass, self._data)
 
         return self.async_show_form(
-            step_id="postal_list",
-            data_schema=_get_schema_postal_list(
+            step_id="station_list",
+            data_schema=_get_schema_station_list(
                 self.hass, user_input, defaults, station_list
             ),
             errors=self._errors,
@@ -284,6 +292,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
+        """Enable option flow."""
         return GasBuddyOptionsFlow(config_entry)
 
 
