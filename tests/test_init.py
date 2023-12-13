@@ -16,6 +16,7 @@ async def test_setup_and_unload_entry(hass, mock_gasbuddy):
         domain=DOMAIN,
         title="gas_station",
         data=CONFIG_DATA,
+        version=1
     )
 
     entry.add_to_hass(hass)
