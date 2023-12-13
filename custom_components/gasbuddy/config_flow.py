@@ -16,6 +16,7 @@ from .const import (
     CONF_NAME,
     CONF_POSTAL,
     CONF_STATION_ID,
+    CONF_UOM,
     DEFAULT_NAME,
     DOMAIN,
 )
@@ -158,6 +159,7 @@ def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
     return vol.Schema(
         {
             vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): int,
+            vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): bool,
         }
     )
 
@@ -188,6 +190,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
+            user_input[CONF_UOM] = True
             validate = await validate_station(user_input[CONF_STATION_ID])
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
@@ -227,6 +230,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
+            user_input[CONF_UOM] = True
             self._data.update(user_input)
             return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
         return await self._show_config_home(user_input)
@@ -270,6 +274,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
+            user_input[CONF_UOM] = True
             self._data.pop(CONF_POSTAL)
             self._data.update(user_input)
             return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)

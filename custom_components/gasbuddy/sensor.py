@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     CONF_NAME,
     CONF_STATION_ID,
+    CONF_UOM,
     COORDINATOR,
     DOMAIN,
     SENSOR_TYPES,
@@ -90,8 +91,11 @@ class GasBuddySensor(
         """Return the unit of measurement."""
         uom = self.coordinator.data["unit_of_measure"]
         currency = self.coordinator.data["currency"]
-        if uom is not None and currency is not None:
-            return f"{currency}/{UNIT_OF_MEASURE[uom]}"
+        if self._config.data[CONF_UOM]:
+            if uom is not None and currency is not None:
+                return f"{currency}/{UNIT_OF_MEASURE[uom]}"
+        elif currency is not None:
+            return currency
         return None
 
     @property

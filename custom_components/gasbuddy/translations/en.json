@@ -48,7 +48,8 @@
         "step": {
             "init": {
                 "data": {
-                    "interval": "Polling interval"
+                    "interval": "Polling interval",
+                    "uom": "Show per liter/gallon in unit of measure"
                 }
             }
         }
