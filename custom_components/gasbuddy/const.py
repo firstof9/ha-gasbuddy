@@ -10,6 +10,7 @@ CONF_STATION_ID = "station_id"
 CONF_INTERVAL = "interval"
 CONF_NAME = "name"
 CONF_POSTAL = "zipcode"
+CONF_UOM = "uom"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 

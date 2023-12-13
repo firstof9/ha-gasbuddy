@@ -1,8 +1,8 @@
 """Test gasbuddy sensors."""
 
 
-from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 import pytest
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import DOMAIN

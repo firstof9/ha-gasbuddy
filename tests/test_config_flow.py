@@ -2,10 +2,10 @@
 
 from unittest.mock import patch
 
+import pytest
 from homeassistant import config_entries, data_entry_flow, setup
 from homeassistant.const import CONF_NAME
 from homeassistant.data_entry_flow import FlowResult, FlowResultType
-import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import (
@@ -13,6 +13,7 @@ from custom_components.gasbuddy.const import (
     CONF_NAME,
     CONF_POSTAL,
     CONF_STATION_ID,
+    CONF_UOM,
     DEFAULT_NAME,
     DOMAIN,
 )
@@ -35,6 +36,7 @@ pytestmark = pytest.mark.asyncio
                 CONF_NAME: "gas_station",
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
+                CONF_UOM: True,
             },
         ),
     ],
@@ -102,6 +104,7 @@ async def test_form_home(
                 CONF_NAME: "gas_station",
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
+                CONF_UOM: True,
             },
         ),
     ],
@@ -175,6 +178,7 @@ async def test_form_postal(
                 CONF_NAME: "gas_station",
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
+                CONF_UOM: True,
             },
         ),
     ],
