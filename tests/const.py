@@ -1,6 +1,11 @@
 """Constants for tests."""
 
-from custom_components.gasbuddy.const import CONF_INTERVAL, CONF_NAME, CONF_STATION_ID, CONF_UOM
+from custom_components.gasbuddy.const import (
+    CONF_INTERVAL,
+    CONF_NAME,
+    CONF_STATION_ID,
+    CONF_UOM,
+)
 
 CONFIG_DATA = {
     CONF_NAME: "Gas Station",

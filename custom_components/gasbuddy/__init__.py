@@ -6,7 +6,6 @@ import logging
 from datetime import timedelta
 
 from gasbuddy import GasBuddy  # pylint: disable=import-self
-
 # pylint: disable-next=import-error,no-name-in-module
 from gasbuddy.exceptions import APIError, LibraryError
 from homeassistant.config_entries import ConfigEntry
