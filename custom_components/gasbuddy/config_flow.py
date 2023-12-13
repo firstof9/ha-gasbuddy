@@ -168,7 +168,7 @@ def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
 class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for GasBuddy."""
 
-    VERSION = 1
+    VERSION = 2
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     def __init__(self):
