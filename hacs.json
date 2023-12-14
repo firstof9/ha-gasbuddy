@@ -3,5 +3,6 @@
     "homeassistant": "2023.1.0",
     "zip_release": true,
     "filename": "gasbuddy.zip",
-    "render_readme": true
+    "render_readme": true,
+    "country": ["US", "CA"]
 }
