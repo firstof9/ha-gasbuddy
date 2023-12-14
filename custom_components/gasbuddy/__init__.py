@@ -12,6 +12,7 @@ from gasbuddy.exceptions import APIError, LibraryError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -76,16 +77,14 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
     """Update listener."""
     _LOGGER.debug("Attempting to reload entities from the %s integration", DOMAIN)
 
-    if config_entry.data[CONF_INTERVAL] == config_entry.options[CONF_INTERVAL]:
-        _LOGGER.debug("No changes detected not reloading entities.")
-        return
+    original_config = config_entry.data.copy()
 
-    config_entry.data[CONF_INTERVAL] = config_entry.options[CONF_INTERVAL]
-    config_entry.data[CONF_UOM] = config_entry.options[CONF_UOM]
+    original_config[CONF_INTERVAL] = config_entry.options[CONF_INTERVAL]
+    original_config[CONF_UOM] = config_entry.options[CONF_UOM]
 
     hass.config_entries.async_update_entry(
         entry=config_entry,
-        data=config_entry.data,
+        data=original_config,
     )
 
     await hass.config_entries.async_reload(config_entry.entry_id)
@@ -131,6 +130,15 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         hass.data[DOMAIN].pop(config_entry.entry_id)
 
     return unload_ok
+
+
+async def async_remove_config_entry_device(  # pylint: disable-next=unused-argument
+    hass: HomeAssistant, config_entry: ConfigEntry, device_entry: DeviceEntry
+) -> bool:
+    """Remove a config entry from a device."""
+    _LOGGER.debug("Removing device from the %s integration", DOMAIN)
+
+    return True
 
 
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):

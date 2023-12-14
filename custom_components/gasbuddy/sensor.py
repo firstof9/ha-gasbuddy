@@ -25,13 +25,10 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GasBuddy sensors."""
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    unique_id = entry.entry_id
 
     sensors = []
     for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
-        sensors.append(
-            GasBuddySensor(SENSOR_TYPES[sensor], unique_id, coordinator, entry)
-        )
+        sensors.append(GasBuddySensor(SENSOR_TYPES[sensor], coordinator, entry))
 
     async_add_entities(sensors, False)
 
@@ -44,7 +41,6 @@ class GasBuddySensor(
     def __init__(
         self,
         sensor_description: SensorEntityDescription,
-        unique_id: str,
         coordinator: str,
         config: ConfigEntry,
     ) -> None:
@@ -54,7 +50,7 @@ class GasBuddySensor(
         self.entity_description = sensor_description
         self._name = sensor_description.name
         self._type = sensor_description.key
-        self._unique_id = unique_id
+        self._unique_id = config.entry_id
         self._data = coordinator.data
         self.coordinator = coordinator
         self._state = None

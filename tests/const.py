@@ -11,6 +11,20 @@ CONFIG_DATA = {
     CONF_NAME: "Gas Station",
     CONF_INTERVAL: 3600,
     CONF_STATION_ID: 208656,
+    CONF_UOM: True,
+}
+
+CONFIG_DATA_NO_UOM = {
+    CONF_NAME: "Gas Station",
+    CONF_INTERVAL: 3600,
+    CONF_STATION_ID: 208656,
+    CONF_UOM: False,
+}
+
+CONFIG_DATA_V1 = {
+    CONF_NAME: "Gas Station",
+    CONF_INTERVAL: 3600,
+    CONF_STATION_ID: 208656,
 }
 
 STATION_LIST = {
