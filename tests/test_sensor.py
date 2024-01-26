@@ -1,6 +1,5 @@
 """Test gasbuddy sensors."""
 
-
 import pytest
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
