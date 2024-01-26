@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -103,6 +103,8 @@ class GasBuddySensor(
         attrs[ATTR_ATTRIBUTION] = f"{credit} via GasBuddy"
         attrs["last_updated"] = self.coordinator.data[self._type]["last_updated"]
         attrs[CONF_STATION_ID] = self.coordinator.data[CONF_STATION_ID]
+        attrs[ATTR_LATITUDE] = self.coordinator.data[ATTR_LATITUDE]
+        attrs[ATTR_LONGITUDE] = self.coordinator.data[ATTR_LONGITUDE]
         return attrs
 
     @property

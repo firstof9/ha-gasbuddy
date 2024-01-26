@@ -54,6 +54,8 @@ COORDINATOR_DATA = {
     "station_id": "208656",
     "unit_of_measure": "dollars_per_gallon",
     "currency": "USD",
+    "latitude": 33.459108,
+    "longitude": -112.502745,
     "regular_gas": {
         "credit": "Buddy_5bbkqrb1",
         "price": 2.95,
