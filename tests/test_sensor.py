@@ -2,6 +2,7 @@
 
 import pytest
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import DOMAIN
@@ -33,6 +34,8 @@ async def test_sensors(hass, mock_gasbuddy):
     assert state
     assert state.state == "2.95"
     assert state.attributes["unit_of_measurement"] == "USD/gallon"
+    assert state.attributes[ATTR_LATITUDE] == 33.459108
+    assert state.attributes[ATTR_LONGITUDE] == -112.502745
     state = hass.states.get("sensor.gas_station_midgrade_gas")
     assert state
     assert state.state == "unavailable"
@@ -63,6 +66,8 @@ async def test_sensors_no_uom(hass, mock_gasbuddy):
     assert state
     assert state.state == "2.95"
     assert state.attributes["unit_of_measurement"] == "USD"
+    assert state.attributes[ATTR_LATITUDE] == 33.459108
+    assert state.attributes[ATTR_LONGITUDE] == -112.502745
     state = hass.states.get("sensor.gas_station_midgrade_gas")
     assert state
     assert state.state == "unavailable"
