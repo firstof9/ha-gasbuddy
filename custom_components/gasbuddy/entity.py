@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from homeassistant.components.sensor import SensorEntityDescription
 
+
 @dataclass
 class GasBuddySensorEntityDescription(SensorEntityDescription):
     """Class describing OpenEVSE select entities."""

@@ -81,5 +81,5 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         cash=True,
         icon="mdi:gas-station",
         suggested_display_precision=2,
-    ),    
+    ),
 }

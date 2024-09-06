@@ -44,7 +44,7 @@ async def test_sensors(hass, mock_gasbuddy):
     assert state.state == "3.45"
     state = hass.states.get("sensor.gas_station_premium_gas_cash")
     assert state
-    assert state.state == "3.35"    
+    assert state.state == "3.35"
 
 
 async def test_sensors_no_uom(hass, mock_gasbuddy):
