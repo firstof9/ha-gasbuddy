@@ -24,7 +24,7 @@ async def test_sensors(hass, mock_gasbuddy):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -42,6 +42,9 @@ async def test_sensors(hass, mock_gasbuddy):
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
     assert state.state == "3.45"
+    state = hass.states.get("sensor.gas_station_premium_gas_cash")
+    assert state
+    assert state.state == "3.35"
 
 
 async def test_sensors_no_uom(hass, mock_gasbuddy):
@@ -56,7 +59,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
