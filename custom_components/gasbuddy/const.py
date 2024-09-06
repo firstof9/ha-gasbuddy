@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from homeassistant.components.sensor import SensorEntityDescription
+from .entity import GasBuddySensorEntityDescription
 
 # config flow
 CONF_STATION_ID = "station_id"
@@ -29,29 +29,57 @@ UNIT_OF_MEASURE = {
 }
 
 
-SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
-    "regular_gas": SensorEntityDescription(
+SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
+    "regular_gas": GasBuddySensorEntityDescription(
         key="regular_gas",
         name="Regular Gas",
         icon="mdi:gas-station",
         suggested_display_precision=2,
     ),
-    "midgrade_gas": SensorEntityDescription(
+    "midgrade_gas": GasBuddySensorEntityDescription(
         key="midgrade_gas",
         name="MidGrade Gas",
         icon="mdi:gas-station",
         suggested_display_precision=2,
     ),
-    "premium_gas": SensorEntityDescription(
+    "premium_gas": GasBuddySensorEntityDescription(
         key="premium_gas",
         name="Premium Gas",
         icon="mdi:gas-station",
         suggested_display_precision=2,
     ),
-    "diesel": SensorEntityDescription(
+    "diesel": GasBuddySensorEntityDescription(
         key="diesel",
         name="Diesel",
         icon="mdi:gas-station",
         suggested_display_precision=2,
     ),
+    "regular_gas_cash": GasBuddySensorEntityDescription(
+        key="regular_gas",
+        name="Regular Gas (Cash)",
+        cash=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+    ),
+    "midgrade_gas_cash": GasBuddySensorEntityDescription(
+        key="midgrade_gas",
+        name="MidGrade Gas (Cash)",
+        cash=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+    ),
+    "premium_gas_cash": GasBuddySensorEntityDescription(
+        key="premium_gas",
+        name="Premium Gas (Cash)",
+        cash=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+    ),
+    "diesel_cash": GasBuddySensorEntityDescription(
+        key="diesel",
+        name="Diesel (Cash)",
+        cash=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+    ),    
 }

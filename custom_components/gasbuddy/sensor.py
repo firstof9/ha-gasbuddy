@@ -56,6 +56,7 @@ class GasBuddySensor(
         self.coordinator = coordinator
         self._state = None
         self._icon = sensor_description.icon
+        self._cash = sensor_description.cash
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
@@ -78,7 +79,10 @@ class GasBuddySensor(
         if data is None:
             self._state = None
         if self._type in data.keys():
-            self._state = data[self._type]["price"]
+            if self._cash and "cash_price" in data[self._type]:
+                self._state = data[self._type]["cash_price"]
+            else:
+                self._state = data[self._type]["price"]
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         return self._state
