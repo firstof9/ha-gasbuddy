@@ -9,6 +9,7 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import slugify
 
 from .const import (
     CONF_NAME,
@@ -57,8 +58,9 @@ class GasBuddySensor(
         self._state = None
         self._icon = sensor_description.icon
         self._cash = sensor_description.cash
-
-        self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
+        self._attr_name = (
+            f"{slugify(self._config.data[CONF_NAME]).lower()} {self._name}"
+        )
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
 
     @property

@@ -10,7 +10,6 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.util import slugify
 
 from .const import (
     CONF_INTERVAL,
@@ -189,7 +188,6 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
             user_input[CONF_UOM] = True
             validate = await validate_station(user_input[CONF_STATION_ID])
@@ -229,7 +227,6 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
             user_input[CONF_UOM] = True
             self._data.update(user_input)
@@ -273,7 +270,6 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             user_input[CONF_INTERVAL] = 3600
             user_input[CONF_UOM] = True
             self._data.pop(CONF_POSTAL)
