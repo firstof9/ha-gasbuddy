@@ -12,7 +12,7 @@ jobs:
     name: Validate
     steps:
         - name: 📥 Checkout the repository
-          uses: actions/checkout@v3.5.3
+          uses: actions/checkout@v4
 
         - name: HACS validation
           uses: "hacs/action@main"
@@ -27,9 +27,9 @@ jobs:
     name: Check style formatting
     steps:
         - name: 📥 Checkout the repository
-          uses: actions/checkout@v3.5.3
+          uses: actions/checkout@v4
         - name: 🛠️ Set up Python
-          uses: actions/setup-python@v4.6.1
+          uses: actions/setup-python@v5
           with:
             python-version: "3.x"
         - run: python3 -m pip install black
