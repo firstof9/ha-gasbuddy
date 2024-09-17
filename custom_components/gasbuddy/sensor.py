@@ -79,9 +79,15 @@ class GasBuddySensor(
             self._state = None
         if self._type in data.keys():
             if self._cash and "cash_price" in data[self._type]:
-                self._state = data[self._type]["cash_price"]
+                if self.coordinator.data["unit_of_measure"] == "cents_per_liter":
+                    self._state = data[self._type]["cash_price"] / 100
+                else:
+                    self._state = data[self._type]["cash_price"]
             else:
-                self._state = data[self._type]["price"]
+                if self.coordinator.data["unit_of_measure"] == "cents_per_liter":
+                    self._state = data[self._type]["price"] / 100
+                else:
+                    self._state = data[self._type]["price"]
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         return self._state

@@ -77,3 +77,38 @@ async def test_sensors_no_uom(hass, mock_gasbuddy):
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
     assert state.state == "3.45"
+
+
+async def test_sensors_cad(hass, mock_gasbuddy_cad):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+
+    assert DOMAIN in hass.config.components
+
+    state = hass.states.get("sensor.gas_station_regular_gas")
+    assert state
+    assert state.state == "1.439"
+    assert state.attributes["unit_of_measurement"] == "CAD/liter"
+    assert state.attributes[ATTR_LATITUDE] == 33.459108
+    assert state.attributes[ATTR_LONGITUDE] == -112.502745
+    state = hass.states.get("sensor.gas_station_midgrade_gas")
+    assert state
+    assert state.state == "unavailable"
+    state = hass.states.get("sensor.gas_station_premium_gas")
+    assert state
+    assert state.state == "1.531"
+    state = hass.states.get("sensor.gas_station_premium_gas_cash")
+    assert state
+    assert state.state == "1.452"
