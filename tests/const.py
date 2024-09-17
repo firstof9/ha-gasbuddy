@@ -68,3 +68,22 @@ COORDINATOR_DATA = {
         "last_updated": "2023-12-10T17:31:01.856Z",
     },
 }
+
+COORDINATOR_DATA_CAD = {
+    "station_id": "208656",
+    "unit_of_measure": "cents_per_liter",
+    "currency": "CAD",
+    "latitude": 33.459108,
+    "longitude": -112.502745,
+    "regular_gas": {
+        "credit": "Buddy_5bbkqrb1",
+        "price": 143.9,
+        "last_updated": "2023-12-10T17:48:46.584Z",
+    },
+    "premium_gas": {
+        "credit": "Owner",
+        "price": 153.1,
+        "cash_price": 145.2,
+        "last_updated": "2023-12-10T17:31:01.856Z",
+    },
+}

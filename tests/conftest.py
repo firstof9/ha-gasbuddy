@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.const import COORDINATOR_DATA
+from tests.const import COORDINATOR_DATA, COORDINATOR_DATA_CAD
 
 
 # This fixture enables loading custom integrations in all tests.
@@ -34,4 +34,14 @@ def mock_gasbuddy():
         "custom_components.gasbuddy.GasBuddyUpdateCoordinator._async_update_data"
     ) as mock_value:
         mock_value.return_value = COORDINATOR_DATA
+        yield
+
+
+@pytest.fixture()
+def mock_gasbuddy_cad():
+    """Mock charger data."""
+    with patch(
+        "custom_components.gasbuddy.GasBuddyUpdateCoordinator._async_update_data"
+    ) as mock_value:
+        mock_value.return_value = COORDINATOR_DATA_CAD
         yield
