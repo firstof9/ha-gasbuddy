@@ -36,6 +36,7 @@ def mock_gasbuddy():
         mock_value.return_value = COORDINATOR_DATA
         yield
 
+
 @pytest.fixture()
 def mock_gasbuddy_cad():
     """Mock charger data."""
