@@ -67,6 +67,17 @@ COORDINATOR_DATA = {
         "cash_price": 3.35,
         "last_updated": "2023-12-10T17:31:01.856Z",
     },
+    "e85": {
+        "credit": "Owner",
+        "price": 2.83,
+        "last_updated": "2024-09-27T18:12:09.837Z",
+    },
+    "e15": {
+        "credit": "Owner",
+        "price": 3.33,
+        "cash_price": 3.13,
+        "last_updated": "2024-09-27T18:12:09.837Z",
+    },
 }
 
 COORDINATOR_DATA_CAD = {

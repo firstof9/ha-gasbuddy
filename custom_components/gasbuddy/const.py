@@ -88,4 +88,35 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
     ),
+    # special fuels
+    "e85": GasBuddySensorEntityDescription(
+        key="e85",
+        name="E85",
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    "e85_cash": GasBuddySensorEntityDescription(
+        key="e85",
+        name="E85 (Cash)",
+        cash=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    "e15": GasBuddySensorEntityDescription(
+        key="e15",
+        name="UNL88",
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    "e15_cash": GasBuddySensorEntityDescription(
+        key="e15",
+        name="UNL88 (Cash)",
+        cash=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
 }
