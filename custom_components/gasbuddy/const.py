@@ -14,6 +14,7 @@ CONF_POSTAL = "zipcode"
 CONF_UOM = "uom"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
+CONFIG_VER = 4
 
 # hass.data attribues
 COORDINATOR = "coordinator"
