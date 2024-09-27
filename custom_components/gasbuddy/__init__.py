@@ -20,6 +20,7 @@ from .const import (
     CONF_INTERVAL,
     CONF_STATION_ID,
     CONF_UOM,
+    CONFIG_VER,
     COORDINATOR,
     DOMAIN,
     ISSUE_URL,
@@ -90,6 +91,7 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
 async def async_migrate_entry(hass, config_entry) -> bool:
     """Migrate an old config entry."""
     version = config_entry.version
+    new_version = CONFIG_VER
 
     # 1 -> 2: Migrate format
     if version == 1:
@@ -100,11 +102,12 @@ async def async_migrate_entry(hass, config_entry) -> bool:
         if CONF_UOM not in updated_config.keys():
             updated_config[CONF_UOM] = True
 
-        if updated_config != config_entry.data:
-            hass.config_entries.async_update_entry(config_entry, data=updated_config)
+    if updated_config != config_entry.data:
+        hass.config_entries.async_update_entry(
+            config_entry, data=updated_config, version=new_version
+        )
 
-        config_entry.version = 4
-        _LOGGER.debug("Migration to version %s complete", config_entry.version)
+    _LOGGER.debug("Migration to version %s complete", CONFIG_VER)
 
     return True
 

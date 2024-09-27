@@ -14,6 +14,7 @@ CONF_POSTAL = "zipcode"
 CONF_UOM = "uom"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
+CONFIG_VER = 4
 
 # hass.data attribues
 COORDINATOR = "coordinator"
@@ -53,6 +54,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="Diesel",
         icon="mdi:gas-station",
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     "regular_gas_cash": GasBuddySensorEntityDescription(
         key="regular_gas",
@@ -60,6 +62,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         cash=True,
         icon="mdi:gas-station",
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     "midgrade_gas_cash": GasBuddySensorEntityDescription(
         key="midgrade_gas",
@@ -67,6 +70,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         cash=True,
         icon="mdi:gas-station",
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     "premium_gas_cash": GasBuddySensorEntityDescription(
         key="premium_gas",
@@ -74,6 +78,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         cash=True,
         icon="mdi:gas-station",
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     "diesel_cash": GasBuddySensorEntityDescription(
         key="diesel",
@@ -81,5 +86,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         cash=True,
         icon="mdi:gas-station",
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
 }

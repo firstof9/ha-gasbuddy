@@ -3,6 +3,7 @@
 import pytest
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import DOMAIN
@@ -12,7 +13,7 @@ from .const import CONFIG_DATA, CONFIG_DATA_NO_UOM
 pytestmark = pytest.mark.asyncio
 
 
-async def test_sensors(hass, mock_gasbuddy):
+async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     """Test setup_entry."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -24,7 +25,7 @@ async def test_sensors(hass, mock_gasbuddy):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 3
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -42,7 +43,28 @@ async def test_sensors(hass, mock_gasbuddy):
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
     assert state.state == "3.45"
-    state = hass.states.get("sensor.gas_station_premium_gas_cash")
+
+    # enable disabled sensor
+    entity_id = "sensor.gas_station_premium_gas_cash"
+    entity_entry = entity_registry.async_get(entity_id)
+
+    assert entity_entry
+    assert entity_entry.disabled
+    assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+    updated_entry = entity_registry.async_update_entity(
+        entity_entry.entity_id, disabled_by=None
+    )
+    assert updated_entry != entity_entry
+    assert updated_entry.disabled is False
+
+    # reload the integration
+    assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+
     assert state
     assert state.state == "3.35"
 
@@ -59,7 +81,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 3
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -79,7 +101,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy):
     assert state.state == "3.45"
 
 
-async def test_sensors_cad(hass, mock_gasbuddy_cad):
+async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRegistry):
     """Test setup_entry."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -91,7 +113,7 @@ async def test_sensors_cad(hass, mock_gasbuddy_cad):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 3
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -109,6 +131,26 @@ async def test_sensors_cad(hass, mock_gasbuddy_cad):
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
     assert state.state == "1.531"
-    state = hass.states.get("sensor.gas_station_premium_gas_cash")
+
+    # enable disabled sensor
+    entity_id = "sensor.gas_station_premium_gas_cash"
+    entity_entry = entity_registry.async_get(entity_id)
+
+    assert entity_entry
+    assert entity_entry.disabled
+    assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+    updated_entry = entity_registry.async_update_entity(
+        entity_entry.entity_id, disabled_by=None
+    )
+    assert updated_entry != entity_entry
+    assert updated_entry.disabled is False
+
+    # reload the integration
+    assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
     assert state
     assert state.state == "1.452"
