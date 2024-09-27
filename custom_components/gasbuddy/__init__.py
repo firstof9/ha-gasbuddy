@@ -102,10 +102,10 @@ async def async_migrate_entry(hass, config_entry) -> bool:
         if CONF_UOM not in updated_config.keys():
             updated_config[CONF_UOM] = True
 
-
-
     if updated_config != config_entry.data:
-        hass.config_entries.async_update_entry(config_entry, data=updated_config, version=new_version)
+        hass.config_entries.async_update_entry(
+            config_entry, data=updated_config, version=new_version
+        )
 
     _LOGGER.debug("Migration to version %s complete", CONFIG_VER)
 
