@@ -64,7 +64,6 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
-
     assert state
     assert state.state == "3.35"
 
