@@ -17,6 +17,7 @@ DEFAULT_NAME = "Gas Station"
 CONFIG_VER = 4
 
 # hass.data attribues
+ATTR_IMAGEURL = "image_url"
 COORDINATOR = "coordinator"
 DOMAIN = "gasbuddy"
 VERSION = "1.0"

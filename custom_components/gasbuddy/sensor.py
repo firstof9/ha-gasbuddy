@@ -11,6 +11,7 @@ from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    ATTR_IMAGEURL,
     CONF_NAME,
     CONF_STATION_ID,
     CONF_UOM,
@@ -115,6 +116,13 @@ class GasBuddySensor(
         attrs[ATTR_LATITUDE] = self.coordinator.data[ATTR_LATITUDE]
         attrs[ATTR_LONGITUDE] = self.coordinator.data[ATTR_LONGITUDE]
         return attrs
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Return the entity picture to use in the frontend."""
+        if self.coordinator.data[ATTR_IMAGEURL] is not None:
+            return self.coordinator.data[ATTR_IMAGEURL]
+        return None
 
     @property
     def icon(self) -> str:
