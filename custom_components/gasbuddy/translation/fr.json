@@ -1,0 +1,57 @@
+{
+    "config": {
+        "error": {
+            "station_id": "ID de station invalide"
+        },
+        "step": {
+            "user": {
+                "description": "Veuillez sélectionner soit l'ID de station manuel, soit rechercher une station.",
+                "menu_options": {
+                    "manual": "Saisir manuellement l'ID de la station",
+                    "search": "Rechercher une station à proximité"
+                }
+            },
+            "manual": {
+                "description": "Veuillez saisir l'ID de la station",
+                "data": {
+                    "station_id": "Identifiant de la station"
+                }
+            },
+            "search": {
+                "description": "Recherchez par votre position GPS configurée ou par code postal",
+                "menu_options": {
+                    "home": "Utiliser les coordonnées configurées par Home Assistant",
+                    "postal": "Utiliser le code postal (code postal)"
+                }
+            },           
+            "home": {
+                "description": "Veuillez sélectionner une station",
+                "data": {
+                    "station_id": "station service"
+                }
+            },
+            "postal": {
+                "description": "Veuillez entrer un code postal (code postal)",
+                "data": {
+                    "zipcode": "Code postal (code postal)"
+                }
+            },     
+            "postal_list": {
+                "description": "Veuillez sélectionner une station",
+                "data": {
+                    "station_id": "station service"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "interval": "Intervalle d'interrogation",
+                    "uom": "Afficher par litre/gallon en unité de mesure"
+                }
+            }
+        }
+    }
+}
