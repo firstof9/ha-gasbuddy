@@ -39,7 +39,9 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state.attributes["unit_of_measurement"] == "USD/gallon"
     assert state.attributes[ATTR_LATITUDE] == 33.459108
     assert state.attributes[ATTR_LONGITUDE] == -112.502745
-    assert state.attributes[ATTR_ENTITY_PICTURE] == "https://images.gasbuddy.io/b/122.png"
+    assert (
+        state.attributes[ATTR_ENTITY_PICTURE] == "https://images.gasbuddy.io/b/122.png"
+    )
     state = hass.states.get("sensor.gas_station_midgrade_gas")
     assert state
     assert state.state == "unavailable"
