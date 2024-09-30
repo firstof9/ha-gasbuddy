@@ -52,6 +52,7 @@ STATION_LIST = {
 
 COORDINATOR_DATA = {
     "station_id": "208656",
+    "image_url": "https://images.gasbuddy.io/b/122.png",
     "unit_of_measure": "dollars_per_gallon",
     "currency": "USD",
     "latitude": 33.459108,
@@ -82,6 +83,7 @@ COORDINATOR_DATA = {
 
 COORDINATOR_DATA_CAD = {
     "station_id": "208656",
+    "image_url": None,
     "unit_of_measure": "cents_per_liter",
     "currency": "CAD",
     "latitude": 33.459108,
