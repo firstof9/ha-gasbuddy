@@ -120,7 +120,10 @@ class GasBuddySensor(
     @property
     def entity_picture(self) -> str | None:
         """Return the entity picture to use in the frontend."""
-        if self.coordinator.data[ATTR_IMAGEURL] is not None:
+        if (
+            ATTR_IMAGEURL in self.coordinator.data
+            and self.coordinator.data[ATTR_IMAGEURL] is not None
+        ):
             return self.coordinator.data[ATTR_IMAGEURL]
         return None
 
