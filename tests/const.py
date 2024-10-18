@@ -64,7 +64,7 @@ COORDINATOR_DATA = {
     },
     "premium_gas": {
         "credit": "Owner",
-        "price": 3.45,
+        "price": None,
         "cash_price": 3.35,
         "last_updated": "2023-12-10T17:31:01.856Z",
     },
