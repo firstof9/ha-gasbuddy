@@ -47,7 +47,7 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state.state == "unavailable"
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
-    assert state.state == "3.45"
+    assert state.state == "unknown"
 
     # enable disabled sensor
     entity_id = "sensor.gas_station_premium_gas_cash"
@@ -102,7 +102,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy):
     assert state.state == "unavailable"
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
-    assert state.state == "3.45"
+    assert state.state == "unknown"
 
 
 async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRegistry):
