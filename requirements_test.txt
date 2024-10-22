@@ -6,5 +6,5 @@ mypy==1.12.1
 pydocstyle==6.3.0
 isort
 pylint==3.3.1
-tox==4.23.0
+tox==4.23.1
 pytest
