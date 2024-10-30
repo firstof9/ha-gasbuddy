@@ -125,7 +125,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
 
     state = hass.states.get(entity_id)
     assert state
-    assert state.state == "unknown"   
+    assert state.state == "unknown"
 
 
 async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRegistry):
