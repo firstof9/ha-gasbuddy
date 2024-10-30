@@ -73,7 +73,7 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state.state == "3.35"
 
 
-async def test_sensors_no_uom(hass, mock_gasbuddy):
+async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     """Test setup_entry."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -103,6 +103,29 @@ async def test_sensors_no_uom(hass, mock_gasbuddy):
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
     assert state.state == "unknown"
+
+    # enable disabled sensor
+    entity_id = "sensor.gas_station_e85_cash"
+    entity_entry = entity_registry.async_get(entity_id)
+
+    assert entity_entry
+    assert entity_entry.disabled
+    assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+    updated_entry = entity_registry.async_update_entity(
+        entity_entry.entity_id, disabled_by=None
+    )
+    assert updated_entry != entity_entry
+    assert updated_entry.disabled is False
+
+    # reload the integration
+    assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "unknown"   
 
 
 async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRegistry):
