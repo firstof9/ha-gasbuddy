@@ -71,6 +71,7 @@ COORDINATOR_DATA = {
     "e85": {
         "credit": "Owner",
         "price": 2.83,
+        "cash_price": None,
         "last_updated": "2024-09-27T18:12:09.837Z",
     },
     "e15": {
