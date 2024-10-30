@@ -11,9 +11,10 @@ from gasbuddy import GasBuddy  # pylint: disable=import-self
 # pylint: disable-next=import-error,no-name-in-module
 from gasbuddy.exceptions import APIError, LibraryError
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Config, HomeAssistant
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -32,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup(  # pylint: disable-next=unused-argument
-    hass: HomeAssistant, config: Config
+    hass: HomeAssistant, config: ConfigType
 ) -> bool:
     """Disallow configuration via YAML."""
     return True
