@@ -28,7 +28,6 @@ from .const import (
     PLATFORMS,
     VERSION,
 )
-
 from .services import GasBuddyServices
 
 _LOGGER = logging.getLogger(__name__)

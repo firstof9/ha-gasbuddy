@@ -1,9 +1,9 @@
 """GasBuddy services."""
 
-from gasbuddy import GasBuddy  # pylint: disable=import-self
 import logging
 
 import voluptuous as vol
+from gasbuddy import GasBuddy  # pylint: disable=import-self
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import (
@@ -16,10 +16,7 @@ from homeassistant.core import (
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
-from .const import (
-    DOMAIN,
-    SERVICE_LOOKUP_GPS,
-)
+from .const import DOMAIN, SERVICE_LOOKUP_GPS
 
 _LOGGER = logging.getLogger(__name__)
 

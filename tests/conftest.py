@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from aioresponses import aioresponses
+
 from tests.const import COORDINATOR_DATA, COORDINATOR_DATA_CAD
 
 
@@ -45,6 +46,7 @@ def mock_gasbuddy_cad():
     ) as mock_value:
         mock_value.return_value = COORDINATOR_DATA_CAD
         yield
+
 
 @pytest.fixture
 def mock_aioclient():
