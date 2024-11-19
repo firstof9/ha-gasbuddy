@@ -24,6 +24,9 @@ VERSION = "1.0"
 ISSUE_URL = "https://github.com/firstof9/ha-gasbuddy/issues"
 PLATFORMS = ["sensor"]
 
+# services
+SERVICE_LOOKUP_GPS = "lookup_gps"
+
 # sensor constants
 UNIT_OF_MEASURE = {
     "dollars_per_gallon": "gallon",

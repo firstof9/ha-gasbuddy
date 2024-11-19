@@ -1,1 +1,1 @@
-py-gasbuddy==0.2.8
+py-gasbuddy==0.2.9
