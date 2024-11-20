@@ -14,7 +14,6 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN, SERVICE_LOOKUP_GPS
 
@@ -62,6 +61,6 @@ class GasBuddyServices:
                 results[entity_id] = await GasBuddy().price_lookup_gps(lat=lat, lon=lon)
             except Exception as err:
                 _LOGGER.error("Error checking prices: %s", err)
-                pass
+
         _LOGGER.debug("GPS price lookup: %s", results)
         return results
