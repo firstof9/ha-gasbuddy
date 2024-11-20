@@ -1,0 +1,1056 @@
+{
+    "data": {
+        "locationBySearchTerm": {
+            "stations": {
+                "results": [
+                    {
+                        "address": {
+                            "line1": "1520 N Verrado Way"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "fred1129",
+                                    "postedTime": "2024-11-18T21:58:38.859Z",
+                                    "price": 3.28
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "fred1129",
+                                    "postedTime": "2024-11-18T21:58:38.891Z",
+                                    "price": 3.73
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "fred1129",
+                                    "postedTime": "2024-11-18T21:58:38.915Z",
+                                    "price": 4
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "fred1129",
+                                    "postedTime": "2024-11-18T21:58:38.946Z",
+                                    "price": 3.5
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "187725",
+                        "latitude": 33.465405037595,
+                        "longitude": -112.505053281784
+                    },
+                    {
+                        "address": {
+                            "line1": "1101 N Verrado Way"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "shaedixon",
+                                    "postedTime": "2024-11-19T20:14:13.097Z",
+                                    "price": 2.99
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "shaedixon",
+                                    "postedTime": "2024-11-19T20:14:13.112Z",
+                                    "price": 3.59
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "208656",
+                        "latitude": 33.459108,
+                        "longitude": -112.502745
+                    },
+                    {
+                        "address": {
+                            "line1": "1419 N 195th Ave"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "AZ1234OH",
+                                    "postedTime": "2024-11-19T19:45:42.189Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-19T20:11:12.735Z",
+                                    "price": 3.59
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "87490",
+                        "latitude": 33.463606029106,
+                        "longitude": -112.478361278772
+                    },
+                    {
+                        "address": {
+                            "line1": "721 N 195th Ave"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "AZ1234OH",
+                                    "postedTime": "2024-11-19T19:47:09.541Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-18T21:40:14.467Z",
+                                    "price": 3.57
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-18T21:40:14.501Z",
+                                    "price": 3.9
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-18T21:40:14.450Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "110402",
+                        "latitude": 33.45521911375,
+                        "longitude": -112.47843503952
+                    },
+                    {
+                        "address": {
+                            "line1": "19600 W Indian School Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "visitor",
+                                    "postedTime": "2024-11-18T20:13:30.111Z",
+                                    "price": 3.25
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "e85",
+                                "longName": "E85"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "203982",
+                        "latitude": 33.49422,
+                        "longitude": -112.481428
+                    },
+                    {
+                        "address": {
+                            "line1": "537 S Watson Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:52:16.224Z",
+                                    "price": 3.25
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:52:16.239Z",
+                                    "price": 3.57
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:52:16.255Z",
+                                    "price": 3.9
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:52:16.270Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "126744",
+                        "latitude": 33.44211461302,
+                        "longitude": -112.555931434035
+                    },
+                    {
+                        "address": {
+                            "line1": "900 S Watson Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:24:52.644Z",
+                                    "price": 3.25
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:24:52.673Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "201250",
+                        "latitude": 33.438058,
+                        "longitude": -112.556863
+                    },
+                    {
+                        "address": {
+                            "line1": "1300 S Watson Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:24:51.815Z",
+                                    "price": 3.25
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "Buddy_264bve4j",
+                                    "postedTime": "2024-11-17T04:01:40.636Z",
+                                    "price": 3.55
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "Buddy_264bve4j",
+                                    "postedTime": "2024-11-17T04:01:40.653Z",
+                                    "price": 3.85
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-18T23:24:51.863Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "38363",
+                        "latitude": 33.433889019768,
+                        "longitude": -112.55678974092
+                    },
+                    {
+                        "address": {
+                            "line1": "1610 N Miller Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.383Z",
+                                    "price": 3.29
+                                },
+                                "credit": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.368Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.416Z",
+                                    "price": 3.64
+                                },
+                                "credit": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.383Z",
+                                    "price": 3.64
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.432Z",
+                                    "price": 3.94
+                                },
+                                "credit": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.416Z",
+                                    "price": 3.94
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.462Z",
+                                    "price": 3.37
+                                },
+                                "credit": {
+                                    "nickname": "Owner",
+                                    "postedTime": "2024-11-19T20:52:37.446Z",
+                                    "price": 3.43
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "27487",
+                        "latitude": 33.43129061,
+                        "longitude": -112.5916377
+                    },
+                    {
+                        "address": {
+                            "line1": "1850 S Miller Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "lateshow5",
+                                    "postedTime": "2024-11-19T17:40:04.507Z",
+                                    "price": 3.19
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "lateshow5",
+                                    "postedTime": "2024-11-19T17:40:04.530Z",
+                                    "price": 3.79
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "lateshow5",
+                                    "postedTime": "2024-11-19T17:40:04.546Z",
+                                    "price": 3.23
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "160044",
+                        "latitude": 33.429511791011,
+                        "longitude": -112.591884434223
+                    },
+                    {
+                        "address": {
+                            "line1": "2075 S Miller Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-19T01:34:40.425Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "hondariderAZ",
+                                    "postedTime": "2024-11-19T01:34:40.457Z",
+                                    "price": 3.19
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "e85",
+                                "longName": "E85"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "135437",
+                        "latitude": 33.427513643272,
+                        "longitude": -112.5904494524
+                    },
+                    {
+                        "address": {
+                            "line1": "16380 W Yuma Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "visitor",
+                                    "postedTime": "2024-11-18T16:46:50.554Z",
+                                    "price": 3.35
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-19T04:14:00.567Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "130812",
+                        "latitude": 33.436168762292,
+                        "longitude": -112.410092353821
+                    },
+                    {
+                        "address": {
+                            "line1": "15535 W McDowell Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "1040PRO",
+                                    "postedTime": "2024-11-19T00:06:44.507Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "1040PRO",
+                                    "postedTime": "2024-11-19T00:06:44.523Z",
+                                    "price": 3.61
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "Gasazhunter",
+                                    "postedTime": "2024-11-19T07:06:31.330Z",
+                                    "price": 3.94
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "Gasazhunter",
+                                    "postedTime": "2024-11-19T07:06:31.362Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "200905",
+                        "latitude": 33.464100135648,
+                        "longitude": -112.392995673897
+                    },
+                    {
+                        "address": {
+                            "line1": "440 N Estrella Pkwy"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "rydgomez",
+                                    "postedTime": "2024-11-19T14:25:13.188Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "rydgomez",
+                                    "postedTime": "2024-11-19T14:25:13.219Z",
+                                    "price": 3.65
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "rydgomez",
+                                    "postedTime": "2024-11-19T14:25:13.250Z",
+                                    "price": 3.99
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "85320",
+                        "latitude": 33.450994020943,
+                        "longitude": -112.393591403961
+                    },
+                    {
+                        "address": {
+                            "line1": "575 N Estrella Pkwy"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-18T23:10:48.448Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-19T20:11:14.161Z",
+                                    "price": 3.89
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-17T22:43:43.132Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "155795",
+                        "latitude": 33.453106593078,
+                        "longitude": -112.391874790192
+                    },
+                    {
+                        "address": {
+                            "line1": "307 E US-85"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "blugan459",
+                                    "postedTime": "2024-11-19T19:28:04.551Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-18T14:21:32.399Z",
+                                    "price": 3.51
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-18T14:21:32.415Z",
+                                    "price": 3.84
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "118417",
+                        "latitude": 33.372885645171,
+                        "longitude": -112.573994770646
+                    },
+                    {
+                        "address": {
+                            "line1": "825 E Monroe Ave"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-19T06:10:51.528Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "154238",
+                        "latitude": 33.370246,
+                        "longitude": -112.578796
+                    },
+                    {
+                        "address": {
+                            "line1": "501 E Monroe Ave"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-19T00:11:00.026Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "150938",
+                        "latitude": 33.370298,
+                        "longitude": -112.584743
+                    },
+                    {
+                        "address": {
+                            "line1": "1540 N Bullard Ave"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "1040PRO",
+                                    "postedTime": "2024-11-19T00:08:50.483Z",
+                                    "price": 3.29
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "1040PRO",
+                                    "postedTime": "2024-11-19T00:08:50.500Z",
+                                    "price": 3.59
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "1040PRO",
+                                    "postedTime": "2024-11-19T00:08:50.517Z",
+                                    "price": 3.89
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "1040PRO",
+                                    "postedTime": "2024-11-19T00:08:50.532Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "209199",
+                        "latitude": 33.463504,
+                        "longitude": -112.376616
+                    },
+                    {
+                        "address": {
+                            "line1": "15112 W Camelback Rd"
+                        },
+                        "prices": [
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "DataFeed",
+                                    "postedTime": "2024-11-18T19:41:00.818Z",
+                                    "price": 3.69
+                                },
+                                "fuelProduct": "regular_gas",
+                                "longName": "Regular"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "midgrade_gas",
+                                "longName": "Midgrade"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": null,
+                                    "postedTime": null,
+                                    "price": 0
+                                },
+                                "fuelProduct": "premium_gas",
+                                "longName": "Premium"
+                            },
+                            {
+                                "cash": null,
+                                "credit": {
+                                    "nickname": "Gasazhunter",
+                                    "postedTime": "2024-11-19T07:06:38.277Z",
+                                    "price": 3.49
+                                },
+                                "fuelProduct": "diesel",
+                                "longName": "Diesel"
+                            }
+                        ],
+                        "priceUnit": "dollars_per_gallon",
+                        "currency": "USD",
+                        "id": "210893",
+                        "latitude": 33.508978014684,
+                        "longitude": -112.385149090654
+                    }
+                ]
+            }
+        }
+    }
+}

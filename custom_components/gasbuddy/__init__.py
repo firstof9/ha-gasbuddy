@@ -28,6 +28,7 @@ from .const import (
     PLATFORMS,
     VERSION,
 )
+from .services import GasBuddyServices
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,6 +68,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         raise ConfigEntryNotReady
 
     hass.data[DOMAIN][config_entry.entry_id] = {COORDINATOR: coordinator}
+
+    services = GasBuddyServices(hass, config_entry)
+    services.async_register()
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
     return True
