@@ -34,7 +34,6 @@ async def test_lookup_gps(
         TEST_URL,
         status=200,
         body=load_fixture("results.json"),
-        repeat=True,
     )
 
     entry.add_to_hass(hass)
@@ -68,3 +67,19 @@ async def test_lookup_gps(
             response[entity_id]["results"][0]["regular_gas"]["last_updated"]
             == "2024-11-18T21:58:38.859Z"
         )
+
+    mock_aioclient.post(
+        TEST_URL,
+        status=400,
+        body="¯\_(ツ)_/¯",
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LOOKUP_GPS,
+            {ATTR_ENTITY_ID: entity_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert "Error checking prices:" in caplog.text
