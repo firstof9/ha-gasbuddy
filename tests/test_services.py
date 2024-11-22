@@ -6,7 +6,7 @@ import pytest
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gasbuddy.const import DOMAIN
+from custom_components.gasbuddy.const import ATTR_LIMIT, DOMAIN
 from tests.common import load_fixture
 
 from .const import CONFIG_DATA
@@ -67,6 +67,22 @@ async def test_lookup_gps(
             response[entity_id]["results"][0]["regular_gas"]["last_updated"]
             == "2024-11-18T21:58:38.859Z"
         )
+
+        mock_aioclient.post(
+            TEST_URL,
+            status=200,
+            body=load_fixture("results.json"),
+        )
+
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LOOKUP_GPS,
+            {ATTR_ENTITY_ID: entity_id, ATTR_LIMIT: 10},
+            blocking=True,
+            return_response=True,
+        )
+
+        assert len(response[entity_id]["results"]) == 10
 
     mock_aioclient.post(
         TEST_URL,
