@@ -3,4 +3,6 @@ lookup_gps:
   description: List gas prices based on GPS coordinates of device tracker.
   target:
     entity:
-      domain: device_tracker   
+      domain: 
+        - device_tracker
+        - person
