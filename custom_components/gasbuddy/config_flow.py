@@ -59,6 +59,9 @@ async def _get_station_list(hass, user_input) -> list | None:
         full_name = f'{station["name"]} @ {station["address"]["line1"]}'
         stations_list[station["id"]] = full_name
 
+    if len(stations_list) == 0:
+        stations_list["-"] = "No stations in search area."
+
     _LOGGER.debug("stations_list: %s", stations_list)
     return stations_list
 
@@ -140,7 +143,7 @@ def _get_schema_station_list(
         {
             vol.Required(
                 CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
-            ): vol.In(station_list),
+            ): vol.All(vol.In(station_list), vol.NotIn(["-"])),
             vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
         }
     )
@@ -239,6 +242,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         station_list = await _get_station_list(self.hass, user_input)
 
+        if "-" in station_list.keys():
+            self._errors[CONF_STATION_ID] = "no_results"
+
         return self.async_show_form(
             step_id="home",
             data_schema=_get_schema_home(self.hass, user_input, defaults, station_list),
@@ -282,6 +288,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         defaults = {}
 
         station_list = await _get_station_list(self.hass, self._data)
+
+        if "-" in station_list.keys():
+            self._errors[CONF_STATION_ID] = "no_results"
 
         return self.async_show_form(
             step_id="station_list",
