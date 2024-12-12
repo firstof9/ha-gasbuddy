@@ -1,7 +1,8 @@
 {
     "config": {
         "error": {
-            "station_id": "ID de estação inválido"
+            "station_id": "ID de estação inválido",
+            "no_results": "No stations found in this area."
         },
         "step": {
             "user": {
