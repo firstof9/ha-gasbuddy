@@ -1,0 +1,151 @@
+{
+    "data": {
+        "locationBySearchTerm": {
+            "stations": {
+                "count": 92,
+                "results": [
+                    {
+                        "address": {
+                            "line1": "1520 N Verrado Way"
+                        },
+                        "id": "187725",
+                        "name": "Shell"
+                    },
+                    {
+                        "address": {
+                            "line1": "1101 N Verrado Way"
+                        },
+                        "id": "208656",
+                        "name": "Costco"
+                    },
+                    {
+                        "address": {
+                            "line1": "1419 N 195th Ave"
+                        },
+                        "id": "87490",
+                        "name": "Chevron"
+                    },
+                    {
+                        "address": {
+                            "line1": "721 N 195th Ave"
+                        },
+                        "id": "110402",
+                        "name": "Circle K"
+                    },
+                    {
+                        "address": {
+                            "line1": "19600 W Indian School Rd"
+                        },
+                        "id": "203982",
+                        "name": "Fry's"
+                    },
+                    {
+                        "address": {
+                            "line1": "537 S Watson Rd"
+                        },
+                        "id": "126744",
+                        "name": "Circle K"
+                    },
+                    {
+                        "address": {
+                            "line1": "900 S Watson Rd"
+                        },
+                        "id": "201250",
+                        "name": "QuikTrip"
+                    },
+                    {
+                        "address": {
+                            "line1": "1300 S Watson Rd"
+                        },
+                        "id": "38363",
+                        "name": "Fry's"
+                    },
+                    {
+                        "address": {
+                            "line1": "1610 N Miller Rd"
+                        },
+                        "id": "27487",
+                        "name": "Love's Travel Stop"
+                    },
+                    {
+                        "address": {
+                            "line1": "1850 S Miller Rd"
+                        },
+                        "id": "160044",
+                        "name": "QuikTrip"
+                    },
+                    {
+                        "address": {
+                            "line1": "2075 S Miller Rd"
+                        },
+                        "id": "135437",
+                        "name": "Chevron"
+                    },
+                    {
+                        "address": {
+                            "line1": "16380 W Yuma Rd"
+                        },
+                        "id": "130812",
+                        "name": "Fry's"
+                    },
+                    {
+                        "address": {
+                            "line1": "15535 W McDowell Rd"
+                        },
+                        "id": "200905",
+                        "name": "Circle K"
+                    },
+                    {
+                        "address": {
+                            "line1": "440 N Estrella Pkwy"
+                        },
+                        "id": "85320",
+                        "name": "Safeway"
+                    },
+                    {
+                        "address": {
+                            "line1": "575 N Estrella Pkwy"
+                        },
+                        "id": "155795",
+                        "name": "QuikTrip"
+                    },
+                    {
+                        "address": {
+                            "line1": "307 E US-85"
+                        },
+                        "id": "118417",
+                        "name": "Circle K"
+                    },
+                    {
+                        "address": {
+                            "line1": "825 E Monroe Ave"
+                        },
+                        "id": "154238",
+                        "name": "Chevron"
+                    },
+                    {
+                        "address": {
+                            "line1": "501 E Monroe Ave"
+                        },
+                        "id": "150938",
+                        "name": "Shell"
+                    },
+                    {
+                        "address": {
+                            "line1": "1540 N Bullard Ave"
+                        },
+                        "id": "209199",
+                        "name": "QuikTrip"
+                    },
+                    {
+                        "address": {
+                            "line1": "14175 W Indian School Rd"
+                        },
+                        "id": "27442",
+                        "name": "Safeway"
+                    }
+                ]
+            }
+        }
+    }
+}
