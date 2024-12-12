@@ -60,7 +60,7 @@ async def test_form_home(
         status=200,
         body=load_fixture("location_results.json"),
         repeat=True,
-    )        
+    )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -132,7 +132,7 @@ async def test_form_postal(
         status=200,
         body=load_fixture("location_results.json"),
         repeat=True,
-    )            
+    )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -273,7 +273,7 @@ async def test_form_home_no_stations(
         status=200,
         body=load_fixture("no_results.json"),
         repeat=True,
-    )    
+    )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
