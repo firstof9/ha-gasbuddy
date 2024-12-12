@@ -19,7 +19,7 @@ from custom_components.gasbuddy.const import (
 )
 from tests.const import CONFIG_DATA, STATION_LIST
 
-NO_STATIONS_LIST = { "-": "No stations in search area." }
+NO_STATIONS_LIST = {"-": "No stations in search area."}
 
 pytestmark = pytest.mark.asyncio
 
@@ -283,7 +283,7 @@ async def test_form_home_no_stations(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        assert result["errors"] == {'station_id': 'no_results'}
+        assert result["errors"] == {"station_id": "no_results"}
 
 
 @pytest.mark.parametrize(
@@ -350,5 +350,4 @@ async def test_form_postal_no_stations(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "station_list"
-        assert result["errors"] == {'station_id': 'no_results'}
-   
+        assert result["errors"] == {"station_id": "no_results"}
