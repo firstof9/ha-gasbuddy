@@ -12,9 +12,10 @@ CONF_INTERVAL = "interval"
 CONF_NAME = "name"
 CONF_POSTAL = "zipcode"
 CONF_UOM = "uom"
+CONF_GPS = "gps"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
-CONFIG_VER = 4
+CONFIG_VER = 5
 
 # hass.data attribues
 ATTR_IMAGEURL = "image_url"

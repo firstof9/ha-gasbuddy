@@ -1,6 +1,7 @@
 """Constants for tests."""
 
 from custom_components.gasbuddy.const import (
+    CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_STATION_ID,
@@ -12,6 +13,7 @@ CONFIG_DATA = {
     CONF_INTERVAL: 3600,
     CONF_STATION_ID: 208656,
     CONF_UOM: True,
+    CONF_GPS: True,
 }
 
 CONFIG_DATA_NO_UOM = {
@@ -19,12 +21,14 @@ CONFIG_DATA_NO_UOM = {
     CONF_INTERVAL: 3600,
     CONF_STATION_ID: 208656,
     CONF_UOM: False,
+    CONF_GPS: True,
 }
 
 CONFIG_DATA_V1 = {
     CONF_NAME: "Gas Station",
     CONF_INTERVAL: 3600,
     CONF_STATION_ID: 208656,
+    CONF_GPS: True,
 }
 
 STATION_LIST = {
@@ -55,6 +59,7 @@ COORDINATOR_DATA = {
     "image_url": "https://images.gasbuddy.io/b/122.png",
     "unit_of_measure": "dollars_per_gallon",
     "currency": "USD",
+    "gps": True,
     "latitude": 33.459108,
     "longitude": -112.502745,
     "regular_gas": {
@@ -87,6 +92,7 @@ COORDINATOR_DATA_CAD = {
     "image_url": None,
     "unit_of_measure": "cents_per_liter",
     "currency": "CAD",
+    "gps": True,
     "latitude": 33.459108,
     "longitude": -112.502745,
     "regular_gas": {
