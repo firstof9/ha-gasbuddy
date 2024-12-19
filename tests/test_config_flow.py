@@ -9,6 +9,7 @@ from homeassistant.data_entry_flow import FlowResult, FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import (
+    CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
@@ -37,6 +38,7 @@ pytestmark = pytest.mark.asyncio
             "user",
             DEFAULT_NAME,
             {
+                CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
@@ -113,6 +115,7 @@ async def test_form_home(
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
+                CONF_GPS: True,
             },
         ),
     ],
@@ -191,6 +194,7 @@ async def test_form_postal(
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
+                CONF_GPS: True,
             },
         ),
     ],
@@ -254,6 +258,7 @@ async def test_form_manual(
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
+                CONF_GPS: True,
             },
         ),
     ],
@@ -317,6 +322,7 @@ async def test_form_home_no_stations(
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
+                CONF_GPS: True,
             },
         ),
     ],

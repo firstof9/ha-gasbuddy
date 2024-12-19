@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ATTR_IMAGEURL,
+    CONF_GPS,
     CONF_NAME,
     CONF_STATION_ID,
     CONF_UOM,
@@ -119,8 +120,9 @@ class GasBuddySensor(
         attrs[ATTR_ATTRIBUTION] = f"{credit} via GasBuddy"
         attrs["last_updated"] = self.coordinator.data[self._type]["last_updated"]
         attrs[CONF_STATION_ID] = self.coordinator.data[CONF_STATION_ID]
-        attrs[ATTR_LATITUDE] = self.coordinator.data[ATTR_LATITUDE]
-        attrs[ATTR_LONGITUDE] = self.coordinator.data[ATTR_LONGITUDE]
+        if self._config.data[CONF_GPS]:
+            attrs[ATTR_LATITUDE] = self.coordinator.data[ATTR_LATITUDE]
+            attrs[ATTR_LONGITUDE] = self.coordinator.data[ATTR_LONGITUDE]
         return attrs
 
     @property

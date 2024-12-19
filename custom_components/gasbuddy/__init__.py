@@ -18,6 +18,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    CONF_GPS,
     CONF_INTERVAL,
     CONF_STATION_ID,
     CONF_UOM,
@@ -53,6 +54,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     updated_config = config_entry.data.copy()
     if CONF_UOM not in config_entry.data.keys():
         updated_config[CONF_UOM] = True
+    if CONF_GPS not in config_entry.data.keys():
+        updated_config[CONF_GPS] = True
 
     if updated_config != config_entry.data:
         hass.config_entries.async_update_entry(config_entry, data=updated_config)
@@ -106,6 +109,10 @@ async def async_migrate_entry(hass, config_entry) -> bool:
         # Add default unit of measure setting if missing
         if CONF_UOM not in updated_config.keys():
             updated_config[CONF_UOM] = True
+
+    if version < 5:
+        if CONF_GPS not in updated_config.keys():
+            updated_config[CONF_GPS] = True
 
     if updated_config != config_entry.data:
         hass.config_entries.async_update_entry(
