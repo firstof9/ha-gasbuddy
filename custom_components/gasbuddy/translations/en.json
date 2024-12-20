@@ -50,7 +50,8 @@
             "init": {
                 "data": {
                     "interval": "Polling interval",
-                    "uom": "Show per liter/gallon in unit of measure"
+                    "uom": "Show per liter/gallon in unit of measure",
+                    "gps": "Show stations on map (disable lat/long attributes)"
                 }
             }
         }

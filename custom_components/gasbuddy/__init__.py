@@ -87,6 +87,7 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
 
     original_config[CONF_INTERVAL] = config_entry.options[CONF_INTERVAL]
     original_config[CONF_UOM] = config_entry.options[CONF_UOM]
+    original_config[CONF_GPS] = config_entry.options[CONF_GPS]
 
     hass.config_entries.async_update_entry(
         entry=config_entry,
