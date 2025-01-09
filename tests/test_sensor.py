@@ -75,7 +75,7 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
 
     state = hass.states.get("sensor.gas_station_last_updated")
     assert state
-    assert state.state == "2025-01-09T16:12:51+00:00"   
+    assert state.state == "2025-01-09T16:12:51+00:00"
 
 
 async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):

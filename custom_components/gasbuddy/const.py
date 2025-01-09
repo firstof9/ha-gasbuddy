@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorDeviceClass
 from typing import Final
+
+from homeassistant.components.sensor import SensorDeviceClass
 
 from .entity import GasBuddySensorEntityDescription
 
@@ -44,7 +45,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:update",
         price=False,
         device_class=SensorDeviceClass.TIMESTAMP,
-    ),    
+    ),
     "regular_gas": GasBuddySensorEntityDescription(
         key="regular_gas",
         name="Regular Gas",

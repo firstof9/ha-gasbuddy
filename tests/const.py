@@ -109,5 +109,5 @@ COORDINATOR_DATA_CAD = {
         "cash_price": 145.2,
         "last_updated": "2023-12-10T17:31:01.856Z",
     },
-    "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=timezone.utc),    
+    "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=timezone.utc),
 }
