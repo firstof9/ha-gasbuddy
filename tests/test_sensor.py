@@ -1,5 +1,6 @@
 """Test gasbuddy sensors."""
 
+from datetime import datetime
 import pytest
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
@@ -27,7 +28,7 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -72,6 +73,10 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state
     assert state.state == "3.35"
 
+    state = hass.states.get("sensor.gas_station_last_updated")
+    assert state
+    assert state.state == "2025-01-09T16:12:51+00:00"   
+
 
 async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     """Test setup_entry."""
@@ -85,7 +90,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -140,7 +145,7 @@ async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRe
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 

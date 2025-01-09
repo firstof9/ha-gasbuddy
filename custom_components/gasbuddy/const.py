@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from homeassistant.components.sensor import SensorDeviceClass
 from typing import Final
 
 from .entity import GasBuddySensorEntityDescription
@@ -37,6 +38,13 @@ UNIT_OF_MEASURE = {
 
 
 SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
+    "last_updated": GasBuddySensorEntityDescription(
+        name="Last Updated",
+        key="last_updated",
+        icon="mdi:update",
+        price=False,
+        device_class=SensorDeviceClass.TIMESTAMP,
+    ),    
     "regular_gas": GasBuddySensorEntityDescription(
         key="regular_gas",
         name="Regular Gas",
