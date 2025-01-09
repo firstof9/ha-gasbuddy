@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from gasbuddy import GasBuddy  # pylint: disable=import-self
 
@@ -182,4 +182,5 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         except Exception as exception:
             raise UpdateFailed() from exception
 
+        self._data["last_updated"] = datetime.now()
         return self._data

@@ -12,3 +12,4 @@ class GasBuddySensorEntityDescription(SensorEntityDescription):
     """Class describing OpenEVSE select entities."""
 
     cash: bool | None = None
+    price: bool | None = True
