@@ -36,7 +36,7 @@
                     "zipcode": "Code postal (code postal)"
                 }
             },     
-            "postal_list": {
+            "station_list": {
                 "description": "Veuillez sélectionner une station",
                 "data": {
                     "station_id": "station service"

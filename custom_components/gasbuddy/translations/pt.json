@@ -37,7 +37,7 @@
                     "zipcode": "Código Postal (CEP)"
                 }
             },     
-            "postal_list": {
+            "station_list": {
                 "description": "Por favor, selecione uma estação",
                 "data": {
                     "station_id": "Estação"
