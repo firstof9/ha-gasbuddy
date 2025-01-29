@@ -122,7 +122,9 @@ def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
 
     return vol.Schema(
         {
-            vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(str),
+            vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(
+                str
+            ),
         }
     )
 
