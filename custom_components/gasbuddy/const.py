@@ -51,7 +51,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="Regular Gas",
         icon="mdi:gas-station",
         suggested_display_precision=2,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "midgrade_gas": GasBuddySensorEntityDescription(
@@ -59,7 +58,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="MidGrade Gas",
         icon="mdi:gas-station",
         suggested_display_precision=2,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "premium_gas": GasBuddySensorEntityDescription(
@@ -67,7 +65,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="Premium Gas",
         icon="mdi:gas-station",
         suggested_display_precision=2,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "diesel": GasBuddySensorEntityDescription(
@@ -76,7 +73,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "regular_gas_cash": GasBuddySensorEntityDescription(
@@ -86,7 +82,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "midgrade_gas_cash": GasBuddySensorEntityDescription(
@@ -96,7 +91,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "premium_gas_cash": GasBuddySensorEntityDescription(
@@ -106,7 +100,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "diesel_cash": GasBuddySensorEntityDescription(
@@ -116,7 +109,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     # special fuels
@@ -126,7 +118,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "e85_cash": GasBuddySensorEntityDescription(
@@ -136,7 +127,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "e15": GasBuddySensorEntityDescription(
@@ -145,7 +135,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "e15_cash": GasBuddySensorEntityDescription(
@@ -155,7 +144,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         icon="mdi:gas-station",
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
-        device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
 }
