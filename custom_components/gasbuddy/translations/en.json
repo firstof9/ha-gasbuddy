@@ -55,5 +55,8 @@
                 }
             }
         }
-    }
+    },
+    "services": {
+        "zipcode": "Postal Code (zip code)",
+    }    
 }

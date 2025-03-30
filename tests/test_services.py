@@ -128,7 +128,7 @@ async def test_lookup_zip(
         response = await hass.services.async_call(
             DOMAIN,
             SERVICE_LOOKUP_ZIP,
-            {ATTR_POSTAL_CODE: 12345},
+            {ATTR_POSTAL_CODE: 12345, ATTR_LIMIT: 10},
             blocking=True,
             return_response=True,
         )
@@ -142,3 +142,19 @@ async def test_lookup_zip(
         assert response["trend"]["area"] == "Arizona"
         assert response["trend"]["average_price"] == 3.33
         assert response["trend"]["lowest_price"] == 2.59
+
+    mock_aioclient.post(
+        TEST_URL,
+        status=400,
+        body="¯\_(ツ)_/¯",
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LOOKUP_ZIP,
+            {ATTR_POSTAL_CODE: 12345},
+            blocking=True,
+            return_response=True,
+        )
+        assert "Error checking prices:" in caplog.text
