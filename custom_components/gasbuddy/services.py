@@ -15,7 +15,13 @@ from homeassistant.core import (
 )
 from homeassistant.helpers import config_validation as cv
 
-from .const import ATTR_LIMIT, ATTR_POSTAL_CODE, DOMAIN, SERVICE_LOOKUP_GPS, SERVICE_LOOKUP_ZIP
+from .const import (
+    ATTR_LIMIT,
+    ATTR_POSTAL_CODE,
+    DOMAIN,
+    SERVICE_LOOKUP_GPS,
+    SERVICE_LOOKUP_ZIP,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +68,7 @@ class GasBuddyServices:
                 }
             ),
             supports_response=SupportsResponse.ONLY,
-        )        
+        )
 
     # Setup services
     async def _price_lookup_gps(self, service: ServiceCall) -> ServiceResponse:

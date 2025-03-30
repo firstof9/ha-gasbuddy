@@ -101,6 +101,7 @@ async def test_lookup_gps(
         )
         assert "Error checking prices:" in caplog.text
 
+
 async def test_lookup_zip(
     hass,
     mock_gasbuddy,
