@@ -10,6 +10,8 @@ lookup_gps:
 lookup_zip:
   name: Lookup Zip
   description: List gas prices based on entered ZIP code.
-  target:
-    text:
-    
+  fields:
+    zipcode:
+      selector:
+        text:
+      required: true
