@@ -61,7 +61,9 @@
             "name": "Lookup Zip",
             "description": "List gas prices based on entered ZIP code.",
             "fields": {
-                "zipcode": "Postal Code (zip code)"
+                "zipcode": {
+                    "name": "Postal Code (zip code)"
+                }
             }
         }
     }    
