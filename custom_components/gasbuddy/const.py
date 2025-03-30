@@ -22,6 +22,7 @@ CONFIG_VER = 5
 # hass.data attribues
 ATTR_IMAGEURL = "image_url"
 ATTR_LIMIT = "limit"
+ATTR_POSTAL_CODE = "zipcode"
 COORDINATOR = "coordinator"
 DOMAIN = "gasbuddy"
 VERSION = "1.0"
@@ -30,6 +31,7 @@ PLATFORMS = ["sensor"]
 
 # services
 SERVICE_LOOKUP_GPS = "lookup_gps"
+SERVICE_LOOKUP_ZIP = "lookup_zip"
 
 # sensor constants
 UNIT_OF_MEASURE = {

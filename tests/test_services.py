@@ -6,12 +6,13 @@ import pytest
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gasbuddy.const import ATTR_LIMIT, DOMAIN
+from custom_components.gasbuddy.const import ATTR_LIMIT, ATTR_POSTAL_CODE, DOMAIN
 from tests.common import load_fixture
 
 from .const import CONFIG_DATA
 
 SERVICE_LOOKUP_GPS = "lookup_gps"
+SERVICE_LOOKUP_ZIP = "lookup_zip"
 
 pytestmark = pytest.mark.asyncio
 
@@ -95,6 +96,64 @@ async def test_lookup_gps(
             DOMAIN,
             SERVICE_LOOKUP_GPS,
             {ATTR_ENTITY_ID: entity_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert "Error checking prices:" in caplog.text
+
+
+async def test_lookup_zip(
+    hass,
+    mock_gasbuddy,
+    mock_aioclient,
+    caplog,
+):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL,
+        status=200,
+        body=load_fixture("results.json"),
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LOOKUP_ZIP,
+            {ATTR_POSTAL_CODE: 12345, ATTR_LIMIT: 10},
+            blocking=True,
+            return_response=True,
+        )
+
+        assert response["results"][0]["regular_gas"]["price"] == 3.28
+        assert response["results"][0]["regular_gas"]["credit"] == "fred1129"
+        assert (
+            response["results"][0]["regular_gas"]["last_updated"]
+            == "2024-11-18T21:58:38.859Z"
+        )
+        assert response["trend"]["area"] == "Arizona"
+        assert response["trend"]["average_price"] == 3.33
+        assert response["trend"]["lowest_price"] == 2.59
+
+    mock_aioclient.post(
+        TEST_URL,
+        status=400,
+        body="¯\_(ツ)_/¯",
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LOOKUP_ZIP,
+            {ATTR_POSTAL_CODE: 12345},
             blocking=True,
             return_response=True,
         )

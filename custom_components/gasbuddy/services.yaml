@@ -6,3 +6,12 @@ lookup_gps:
       domain: 
         - device_tracker
         - person
+
+lookup_zip:
+  name: Lookup Zip
+  description: List gas prices based on entered ZIP code.
+  fields:
+    zipcode:
+      selector:
+        text:
+      required: true
