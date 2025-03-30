@@ -57,6 +57,12 @@
         }
     },
     "services": {
-        "zipcode": "Postal Code (zip code)",
+        "lookup_zip": {
+            "name": "Lookup Zip",
+            "description": "List gas prices based on entered ZIP code.",
+            "fields": {
+                "zipcode": "Postal Code (zip code)"
+            }
+        }
     }    
 }
