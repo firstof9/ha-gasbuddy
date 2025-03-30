@@ -1050,7 +1050,23 @@
                         "longitude": -112.385149090654
                     }
                 ]
-            }
+            },
+            "trends": [
+                {
+                    "areaName": "Arizona",
+                    "country": "US",
+                    "today": 3.33,
+                    "todayLow": 2.59,
+                    "trend": 0
+                },
+                {
+                    "areaName": "United States",
+                    "country": "US",
+                    "today": 3.11,
+                    "todayLow": 0,
+                    "trend": -1
+                }
+            ]              
         }
     }
 }
