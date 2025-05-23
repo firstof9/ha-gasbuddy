@@ -17,6 +17,7 @@ SERVICE_LOOKUP_ZIP = "lookup_zip"
 pytestmark = pytest.mark.asyncio
 
 TEST_URL = "https://www.gasbuddy.com/graphql"
+GB_URL = "https://www.gasbuddy.com/home"
 
 
 async def test_lookup_gps(
@@ -30,6 +31,12 @@ async def test_lookup_gps(
         domain=DOMAIN,
         title="Gas Station",
         data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
     )
     mock_aioclient.post(
         TEST_URL,
@@ -113,6 +120,12 @@ async def test_lookup_zip(
         domain=DOMAIN,
         title="Gas Station",
         data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
     )
     mock_aioclient.post(
         TEST_URL,
