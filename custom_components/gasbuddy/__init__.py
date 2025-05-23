@@ -163,6 +163,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.interval = timedelta(seconds=interval)
         self._data = {}
+        self._api = GasBuddy(station_id=config.data[CONF_STATION_ID])
 
         _LOGGER.debug("Data will be update every %s", self.interval)
 
@@ -170,9 +171,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Update data via library."""
-        station = self._config.data[CONF_STATION_ID]
         try:
-            self._data = await GasBuddy(station_id=station).price_lookup()
+            self._data = await self._api.price_lookup()
         except APIError:
             _LOGGER.error("API error when retreiving data.")
             self._data = {}
