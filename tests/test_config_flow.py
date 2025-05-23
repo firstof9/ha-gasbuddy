@@ -22,6 +22,7 @@ from tests.common import load_fixture
 from tests.const import CONFIG_DATA, STATION_LIST
 
 BASE_URL = "https://www.gasbuddy.com/graphql"
+GB_URL = "https://www.gasbuddy.com/home"
 NO_STATIONS_LIST = {"-": "No stations in search area."}
 
 pytestmark = pytest.mark.asyncio
@@ -57,6 +58,12 @@ async def test_form_home(
     mock_aioclient,
 ):
     """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
     mock_aioclient.post(
         BASE_URL,
         status=200,
@@ -130,6 +137,12 @@ async def test_form_postal(
     mock_aioclient,
 ):
     """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
     mock_aioclient.post(
         BASE_URL,
         status=200,
@@ -273,6 +286,12 @@ async def test_form_home_no_stations(
     mock_aioclient,
 ):
     """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
     mock_aioclient.post(
         BASE_URL,
         status=200,
@@ -337,6 +356,12 @@ async def test_form_postal_no_stations(
     mock_aioclient,
 ):
     """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
     mock_aioclient.post(
         BASE_URL,
         status=200,
