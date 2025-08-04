@@ -87,7 +87,9 @@ def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
         {
             vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): str,
             vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
-            vol.Optional(CONF_SOLVER, default=None): vol.Url(),
+            vol.Optional(
+                CONF_SOLVER, default=None
+            ): vol.Url(),  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -107,7 +109,9 @@ def _get_schema_home(
 
     return vol.Schema(
         {
-            vol.Optional(CONF_SOLVER, default=None): vol.Url(),
+            vol.Optional(
+                CONF_SOLVER, default=None
+            ): vol.Url(),  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -151,7 +155,9 @@ def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
             vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(
                 str
             ),
-            vol.Optional(CONF_SOLVER, default=None): vol.Url(),
+            vol.Optional(
+                CONF_SOLVER, default=None
+            ): vol.Url(),  # pylint: disable=no-value-for-parameter
         }
     )
 
