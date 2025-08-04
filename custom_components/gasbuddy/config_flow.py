@@ -110,7 +110,7 @@ def _get_schema_home(
     return vol.Schema(
         {
             vol.Optional(
-                CONF_SOLVER, default=None
+                CONF_SOLVER, default=_get_default(CONF_SOLVER)
             ): vol.Url(),  # pylint: disable=no-value-for-parameter
         }
     )
