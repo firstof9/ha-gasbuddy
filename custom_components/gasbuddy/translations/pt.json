@@ -15,6 +15,7 @@
             "manual": {
                 "description": "Por favor, insira o ID da estação",
                 "data": {
+                    "solver": "Flaresolver URL",
                     "station_id": "ID da Estação"
                 }
             },
@@ -28,12 +29,14 @@
             "home": {
                 "description": "Por favor, selecione uma estação",
                 "data": {
+                    "solver": "Flaresolver URL",
                     "station_id": "Estação"
                 }
             },
             "postal": {
                 "description": "Por favor, insira um código postal (CEP)",
                 "data": {
+                    "solver": "Flaresolver URL",
                     "zipcode": "Código Postal (CEP)"
                 }
             },     

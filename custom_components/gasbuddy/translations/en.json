@@ -15,6 +15,7 @@
             "manual": {
                 "description": "Please enter the Station ID",
                 "data": {
+                    "solver": "Flaresolver URL",
                     "station_id": "Station ID"
                 }
             },
@@ -28,12 +29,14 @@
             "home": {
                 "description": "Please select a station",
                 "data": {
+                    "solver": "Flaresolver URL",
                     "station_id": "Station"
                 }
             },
             "postal": {
                 "description": "Please enter a postal code (zip code)",
                 "data": {
+                    "solver": "Flaresolver URL",
                     "zipcode": "Postal Code (zip code)"
                 }
             },     
@@ -55,17 +58,5 @@
                 }
             }
         }
-    },
-    "services": {
-        "lookup_zip": {
-            "name": "Lookup Zip",
-            "description": "List gas prices based on entered ZIP code.",
-            "fields": {
-                "zipcode": {
-                    "name": "Postal Code (zip code)",
-                    "description": "Please enter a postal code (zip code) for searching"
-                }
-            }
-        }
-    }    
+    }
 }
