@@ -29,9 +29,11 @@ MENU_OPTIONS = ["manual", "search"]
 MENU_SEARCH = ["home", "postal"]
 
 
-async def validate_station(station: int) -> bool:
+async def validate_station(station: int, solver: str | None = None) -> bool:
     """Validate statation ID."""
-    check = await gasbuddy.GasBuddy(station_id=station).price_lookup()
+    check = await gasbuddy.GasBuddy(
+        solver_url=solver, station_id=station
+    ).price_lookup()
 
     if "errors" in check.keys():
         return False
@@ -232,7 +234,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input[CONF_INTERVAL] = 3600
             user_input[CONF_UOM] = True
             user_input[CONF_GPS] = True
-            validate = await validate_station(user_input[CONF_STATION_ID])
+            validate = await validate_station(
+                user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
+            )
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
