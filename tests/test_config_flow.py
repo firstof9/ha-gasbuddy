@@ -13,6 +13,7 @@ from custom_components.gasbuddy.const import (
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
+    CONF_SOLVER,
     CONF_STATION_ID,
     CONF_UOM,
     DEFAULT_NAME,
@@ -23,15 +24,19 @@ from tests.const import CONFIG_DATA, STATION_LIST
 
 BASE_URL = "https://www.gasbuddy.com/graphql"
 GB_URL = "https://www.gasbuddy.com/home"
+SOLVER_URL = "http://solver.url"
 NO_STATIONS_LIST = {"-": "No stations in search area."}
 
 pytestmark = pytest.mark.asyncio
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    "input,input2,step_id,title,data",
     [
         (
+            {
+                CONF_SOLVER: SOLVER_URL,
+            },
             {
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
@@ -44,12 +49,14 @@ pytestmark = pytest.mark.asyncio
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
+                CONF_SOLVER: SOLVER_URL,
             },
         ),
     ],
 )
 async def test_form_home(
     input,
+    input2,
     step_id,
     title,
     data,
@@ -69,6 +76,11 @@ async def test_form_home(
         status=200,
         body=load_fixture("location_results.json"),
         repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
     )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
@@ -92,9 +104,15 @@ async def test_form_home(
         )
 
         assert result["type"] == FlowResultType.FORM
-
+        assert result["step_id"] == "home"
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], input
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "home2"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input2
         )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -111,6 +129,7 @@ async def test_form_home(
         (
             {
                 CONF_POSTAL: "85396",
+                CONF_SOLVER: SOLVER_URL,
             },
             {
                 CONF_STATION_ID: "208656",
@@ -123,6 +142,7 @@ async def test_form_home(
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_GPS: True,
+                CONF_SOLVER: SOLVER_URL,
             },
         ),
     ],
@@ -148,6 +168,11 @@ async def test_form_postal(
         status=200,
         body=load_fixture("location_results.json"),
         repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
     )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
@@ -199,6 +224,7 @@ async def test_form_postal(
             {
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
+                CONF_SOLVER: SOLVER_URL,
             },
             "user",
             DEFAULT_NAME,
@@ -208,6 +234,7 @@ async def test_form_postal(
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_GPS: True,
+                CONF_SOLVER: SOLVER_URL,
             },
         ),
     ],
@@ -218,9 +245,15 @@ async def test_form_manual(
     title,
     data,
     hass,
+    mock_aioclient,
     mock_gasbuddy,
 ):
     """Test we get the form."""
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+    )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -257,9 +290,12 @@ async def test_form_manual(
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    "input,input2,step_id,title,data",
     [
         (
+            {
+                CONF_SOLVER: SOLVER_URL,
+            },
             {
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
@@ -272,12 +308,14 @@ async def test_form_manual(
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_GPS: True,
+                CONF_SOLVER: SOLVER_URL,
             },
         ),
     ],
 )
 async def test_form_home_no_stations(
     input,
+    input2,
     step_id,
     title,
     data,
@@ -297,6 +335,11 @@ async def test_form_home_no_stations(
         status=200,
         body=load_fixture("no_results.json"),
         repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
     )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
@@ -321,6 +364,11 @@ async def test_form_home_no_stations(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "home2"
         assert result["errors"] == {"station_id": "no_results"}
 
 
@@ -330,6 +378,7 @@ async def test_form_home_no_stations(
         (
             {
                 CONF_POSTAL: "85396",
+                CONF_SOLVER: SOLVER_URL,
             },
             {
                 CONF_STATION_ID: "208656",
@@ -342,6 +391,7 @@ async def test_form_home_no_stations(
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_GPS: True,
+                CONF_SOLVER: SOLVER_URL,
             },
         ),
     ],
@@ -367,6 +417,11 @@ async def test_form_postal_no_stations(
         status=200,
         body=load_fixture("no_results.json"),
         repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
     )
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(

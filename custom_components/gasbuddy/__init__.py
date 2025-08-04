@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -20,6 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     CONF_GPS,
     CONF_INTERVAL,
+    CONF_SOLVER,
     CONF_STATION_ID,
     CONF_UOM,
     CONFIG_VER,
@@ -115,6 +115,10 @@ async def async_migrate_entry(hass, config_entry) -> bool:
         if CONF_GPS not in updated_config.keys():
             updated_config[CONF_GPS] = True
 
+    if version < 6:
+        if CONF_SOLVER not in updated_config.keys():
+            updated_config[CONF_SOLVER] = None
+
     if updated_config != config_entry.data:
         hass.config_entries.async_update_entry(
             config_entry, data=updated_config, version=new_version
@@ -129,18 +133,12 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     """Handle removal of an entry."""
     _LOGGER.debug("Attempting to unload entities from the %s integration", DOMAIN)
 
-    unload_ok = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(config_entry, platform)
-                for platform in PLATFORMS
-            ]
-        )
+    unload_ok = await hass.config_entries.async_unload_platforms(
+        config_entry, PLATFORMS
     )
 
     if unload_ok:
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
-        hass.data[DOMAIN].pop(config_entry.entry_id)
 
     return unload_ok
 
@@ -163,7 +161,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.interval = timedelta(seconds=interval)
         self._data = {}
-        self._api = GasBuddy(station_id=config.data[CONF_STATION_ID])
+        self._api = GasBuddy(
+            solver_url=config.data[CONF_SOLVER], station_id=config.data[CONF_STATION_ID]
+        )
 
         _LOGGER.debug("Data will be update every %s", self.interval)
 

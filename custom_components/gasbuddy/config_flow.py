@@ -16,6 +16,7 @@ from .const import (
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
+    CONF_SOLVER,
     CONF_STATION_ID,
     CONF_UOM,
     CONFIG_VER,
@@ -42,6 +43,7 @@ async def _get_station_list(hass, user_input) -> list | None:
     lat = None
     lon = None
     postal = ""
+    solver = None
 
     if user_input is not None and CONF_POSTAL in user_input.keys():
         postal = user_input[CONF_POSTAL]
@@ -51,7 +53,10 @@ async def _get_station_list(hass, user_input) -> list | None:
         lon = hass.config.longitude
         postal = None
 
-    stations = await gasbuddy.GasBuddy().location_search(
+    if user_input is not None and CONF_SOLVER in user_input and user_input[CONF_SOLVER]:
+        solver = user_input[CONF_SOLVER]
+
+    stations = await gasbuddy.GasBuddy(solver_url=solver).location_search(
         lat=lat, lon=lon, zipcode=postal
     )
     stations_list = {}
@@ -82,11 +87,32 @@ def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
         {
             vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): str,
             vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
+            vol.Optional(CONF_SOLVER, default=None): vol.Url,
         }
     )
 
 
 def _get_schema_home(
+    hass: Any,  # pylint: disable=unused-argument
+    user_input: list,
+    default_dict: list,
+) -> Any:
+    """Get a schema using the default_dict as a backup."""
+    if user_input is None:
+        user_input = {}
+
+    def _get_default(key: str, fallback_default: Any = None) -> Any | None:
+        """Get default value for key."""
+        return user_input.get(key, default_dict.get(key, fallback_default))
+
+    return vol.Schema(
+        {
+            vol.Optional(CONF_SOLVER, default=None): vol.Url,
+        }
+    )
+
+
+def _get_schema_home2(
     hass: Any,  # pylint: disable=unused-argument
     user_input: list,
     default_dict: list,
@@ -125,6 +151,7 @@ def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
             vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(
                 str
             ),
+            vol.Optional(CONF_SOLVER, default=None): vol.Url,
         }
     )
 
@@ -240,21 +267,45 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input[CONF_UOM] = True
             user_input[CONF_GPS] = True
             self._data.update(user_input)
-            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+            return await self.async_step_home2()
         return await self._show_config_home(user_input)
 
     async def _show_config_home(self, user_input):
         """Show the configuration form to edit location data."""
         defaults = {}
 
-        station_list = await _get_station_list(self.hass, user_input)
+        return self.async_show_form(
+            step_id="home",
+            data_schema=_get_schema_home(self.hass, user_input, defaults),
+            errors=self._errors,
+        )
+
+    async def async_step_home2(self, user_input=None):
+        """Handle a flow initialized by the user."""
+        self._errors = {}
+
+        if user_input is not None:
+            user_input[CONF_INTERVAL] = 3600
+            user_input[CONF_UOM] = True
+            user_input[CONF_GPS] = True
+            self._data.update(user_input)
+            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+        return await self._show_config_home2(user_input)
+
+    async def _show_config_home2(self, user_input):
+        """Show the configuration form to edit location data."""
+        defaults = {}
+
+        station_list = await _get_station_list(self.hass, self._data)
 
         if "-" in station_list.keys():
             self._errors[CONF_STATION_ID] = "no_results"
 
         return self.async_show_form(
-            step_id="home",
-            data_schema=_get_schema_home(self.hass, user_input, defaults, station_list),
+            step_id="home2",
+            data_schema=_get_schema_home2(
+                self.hass, user_input, defaults, station_list
+            ),
             errors=self._errors,
         )
 
