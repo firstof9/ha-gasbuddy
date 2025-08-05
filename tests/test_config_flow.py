@@ -455,3 +455,199 @@ async def test_form_postal_no_stations(
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "station_list"
         assert result["errors"] == {"station_id": "no_results"}
+
+
+@pytest.mark.parametrize(
+    "input,step_id",
+    [
+        (
+            {
+                CONF_SOLVER: "invalid.url",
+            },
+            "user",
+        ),
+    ],
+)
+async def test_form_home_invalid_url(
+    input,
+    step_id,
+    hass,
+    mock_gasbuddy,
+    mock_aioclient,
+):
+    """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+    )
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == step_id
+
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ) as mock_setup_entry:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "search"}
+        )
+        await hass.async_block_till_done()
+
+        assert result["type"] == FlowResultType.MENU
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "home"}
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "home"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "home"
+        assert result["errors"] == {CONF_SOLVER: "invalid_url"}
+
+
+@pytest.mark.parametrize(
+    "input,step_id",
+    [
+        (
+            {
+                CONF_POSTAL: "85396",
+                CONF_SOLVER: "invalid.url",
+            },
+            "user",
+        ),
+    ],
+)
+async def test_form_postal_invalid_url(
+    input,
+    step_id,
+    hass,
+    mock_gasbuddy,
+    mock_aioclient,
+):
+    """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+    )
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == step_id
+
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ) as mock_setup_entry:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "search"}
+        )
+        await hass.async_block_till_done()
+
+        assert result["type"] == FlowResultType.MENU
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "postal"}
+        )
+        await hass.async_block_till_done()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "postal"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "postal"
+        assert result["errors"] == {CONF_SOLVER: "invalid_url"}
+
+
+@pytest.mark.parametrize(
+    "input,step_id",
+    [
+        (
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+                CONF_SOLVER: "invalid.url",
+            },
+            "user",
+        ),
+    ],
+)
+async def test_form_manual_invalid_url(
+    input,
+    step_id,
+    hass,
+    mock_aioclient,
+    mock_gasbuddy,
+):
+    """Test we get the form."""
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+    )
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == step_id
+
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ) as mock_setup_entry, patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        return_value=STATION_LIST,
+    ), patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value=True,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+        await hass.async_block_till_done()
+        assert result["type"] == FlowResultType.FORM
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "manual"
+        assert result["errors"] == {CONF_SOLVER: "invalid_url"}

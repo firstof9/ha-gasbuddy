@@ -2,7 +2,8 @@
     "config": {
         "error": {
             "station_id": "Invalid station ID",
-            "no_results": "No stations found in this area."
+            "no_results": "No stations found in this area.",
+            "invalid_url": "Not a valid URL."
         },
         "step": {
             "user": {
@@ -15,7 +16,7 @@
             "manual": {
                 "description": "Please enter the Station ID",
                 "data": {
-                    "solver": "Flaresolver URL",
+                    "solver": "Flaresolver URL (optional)",
                     "station_id": "Station ID"
                 }
             },
@@ -29,14 +30,14 @@
             "home": {
                 "description": "Please select a station",
                 "data": {
-                    "solver": "Flaresolver URL",
+                    "solver": "Flaresolver URL (optional)",
                     "station_id": "Station"
                 }
             },
             "postal": {
                 "description": "Please enter a postal code (zip code)",
                 "data": {
-                    "solver": "Flaresolver URL",
+                    "solver": "Flaresolver URL (optional)",
                     "zipcode": "Postal Code (zip code)"
                 }
             },     
