@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import gasbuddy
@@ -10,6 +11,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import config_validation as cv
 
 from .const import (
     CONF_GPS,
@@ -27,6 +29,18 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 MENU_OPTIONS = ["manual", "search"]
 MENU_SEARCH = ["home", "postal"]
+
+
+async def validate_url(url: str) -> bool:
+    """Validate user input URL."""
+    pattern = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return bool(re.match(pattern, url))
 
 
 async def validate_station(station: int, solver: str | None = None) -> bool:
@@ -57,6 +71,7 @@ async def _get_station_list(hass, user_input) -> list | None:
 
     if user_input is not None and CONF_SOLVER in user_input and user_input[CONF_SOLVER]:
         solver = user_input[CONF_SOLVER]
+        _LOGGER.debug("Using solver URL: %s", solver)
 
     stations = await gasbuddy.GasBuddy(solver_url=solver).location_search(
         lat=lat, lon=lon, zipcode=postal
@@ -87,11 +102,11 @@ def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
 
     return vol.Schema(
         {
-            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): str,
-            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
+            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
             vol.Optional(
-                CONF_SOLVER, default=None
-            ): vol.Url(),  # pylint: disable=no-value-for-parameter
+                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
+            ): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -112,8 +127,8 @@ def _get_schema_home(
     return vol.Schema(
         {
             vol.Optional(
-                CONF_SOLVER, default=_get_default(CONF_SOLVER)
-            ): vol.Url(),  # pylint: disable=no-value-for-parameter
+                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
+            ): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -137,7 +152,7 @@ def _get_schema_home2(
             vol.Required(
                 CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
             ): vol.In(station_list),
-            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
         }
     )
 
@@ -158,8 +173,8 @@ def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
                 str
             ),
             vol.Optional(
-                CONF_SOLVER, default=None
-            ): vol.Url(),  # pylint: disable=no-value-for-parameter
+                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
+            ): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -183,7 +198,7 @@ def _get_schema_station_list(
             vol.Required(
                 CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
             ): vol.In(station_list),
-            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): str,
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
         }
     )
 
@@ -200,9 +215,9 @@ def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
 
     return vol.Schema(
         {
-            vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): int,
-            vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): bool,
-            vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): bool,
+            vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): cv.positive_int,
+            vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
+            vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         }
     )
 
@@ -234,6 +249,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input[CONF_INTERVAL] = 3600
             user_input[CONF_UOM] = True
             user_input[CONF_GPS] = True
+            if user_input[CONF_SOLVER] != "":
+                url_valid = await validate_url(user_input[CONF_SOLVER])
+                _LOGGER.debug("URL valid: %s", url_valid)
+                if not url_valid:
+                    self._errors[CONF_SOLVER] = "invalid_url"
+                    return await self._show_config_manual(user_input)
+
             validate = await validate_station(
                 user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
             )
@@ -277,6 +299,14 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input[CONF_UOM] = True
             user_input[CONF_GPS] = True
             self._data.update(user_input)
+            if user_input[CONF_SOLVER] != "":
+                url_valid = await validate_url(user_input[CONF_SOLVER])
+                _LOGGER.debug("URL valid: %s", url_valid)
+                if not url_valid:
+                    self._errors[CONF_SOLVER] = "invalid_url"
+                    return await self._show_config_home(user_input)
+                else:
+                    return await self.async_step_home2()
             return await self.async_step_home2()
         return await self._show_config_home(user_input)
 
@@ -326,6 +356,14 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._data.update(user_input)
+            if user_input[CONF_SOLVER] != "":
+                url_valid = await validate_url(user_input[CONF_SOLVER])
+                _LOGGER.debug("URL valid: %s", url_valid)
+                if not url_valid:
+                    self._errors[CONF_SOLVER] = "invalid_url"
+                    return await self._show_config_postal(user_input)
+                else:
+                    return await self.async_step_station_list()
             return await self.async_step_station_list()
         return await self._show_config_postal(user_input)
 
