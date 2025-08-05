@@ -34,12 +34,14 @@ MENU_SEARCH = ["home", "postal"]
 async def validate_url(url: str) -> bool:
     """Validate user input URL."""
     pattern = re.compile(
-        r'^(?:http|ftp)s?://' # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
-        r'localhost|' #localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-        r'(?::\d+)?' # optional port
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        r"^(?:http|ftp)s?://"
+        r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"
+        r"localhost|"
+        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+        r"(?::\d+)?"
+        r"(?:/?|[/?]\S+)$",
+        re.IGNORECASE,
+    )
     return bool(re.match(pattern, url))
 
 
@@ -102,8 +104,12 @@ def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
 
     return vol.Schema(
         {
-            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
-            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
+            vol.Required(
+                CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
+            ): cv.string,
+            vol.Required(
+                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
+            ): cv.string,
             vol.Optional(
                 CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
             ): cv.string,  # pylint: disable=no-value-for-parameter
@@ -152,7 +158,9 @@ def _get_schema_home2(
             vol.Required(
                 CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
             ): vol.In(station_list),
-            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
+            vol.Required(
+                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
+            ): cv.string,
         }
     )
 
@@ -198,7 +206,9 @@ def _get_schema_station_list(
             vol.Required(
                 CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
             ): vol.In(station_list),
-            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
+            vol.Required(
+                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
+            ): cv.string,
         }
     )
 
@@ -215,7 +225,9 @@ def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
 
     return vol.Schema(
         {
-            vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): cv.positive_int,
+            vol.Required(
+                CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)
+            ): cv.positive_int,
             vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
             vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         }
@@ -305,8 +317,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_home(user_input)
-                else:
-                    return await self.async_step_home2()
+
             return await self.async_step_home2()
         return await self._show_config_home(user_input)
 
@@ -362,8 +373,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_postal(user_input)
-                else:
-                    return await self.async_step_station_list()
+
             return await self.async_step_station_list()
         return await self._show_config_postal(user_input)
 
