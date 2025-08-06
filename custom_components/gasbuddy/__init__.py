@@ -85,20 +85,6 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
     """Update listener."""
     _LOGGER.debug("Attempting to reload entities from the %s integration", DOMAIN)
 
-    original_config = config_entry.data.copy()
-
-    if CONF_INTERVAL in config_entry.options:
-        original_config[CONF_INTERVAL] = config_entry.options[CONF_INTERVAL]
-    if CONF_UOM in config_entry.options:
-        original_config[CONF_UOM] = config_entry.options[CONF_UOM]
-    if CONF_GPS in config_entry.options:
-        original_config[CONF_GPS] = config_entry.options[CONF_GPS]
-
-    hass.config_entries.async_update_entry(
-        entry=config_entry,
-        data=original_config,
-    )
-
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
