@@ -1,5 +1,8 @@
 {
     "config": {
+        "abort": {
+            "reconfigure_successful": "Reconfigure Successful"
+        },                
         "error": {
             "station_id": "ID de station invalide",
             "no_results": "No stations found in this area.",
@@ -46,7 +49,15 @@
                 "data": {
                     "station_id": "Identifiant de la station"
                 }
-            }
+            },
+            "reconfigure": {
+                "description": "Please enter the Station ID",
+                "data": {
+                    "solver": "Flaresolver URL (optional)",
+                    "station_id": "Station ID",
+                    "name": "Name"
+                }
+            }              
         }
     },
     "options": {
@@ -54,7 +65,8 @@
             "init": {
                 "data": {
                     "interval": "Intervalle d'interrogation",
-                    "uom": "Afficher par litre/gallon en unité de mesure"
+                    "uom": "Afficher par litre/gallon en unité de mesure",
+                    "gps": "Show stations on map (disable lat/long attributes)"
                 }
             }
         }
