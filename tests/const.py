@@ -20,8 +20,11 @@ CONFIG_DATA = {
 
 CONFIG_DATA_NO_UOM = {
     CONF_NAME: "Gas Station",
-    CONF_INTERVAL: 3600,
     CONF_STATION_ID: 208656,
+}
+
+OPTIONS_NO_UOM = {
+    CONF_INTERVAL: 3600,
     CONF_UOM: False,
     CONF_GPS: True,
 }

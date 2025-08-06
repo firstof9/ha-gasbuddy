@@ -51,17 +51,19 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     )
 
     # Some sanity checks
-    updated_config = config_entry.data.copy()
-    if CONF_UOM not in config_entry.data.keys():
+    updated_config = config_entry.options.copy()
+    if CONF_UOM not in config_entry.options:
         updated_config[CONF_UOM] = True
-    if CONF_GPS not in config_entry.data.keys():
+    if CONF_GPS not in config_entry.options:
         updated_config[CONF_GPS] = True
+    if CONF_INTERVAL not in config_entry.options:
+        updated_config[CONF_INTERVAL] = 3600
 
-    if updated_config != config_entry.data:
-        hass.config_entries.async_update_entry(config_entry, data=updated_config)
+    if updated_config != config_entry.options:
+        hass.config_entries.async_update_entry(config_entry, options=updated_config)
 
     config_entry.add_update_listener(update_listener)
-    interval = config_entry.data.get(CONF_INTERVAL)
+    interval = config_entry.options.get(CONF_INTERVAL)
     coordinator = GasBuddyUpdateCoordinator(hass, interval, config_entry)
 
     # Fetch initial data so we have data when entities subscribe
@@ -82,17 +84,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Update listener."""
     _LOGGER.debug("Attempting to reload entities from the %s integration", DOMAIN)
-
-    original_config = config_entry.data.copy()
-
-    original_config[CONF_INTERVAL] = config_entry.options[CONF_INTERVAL]
-    original_config[CONF_UOM] = config_entry.options[CONF_UOM]
-    original_config[CONF_GPS] = config_entry.options[CONF_GPS]
-
-    hass.config_entries.async_update_entry(
-        entry=config_entry,
-        data=original_config,
-    )
 
     await hass.config_entries.async_reload(config_entry.entry_id)
 
