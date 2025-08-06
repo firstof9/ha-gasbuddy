@@ -56,6 +56,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         updated_config[CONF_UOM] = True
     if CONF_GPS not in config_entry.data.keys():
         updated_config[CONF_GPS] = True
+    if CONF_INTERVAL not in config_entry.data.keys():
+        updated_config[CONF_INTERVAL] = 3600
 
     if updated_config != config_entry.data:
         hass.config_entries.async_update_entry(config_entry, data=updated_config)
@@ -85,9 +87,12 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
 
     original_config = config_entry.data.copy()
 
-    original_config[CONF_INTERVAL] = config_entry.options[CONF_INTERVAL]
-    original_config[CONF_UOM] = config_entry.options[CONF_UOM]
-    original_config[CONF_GPS] = config_entry.options[CONF_GPS]
+    if CONF_INTERVAL in config_entry.options:
+        original_config[CONF_INTERVAL] = config_entry.options[CONF_INTERVAL]
+    if CONF_UOM in config_entry.options:
+        original_config[CONF_UOM] = config_entry.options[CONF_UOM]
+    if CONF_GPS in config_entry.options:
+        original_config[CONF_GPS] = config_entry.options[CONF_GPS]
 
     hass.config_entries.async_update_entry(
         entry=config_entry,

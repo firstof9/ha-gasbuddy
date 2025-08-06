@@ -245,6 +245,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._data = {}
         self._errors = {}
+        self._entry = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -414,6 +415,46 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=_get_schema_station_list(
                 self.hass, user_input, defaults, station_list
             ),
+            errors=self._errors,
+        )
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
+        """Add reconfigure step to allow to reconfigure a config entry."""
+        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        assert self._entry
+        self._data = dict(self._entry.data)
+        self._errors = {}
+
+        if user_input is not None:
+            self._data.update(user_input)
+            if user_input[CONF_SOLVER] != "":
+                url_valid = await validate_url(user_input[CONF_SOLVER])
+                _LOGGER.debug("URL valid: %s", url_valid)
+                if not url_valid:
+                    self._errors[CONF_SOLVER] = "invalid_url"
+
+            validate = await validate_station(
+                user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
+            )
+            if not validate:
+                self._errors[CONF_STATION_ID] = "station_id"
+
+            if len(self._errors) == 0:
+                self.hass.config_entries.async_update_entry(
+                    self._entry, data=self._data
+                )
+                await self.hass.config_entries.async_reload(self._entry.entry_id)
+                _LOGGER.debug("%s reconfigured.", DOMAIN)
+                return self.async_abort(reason="reconfigure_successful")
+
+            return await self._show_reconfig_form(user_input)
+        return await self._show_reconfig_form(user_input)
+
+    async def _show_reconfig_form(self, user_input):
+        """Show the configuration form to edit configuration data."""
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_get_schema_manual(self.hass, user_input, self._data),
             errors=self._errors,
         )
 

@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from homeassistant import config_entries, data_entry_flow, setup
 from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult, FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -651,3 +652,88 @@ async def test_form_manual_invalid_url(
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "manual"
         assert result["errors"] == {CONF_SOLVER: "invalid_url"}
+
+
+@pytest.mark.parametrize(
+    "input,step_id,title,data",
+    [
+        (
+            {
+                CONF_SOLVER: SOLVER_URL,
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+            },
+            "reconfigure",
+            DEFAULT_NAME,
+            {
+                CONF_GPS: True,
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_SOLVER: SOLVER_URL,
+            },
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_reconfigure(
+    input,
+    step_id,
+    title,
+    data,
+    hass: HomeAssistant,
+    integration,
+    mock_aioclient,
+    mock_gasbuddy,
+) -> None:
+    """Test reconfigure flow."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+    )
+
+    entry = integration
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        return_value=STATION_LIST,
+    ), patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value=True,
+    ):
+
+        reconfigure_result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        assert reconfigure_result["type"] is FlowResultType.FORM
+        assert reconfigure_result["step_id"] == step_id
+
+        result = await hass.config_entries.flow.async_configure(
+            reconfigure_result["flow_id"],
+            input,
+        )
+
+        assert result["type"] is FlowResultType.ABORT
+        assert result["reason"] == "reconfigure_successful"
+        await hass.async_block_till_done()
+
+        entry = hass.config_entries.async_entries(DOMAIN)[0]
+        assert entry.data.copy() == data

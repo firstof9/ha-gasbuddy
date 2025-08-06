@@ -5,7 +5,9 @@ from unittest.mock import patch
 import pytest
 from aioresponses import aioresponses
 
-from tests.const import COORDINATOR_DATA, COORDINATOR_DATA_CAD
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+from tests.const import CONFIG_DATA, COORDINATOR_DATA, COORDINATOR_DATA_CAD
+from custom_components.gasbuddy.const import DOMAIN
 
 
 # This fixture enables loading custom integrations in all tests.
@@ -53,3 +55,16 @@ def mock_aioclient():
     """Fixture to mock aioclient calls."""
     with aioresponses() as m:
         yield m
+
+
+@pytest.fixture(name="integration")
+async def integration_fixture(hass):
+    """Set up the mail_and_packages integration."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    return entry
