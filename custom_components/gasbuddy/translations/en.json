@@ -1,5 +1,8 @@
 {
     "config": {
+        "abort": {
+            "reconfigure_successful": "Reconfigure Successful"
+        },        
         "error": {
             "station_id": "Invalid station ID",
             "no_results": "No stations found in this area.",
@@ -46,7 +49,15 @@
                 "data": {
                     "station_id": "Station"
                 }
-            }
+            },
+            "reconfigure": {
+                "description": "Please enter the Station ID",
+                "data": {
+                    "solver": "Flaresolver URL (optional)",
+                    "station_id": "Station ID",
+                    "name": "Name"
+                }
+            }      
         }
     },
     "options": {
