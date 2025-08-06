@@ -9,7 +9,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import DOMAIN
 
-from .const import CONFIG_DATA, CONFIG_DATA_NO_UOM
+from .const import CONFIG_DATA, CONFIG_DATA_NO_UOM, OPTIONS_NO_UOM
 
 ATTR_ENTITY_PICTURE = "entity_picture"
 
@@ -84,6 +84,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
         domain=DOMAIN,
         title="Gas Station",
         data=CONFIG_DATA_NO_UOM,
+        options=OPTIONS_NO_UOM,
     )
 
     entry.add_to_hass(hass)

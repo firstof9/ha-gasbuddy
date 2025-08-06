@@ -109,7 +109,7 @@ class GasBuddySensor(
         """Return the unit of measurement."""
         uom = self.coordinator.data["unit_of_measure"]
         currency = self.coordinator.data["currency"]
-        if self._config.data[CONF_UOM] and self._price:
+        if self._config.options.get(CONF_UOM) and self._price:
             if uom is not None and currency is not None:
                 return f"{currency}/{UNIT_OF_MEASURE[uom]}"
         elif currency is not None and self._price:
@@ -126,7 +126,7 @@ class GasBuddySensor(
         attrs[ATTR_ATTRIBUTION] = f"{credit} via GasBuddy"
         attrs["last_updated"] = self.coordinator.data[self._type]["last_updated"]
         attrs[CONF_STATION_ID] = self.coordinator.data[CONF_STATION_ID]
-        if self._config.data[CONF_GPS]:
+        if self._config.options.get(CONF_GPS):
             attrs[ATTR_LATITUDE] = self.coordinator.data[ATTR_LATITUDE]
             attrs[ATTR_LONGITUDE] = self.coordinator.data[ATTR_LONGITUDE]
         return attrs
