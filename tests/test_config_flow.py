@@ -25,6 +25,7 @@ from tests.const import CONFIG_DATA, STATION_LIST
 BASE_URL = "https://www.gasbuddy.com/graphql"
 GB_URL = "https://www.gasbuddy.com/home"
 SOLVER_URL = "http://solver.url"
+HOSTNAME_SOLVER_URL = "http://flaresolverr:8191/v1"
 NO_STATIONS_LIST = {"-": "No stations in search area."}
 
 pytestmark = pytest.mark.asyncio
@@ -128,7 +129,7 @@ async def test_form_home(
     [
         (
             {
-                CONF_SOLVER: "http://flaresolverr:8191/v1",  # Hostname-based URL
+                CONF_SOLVER: HOSTNAME_SOLVER_URL,
             },
             {
                 CONF_NAME: DEFAULT_NAME,
@@ -142,7 +143,7 @@ async def test_form_home(
                 CONF_STATION_ID: "208656",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
-                CONF_SOLVER: "http://flaresolverr:8191/v1",
+                CONF_SOLVER: HOSTNAME_SOLVER_URL,
             },
         ),
     ],
@@ -171,7 +172,7 @@ async def test_form_home_hostname_solver(
         repeat=True,
     )
     mock_aioclient.post(
-        "http://flaresolverr:8191/v1",
+        HOSTNAME_SOLVER_URL,
         status=200,
         body=load_fixture("solver_response.json"),
     )
