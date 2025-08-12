@@ -26,6 +26,7 @@ from tests.const import CONFIG_DATA, STATION_LIST
 BASE_URL = "https://www.gasbuddy.com/graphql"
 GB_URL = "https://www.gasbuddy.com/home"
 SOLVER_URL = "http://solver.url"
+HOSTNAME_SOLVER_URL = "http://flaresolverr:8191/v1"
 NO_STATIONS_LIST = {"-": "No stations in search area."}
 
 pytestmark = pytest.mark.asyncio
@@ -80,6 +81,99 @@ async def test_form_home(
     )
     mock_aioclient.post(
         SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+    )
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+    assert result["step_id"] == step_id
+
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ) as mock_setup_entry:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "search"}
+        )
+        await hass.async_block_till_done()
+
+        assert result["type"] == FlowResultType.MENU
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "home"}
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "home"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "home2"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input2
+        )
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == title
+        assert result["data"] == data
+
+        await hass.async_block_till_done()
+        assert len(mock_setup_entry.mock_calls) == 1
+
+
+@pytest.mark.parametrize(
+    "input,input2,step_id,title,data",
+    [
+        (
+            {
+                CONF_SOLVER: HOSTNAME_SOLVER_URL,
+            },
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+            },
+            "user",
+            DEFAULT_NAME,
+            {
+                CONF_GPS: True,
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_SOLVER: HOSTNAME_SOLVER_URL,
+            },
+        ),
+    ],
+)
+async def test_form_home_hostname_solver(
+    input,
+    input2,
+    step_id,
+    title,
+    data,
+    hass,
+    mock_gasbuddy,
+    mock_aioclient,
+):
+    """Test form with hostname-based solver URL."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        HOSTNAME_SOLVER_URL,
         status=200,
         body=load_fixture("solver_response.json"),
     )
