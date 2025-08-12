@@ -204,7 +204,7 @@ async def test_form_home_hostname_solver(
         )
 
         assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == "station_list"
+        assert result["step_id"] == "home2"
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], input2
         )
