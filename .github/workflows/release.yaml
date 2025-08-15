@@ -1,6 +1,10 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Manually enter tag'
   release:
     types: [published]
 
@@ -14,22 +18,36 @@ jobs:
 
       - name: Get Version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        if: ${{ github.event_name == 'release' }}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> "$GITHUB_ENV"
 
       - name: "Set version number"
+        if: ${{ github.event_name == 'release' }}
         run: |
           sed -i '/VERSION = /c\VERSION = "${{ steps.get_version.outputs.VERSION }}"' ${{ github.workspace }}/custom_components/gasbuddy/const.py
           sed -i '/version/c\  \"version\": \"${{ steps.get_version.outputs.VERSION }}\"' ${{ github.workspace }}/custom_components/gasbuddy/manifest.json
+      - name: "Set version number"
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          sed -i '/VERSION = /c\VERSION = "${{inputs.tags}}"' ${{ github.workspace }}/custom_components/gasbuddy/const.py
+          sed -i '/version/c\  \"version\": \"${{inputs.tags}}\"' ${{ github.workspace }}/custom_components/gasbuddy/manifest.json
+
+
       # Pack the ha-gasbuddy dir as a zip and upload to the release
       - name: Create Zip File
         run: |
           cd ${{ github.workspace }}/custom_components/gasbuddy
           zip ha-gasbuddy.zip -r ./
-      - name: Upload zip to release
-        uses: svenstaro/upload-release-action@v2
+
+      - name: 📤 Upload zip to release
+        if: ${{ github.event_name == 'release' }}
+        uses: softprops/action-gh-release@v0.1.15
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ github.workspace }}/custom_components/gasbuddy/ha-gasbuddy.zip
-          asset_name: ha-gasbuddy.zip
-          tag: ${{ github.ref }}
-          overwrite: true
+          files: ${{ github.workspace }}/custom_components/gasbuddy/ha-gasbuddy.zip
+
+      - name: 📤 Upload zip to release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          files: ${{ github.workspace }}/custom_components/gasbuddy/ha-gasbuddy.zip
+          tag_name: ${{inputs.tags}}
