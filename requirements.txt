@@ -1,2 +1,2 @@
 backoff
-py_gasbuddy==0.3.7
+py_gasbuddy==0.3.8

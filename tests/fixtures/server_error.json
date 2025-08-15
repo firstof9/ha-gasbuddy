@@ -1,0 +1,23 @@
+{
+   "data": {
+      "station": null
+   },
+   "errors": [
+      {
+         "extensions": {
+            "code": "INTERNAL_SERVER_ERROR"
+         },
+         "locations": [
+            {
+               "column": 69,
+               "line": 1
+            }
+         ],
+         "message": "Published deal alerts not found",
+         "path": [
+            "station",
+            "prices"
+         ]
+      }
+   ]
+}
