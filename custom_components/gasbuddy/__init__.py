@@ -94,10 +94,10 @@ async def async_migrate_entry(hass, config_entry) -> bool:
     new_version = CONFIG_VER
     updated_config = config_entry.data.copy()
 
+    _LOGGER.debug("Migrating from version %s", version)
+
     # 1 -> 2: Migrate format
     if version == 1:
-        _LOGGER.debug("Migrating from version %s", version)
-
         # Add default unit of measure setting if missing
         if CONF_UOM not in updated_config.keys():
             updated_config[CONF_UOM] = True

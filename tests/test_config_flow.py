@@ -1077,3 +1077,65 @@ async def test_reconfigure_server_error(
 
         entry = hass.config_entries.async_entries(DOMAIN)[0]
         assert entry.data.copy() == data
+
+@pytest.mark.parametrize(
+    "input,data",
+    [
+        (
+            {
+                CONF_INTERVAL: 1600,
+                CONF_UOM: True,
+                CONF_GPS: True,
+            },
+            {
+                CONF_GPS: True,
+                CONF_INTERVAL: 1600,
+                CONF_UOM: True,
+            },
+        ),
+    ],
+)
+async def test_form_options(
+    input,
+    data,
+    hass,
+    mock_gasbuddy,
+    mock_aioclient,
+):
+    """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+    )
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input=input
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == data
