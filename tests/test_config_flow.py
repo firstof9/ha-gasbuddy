@@ -6,7 +6,7 @@ import pytest
 from homeassistant import config_entries, data_entry_flow, setup
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult, FlowResultType
+from homeassistant.data_entry_flow import FlowResult, FlowResultType, InvalidData
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import (
@@ -1078,6 +1078,7 @@ async def test_reconfigure_server_error(
         entry = hass.config_entries.async_entries(DOMAIN)[0]
         assert entry.data.copy() == data
 
+
 @pytest.mark.parametrize(
     "input,data",
     [
@@ -1100,26 +1101,8 @@ async def test_form_options(
     data,
     hass,
     mock_gasbuddy,
-    mock_aioclient,
 ):
     """Test we get the form."""
-    mock_aioclient.get(
-        GB_URL,
-        status=200,
-        body=load_fixture("index.html"),
-        repeat=True,
-    )
-    mock_aioclient.post(
-        BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
-        repeat=True,
-    )
-    mock_aioclient.post(
-        SOLVER_URL,
-        status=200,
-        body=load_fixture("solver_response.json"),
-    )
     entry = MockConfigEntry(
         domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
     )
@@ -1139,3 +1122,42 @@ async def test_form_options(
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == data
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        (
+            {
+                CONF_INTERVAL: 30,
+                CONF_UOM: True,
+                CONF_GPS: True,
+            },
+        ),
+    ],
+)
+async def test_form_options_error(
+    input,
+    hass,
+    mock_gasbuddy,
+):
+    """Test we get the form."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    with pytest.raises(InvalidData):
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input=input
+        )
+
+    assert result["type"] is FlowResultType.FORM

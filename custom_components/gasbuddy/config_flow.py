@@ -228,7 +228,7 @@ def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
         {
             vol.Required(
                 CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)
-            ): cv.positive_int,
+            ): vol.All(cv.positive_int, vol.Range(min=900, max=14400)),
             vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
             vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         }
