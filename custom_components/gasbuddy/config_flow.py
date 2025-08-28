@@ -228,7 +228,7 @@ def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
         {
             vol.Required(
                 CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)
-            ): cv.positive_int,
+            ): vol.All(cv.positive_int, vol.Range(min=900, max=14400)),
             vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
             vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         }
@@ -472,7 +472,7 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry):
         """Initialize."""
         self.config = config_entry
-        self._data = dict(config_entry.data)
+        self._data = dict(config_entry.options)
         self._errors = {}
 
     async def async_step_init(self, user_input=None):
