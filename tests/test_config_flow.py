@@ -1101,8 +1101,27 @@ async def test_form_options(
     data,
     hass,
     mock_gasbuddy,
+    mock_aioclient,
 ):
     """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+        repeat=True,
+    )
     entry = MockConfigEntry(
         domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
     )
@@ -1143,8 +1162,27 @@ async def test_form_options_error(
     input,
     hass,
     mock_gasbuddy,
+    mock_aioclient,
 ):
     """Test we get the form."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        SOLVER_URL,
+        status=200,
+        body=load_fixture("solver_response.json"),
+        repeat=True,
+    )
     entry = MockConfigEntry(
         domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
     )
