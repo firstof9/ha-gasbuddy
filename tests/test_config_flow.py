@@ -1122,6 +1122,9 @@ async def test_form_options(
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == data
+    await hass.async_block_till_done()
+
+    assert entry.options.get(CONF_INTERVAL) == 1600
 
 
 @pytest.mark.parametrize(
