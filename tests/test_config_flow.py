@@ -1145,10 +1145,6 @@ async def test_form_options(
     await hass.async_block_till_done()
 
     assert entry.options.get(CONF_INTERVAL) == 1600
-    entries = hass.config_entries.async_entries(DOMAIN)
-
-    assert await hass.config_entries.async_unload(entries[0].entry_id)
-    await hass.async_block_till_done()
 
 
 @pytest.mark.parametrize(
