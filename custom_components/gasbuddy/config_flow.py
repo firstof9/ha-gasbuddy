@@ -260,10 +260,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_INTERVAL] = 3600
-            user_input[CONF_UOM] = True
-            user_input[CONF_GPS] = True
-            if user_input[CONF_SOLVER] != "":
+            user_input.setdefault(CONF_SOLVER)
+            user_input.setdefault(CONF_INTERVAL, 3600)
+            user_input.setdefault(CONF_UOM, True)
+            user_input.setdefault(CONF_GPS, True)
+            if user_input[CONF_SOLVER] is not None:
                 url_valid = await validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
@@ -309,11 +310,12 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_INTERVAL] = 3600
-            user_input[CONF_UOM] = True
-            user_input[CONF_GPS] = True
+            user_input.setdefault(CONF_SOLVER)            
+            user_input.setdefault(CONF_INTERVAL, 3600)
+            user_input.setdefault(CONF_UOM, True)
+            user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
-            if user_input[CONF_SOLVER] != "":
+            if user_input[CONF_SOLVER] is not None:
                 url_valid = await validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
