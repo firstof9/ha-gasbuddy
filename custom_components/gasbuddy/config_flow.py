@@ -310,7 +310,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input.setdefault(CONF_SOLVER)            
+            user_input.setdefault(CONF_SOLVER)
             user_input.setdefault(CONF_INTERVAL, 3600)
             user_input.setdefault(CONF_UOM, True)
             user_input.setdefault(CONF_GPS, True)
