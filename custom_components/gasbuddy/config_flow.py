@@ -57,7 +57,7 @@ async def validate_station(station: int, solver: str | None = None) -> bool:
     return True
 
 
-async def _get_station_list(hass, user_input) -> list | None:
+async def _get_station_list(hass, user_input) -> dict[str, Any] | None:
     """Return list of utilities by lat/lon."""
     lat = None
     lon = None
@@ -93,8 +93,9 @@ async def _get_station_list(hass, user_input) -> list | None:
     return stations_list
 
 
-# pylint: disable-next=unused-argument
-def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
+def _get_schema_manual(  # pylint: disable-next=unused-argument
+    hass: Any, user_input: dict[str, Any], default_dict: dict[str, Any]
+) -> Any:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
@@ -120,8 +121,8 @@ def _get_schema_manual(hass: Any, user_input: list, default_dict: list) -> Any:
 
 def _get_schema_home(
     hass: Any,  # pylint: disable=unused-argument
-    user_input: list,
-    default_dict: list,
+    user_input: dict[str, Any],
+    default_dict: dict[str, Any],
 ) -> Any:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:
@@ -142,8 +143,8 @@ def _get_schema_home(
 
 def _get_schema_home2(
     hass: Any,  # pylint: disable=unused-argument
-    user_input: list,
-    default_dict: list,
+    user_input: dict[str, Any],
+    default_dict: dict[str, Any],
     station_list: list,
 ) -> Any:
     """Get a schema using the default_dict as a backup."""
@@ -166,8 +167,9 @@ def _get_schema_home2(
     )
 
 
-# pylint: disable-next=unused-argument
-def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
+def _get_schema_postal(  # pylint: disable-next=unused-argument
+    hass: Any, user_input: dict[str, Any], default_dict: dict[str, Any]
+) -> Any:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
@@ -190,8 +192,8 @@ def _get_schema_postal(hass: Any, user_input: list, default_dict: list) -> Any:
 
 def _get_schema_station_list(
     hass: Any,  # pylint: disable=unused-argument
-    user_input: list,
-    default_dict: list,
+    user_input: dict[str, Any],
+    default_dict: dict[str, Any],
     station_list: list,
 ) -> Any:
     """Get a schema using the default_dict as a backup."""
@@ -214,8 +216,9 @@ def _get_schema_station_list(
     )
 
 
-# pylint: disable-next=unused-argument
-def _get_schema_options(hass: Any, user_input: list, default_dict: list) -> Any:
+def _get_schema_options(  # pylint: disable-next=unused-argument
+    hass: Any, user_input: dict[str, Any], default_dict: dict[str, Any]
+) -> Any:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
@@ -340,9 +343,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_INTERVAL] = 3600
-            user_input[CONF_UOM] = True
-            user_input[CONF_GPS] = True
+            user_input.setdefault(CONF_INTERVAL, 3600)
+            user_input.setdefault(CONF_UOM, True)
+            user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
             return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
         return await self._show_config_home2(user_input)
@@ -396,9 +399,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_INTERVAL] = 3600
-            user_input[CONF_UOM] = True
-            user_input[CONF_GPS] = True
+            user_input.setdefault(CONF_INTERVAL, 3600)
+            user_input.setdefault(CONF_UOM, True)
+            user_input.setdefault(CONF_GPS, True)
             self._data.pop(CONF_POSTAL)
             self._data.update(user_input)
             return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
