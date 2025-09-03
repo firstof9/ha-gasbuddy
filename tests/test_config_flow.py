@@ -349,7 +349,7 @@ async def test_form_manual(
         status=200,
         body=load_fixture("station.json"),
         repeat=True,
-    )    
+    )
     mock_aioclient.post(
         SOLVER_URL,
         status=200,

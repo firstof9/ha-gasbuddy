@@ -241,3 +241,13 @@ async def test_clear_cache(
             return_response=False,
         )
         assert "Cache file cleared." in caplog.text
+
+        with pytest.raises(ValueError):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CLEAR_CACHE,
+                {ATTR_DEVICE_ID: "ADSF1234234ADFH"},
+                blocking=True,
+                return_response=False,
+            )
+            assert "Device ID ADSF1234234ADFH is not valid" in caplog.text
