@@ -3,7 +3,7 @@
 import logging
 
 import voluptuous as vol
-from gasbuddy import GasBuddy  # pylint: disable=import-self
+from py_gasbuddy import GasBuddy
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import (

@@ -15,3 +15,10 @@ lookup_zip:
       selector:
         text:
       required: true
+
+clear_cache:
+  name: Clear Cache
+  description: Clear library cache file.
+  fields:
+    entity:
+      integration: gasbuddy

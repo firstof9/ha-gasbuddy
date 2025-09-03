@@ -3,10 +3,10 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from gasbuddy import GasBuddy  # pylint: disable=import-self
+from py_gasbuddy import GasBuddy
 
 # pylint: disable-next=import-error,no-name-in-module
-from gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
+from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed

@@ -6,7 +6,7 @@ import logging
 import re
 from typing import Any
 
-import gasbuddy
+import py_gasbuddy
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
@@ -48,7 +48,7 @@ async def validate_url(url: str) -> bool:
 
 async def validate_station(station: int, solver: str | None = None) -> bool:
     """Validate statation ID."""
-    check = await gasbuddy.GasBuddy(
+    check = await py_gasbuddy.GasBuddy(
         solver_url=solver, station_id=station
     ).price_lookup()
 
@@ -76,7 +76,7 @@ async def _get_station_list(hass, user_input) -> dict[str, Any] | None:
         solver = user_input[CONF_SOLVER]
         _LOGGER.debug("Using solver URL: %s", solver)
 
-    stations = await gasbuddy.GasBuddy(solver_url=solver).location_search(
+    stations = await py_gasbuddy.GasBuddy(solver_url=solver).location_search(
         lat=lat, lon=lon, zipcode=postal
     )
     stations_list = {}
