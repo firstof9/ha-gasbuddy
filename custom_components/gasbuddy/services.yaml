@@ -19,6 +19,6 @@ lookup_zip:
 clear_cache:
   name: Clear Cache
   description: Clear library cache file.
-  fields:
+  target:
     entity:
       integration: gasbuddy
