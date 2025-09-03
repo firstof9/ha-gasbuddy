@@ -57,3 +57,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
         self._data["last_updated"] = datetime.now(timezone.utc)
         return self._data
+
+    async def clear_cache(self) -> None:
+        """Clear cache file."""
+        await self._api.clear_cache()
+        _LOGGER.debug("Cache file cleared.")

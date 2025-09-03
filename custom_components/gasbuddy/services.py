@@ -151,4 +151,3 @@ class GasBuddyServices:
                 _LOGGER.error("Error locating configuration: %s", err)
 
             await manager.clear_cache()
-            _LOGGER.debug("Cache file cleared.")
