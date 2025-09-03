@@ -145,9 +145,5 @@ class GasBuddyServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s", config_id)
-            try:
-                manager = self.hass.data[DOMAIN][config_id][COORDINATOR]
-            except KeyError as err:
-                _LOGGER.error("Error locating configuration: %s", err)
-
+            manager = self.hass.data[DOMAIN][config_id][COORDINATOR]
             await manager.clear_cache()

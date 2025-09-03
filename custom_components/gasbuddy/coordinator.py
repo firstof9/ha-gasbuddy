@@ -46,12 +46,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         """Update data via library."""
         try:
             self._data = await self._api.price_lookup()
-        except APIError:
-            _LOGGER.error("API error when retreiving data.")
-        except LibraryError:
-            _LOGGER.error("Problem parsing API response.")
-        except CSRFTokenMissing:
-            _LOGGER.error("Unable to update prices due to missing token.")
+        except (APIError, LibraryError, CSRFTokenMissing) as ex:
+            _LOGGER.error("Error retreiving data: %s", ex)
         except Exception as exception:
             raise UpdateFailed() from exception
 
