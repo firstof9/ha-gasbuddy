@@ -21,6 +21,7 @@ DEFAULT_NAME = "Gas Station"
 CONFIG_VER = 6
 
 # hass.data attribues
+ATTR_DEVICE_ID = "device_id"
 ATTR_IMAGEURL = "image_url"
 ATTR_LIMIT = "limit"
 ATTR_POSTAL_CODE = "zipcode"
@@ -33,6 +34,7 @@ PLATFORMS = ["sensor"]
 # services
 SERVICE_LOOKUP_GPS = "lookup_gps"
 SERVICE_LOOKUP_ZIP = "lookup_zip"
+SERVICE_CLEAR_CACHE = "clear_cache"
 
 # sensor constants
 UNIT_OF_MEASURE = {

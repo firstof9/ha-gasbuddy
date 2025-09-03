@@ -25,8 +25,11 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.interval = timedelta(seconds=interval)
         self._data = {}
+        self._cache_file = f"{self.hass.config.config_dir}/.storage/gasbuddy_cache"
         self._api = GasBuddy(
-            solver_url=config.data[CONF_SOLVER], station_id=config.data[CONF_STATION_ID]
+            solver_url=config.data[CONF_SOLVER],
+            station_id=config.data[CONF_STATION_ID],
+            cache_file=self._cache_file,
         )
 
         _LOGGER.debug("Data will be update every %s", self.interval)
