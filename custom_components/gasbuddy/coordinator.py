@@ -7,17 +7,11 @@ from gasbuddy import GasBuddy  # pylint: disable=import-self
 
 # pylint: disable-next=import-error,no-name-in-module
 from gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
-
-from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-
-from .const import (
-    CONF_SOLVER,
-    CONF_STATION_ID,
-    DOMAIN,
-)
+from .const import CONF_SOLVER, CONF_STATION_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
