@@ -3,10 +3,6 @@
 from unittest.mock import patch
 
 import pytest
-from homeassistant import config_entries, data_entry_flow, setup
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult, FlowResultType, InvalidData
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import (
@@ -20,6 +16,9 @@ from custom_components.gasbuddy.const import (
     DEFAULT_NAME,
     DOMAIN,
 )
+from homeassistant import config_entries, setup
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from tests.common import load_fixture
 from tests.const import CONFIG_DATA, STATION_LIST
 
@@ -33,7 +32,7 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.mark.parametrize(
-    "input,input2,step_id,title,data",
+    ("input", "input2", "step_id", "title", "data"),
     [
         (
             {
@@ -107,15 +106,11 @@ async def test_form_home(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home2"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input2
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -126,7 +121,7 @@ async def test_form_home(
 
 
 @pytest.mark.parametrize(
-    "input,input2,step_id,title,data",
+    ("input", "input2", "step_id", "title", "data"),
     [
         (
             {
@@ -200,15 +195,11 @@ async def test_form_home_hostname_solver(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home2"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input2
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -219,7 +210,7 @@ async def test_form_home_hostname_solver(
 
 
 @pytest.mark.parametrize(
-    "input,input2,title,data",
+    ("input", "input2", "title", "data"),
     [
         (
             {
@@ -294,15 +285,11 @@ async def test_form_postal(
         assert result["type"] == FlowResultType.FORM
 
         assert result["step_id"] == "postal"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "station_list"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input2
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -313,7 +300,7 @@ async def test_form_postal(
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    ("input", "step_id", "title", "data"),
     [
         (
             {
@@ -362,12 +349,15 @@ async def test_form_manual(
     assert result["type"] == FlowResultType.MENU
     assert result["step_id"] == step_id
 
-    with patch(
-        "custom_components.gasbuddy.async_setup_entry",
-        return_value=True,
-    ) as mock_setup_entry, patch(
-        "custom_components.gasbuddy.config_flow._get_station_list",
-        return_value=STATION_LIST,
+    with (
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ) as mock_setup_entry,
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "manual"}
@@ -375,9 +365,7 @@ async def test_form_manual(
         await hass.async_block_till_done()
         assert result["type"] == FlowResultType.FORM
 
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -388,7 +376,7 @@ async def test_form_manual(
 
 
 @pytest.mark.parametrize(
-    "input,input2,step_id,title,data",
+    ("input", "input2", "step_id", "title", "data"),
     [
         (
             {
@@ -449,7 +437,7 @@ async def test_form_home_no_stations(
     with patch(
         "custom_components.gasbuddy.async_setup_entry",
         return_value=True,
-    ) as mock_setup_entry:
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "search"}
         )
@@ -462,16 +450,14 @@ async def test_form_home_no_stations(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home2"
         assert result["errors"] == {"station_id": "no_results"}
 
 
 @pytest.mark.parametrize(
-    "input,input2,title,data",
+    ("input", "input2", "title", "data"),
     [
         (
             {
@@ -531,7 +517,7 @@ async def test_form_postal_no_stations(
     with patch(
         "custom_components.gasbuddy.async_setup_entry",
         return_value=True,
-    ) as mock_setup_entry:
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "search"}
         )
@@ -546,9 +532,7 @@ async def test_form_postal_no_stations(
         assert result["type"] == FlowResultType.FORM
 
         assert result["step_id"] == "postal"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "station_list"
@@ -556,7 +540,7 @@ async def test_form_postal_no_stations(
 
 
 @pytest.mark.parametrize(
-    "input,step_id",
+    ("input", "step_id"),
     [
         (
             {
@@ -601,7 +585,7 @@ async def test_form_home_invalid_url(
     with patch(
         "custom_components.gasbuddy.async_setup_entry",
         return_value=True,
-    ) as mock_setup_entry:
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "search"}
         )
@@ -614,9 +598,7 @@ async def test_form_home_invalid_url(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
@@ -624,7 +606,7 @@ async def test_form_home_invalid_url(
 
 
 @pytest.mark.parametrize(
-    "input,step_id",
+    ("input", "step_id"),
     [
         (
             {
@@ -670,7 +652,7 @@ async def test_form_postal_invalid_url(
     with patch(
         "custom_components.gasbuddy.async_setup_entry",
         return_value=True,
-    ) as mock_setup_entry:
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "search"}
         )
@@ -684,9 +666,7 @@ async def test_form_postal_invalid_url(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "postal"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "postal"
@@ -694,7 +674,7 @@ async def test_form_postal_invalid_url(
 
 
 @pytest.mark.parametrize(
-    "input,step_id",
+    ("input", "step_id"),
     [
         (
             {
@@ -726,15 +706,19 @@ async def test_form_manual_invalid_url(
     assert result["type"] == FlowResultType.MENU
     assert result["step_id"] == step_id
 
-    with patch(
-        "custom_components.gasbuddy.async_setup_entry",
-        return_value=True,
-    ) as mock_setup_entry, patch(
-        "custom_components.gasbuddy.config_flow._get_station_list",
-        return_value=STATION_LIST,
-    ), patch(
-        "custom_components.gasbuddy.config_flow.validate_station",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "manual"}
@@ -742,9 +726,7 @@ async def test_form_manual_invalid_url(
         await hass.async_block_till_done()
         assert result["type"] == FlowResultType.FORM
 
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], input
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "manual"
@@ -752,7 +734,7 @@ async def test_form_manual_invalid_url(
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    ("input", "step_id", "title", "data"),
     [
         (
             {
@@ -805,14 +787,16 @@ async def test_reconfigure(
 
     entry = integration
 
-    with patch(
-        "custom_components.gasbuddy.config_flow._get_station_list",
-        return_value=STATION_LIST,
-    ), patch(
-        "custom_components.gasbuddy.config_flow.validate_station",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
     ):
-
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={
@@ -837,7 +821,7 @@ async def test_reconfigure(
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    ("input", "step_id", "title", "data"),
     [
         (
             {
@@ -890,14 +874,16 @@ async def test_reconfigure_invalid_url(
 
     entry = integration
 
-    with patch(
-        "custom_components.gasbuddy.config_flow._get_station_list",
-        return_value=STATION_LIST,
-    ), patch(
-        "custom_components.gasbuddy.config_flow.validate_station",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
     ):
-
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={
@@ -919,7 +905,7 @@ async def test_reconfigure_invalid_url(
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    ("input", "step_id", "title", "data"),
     [
         (
             {
@@ -976,7 +962,6 @@ async def test_reconfigure_invalid_station(
         "custom_components.gasbuddy.config_flow.validate_station",
         return_value=False,
     ):
-
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={
@@ -998,7 +983,7 @@ async def test_reconfigure_invalid_station(
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    ("input", "step_id", "title", "data"),
     [
         (
             {
@@ -1051,14 +1036,16 @@ async def test_reconfigure_server_error(
 
     entry = integration
 
-    with patch(
-        "custom_components.gasbuddy.config_flow._get_station_list",
-        return_value=STATION_LIST,
-    ), patch(
-        "custom_components.gasbuddy.config_flow.validate_station",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
     ):
-
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={
@@ -1119,9 +1106,7 @@ async def test_form_options_error(
         body=load_fixture("solver_response.json"),
         repeat=True,
     )
-    entry = MockConfigEntry(
-        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
-    )
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -1141,7 +1126,7 @@ async def test_form_options_error(
 
 
 @pytest.mark.parametrize(
-    "input,step_id,title,data",
+    ("input", "step_id", "title", "data"),
     [
         (
             {
@@ -1194,14 +1179,16 @@ async def test_reconfigure_no_solver(
 
     entry = integration
 
-    with patch(
-        "custom_components.gasbuddy.config_flow._get_station_list",
-        return_value=STATION_LIST,
-    ), patch(
-        "custom_components.gasbuddy.config_flow.validate_station",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
     ):
-
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={
@@ -1226,7 +1213,7 @@ async def test_reconfigure_no_solver(
 
 
 @pytest.mark.parametrize(
-    "input,data",
+    ("input", "data"),
     [
         (
             {
@@ -1268,9 +1255,7 @@ async def test_form_options(
         body=load_fixture("solver_response.json"),
         repeat=True,
     )
-    entry = MockConfigEntry(
-        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
-    )
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -1281,9 +1266,7 @@ async def test_form_options(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "init"
 
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input=input
-    )
+    result = await hass.config_entries.options.async_configure(result["flow_id"], user_input=input)
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY

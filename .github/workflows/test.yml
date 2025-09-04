@@ -22,19 +22,6 @@ jobs:
         - name: Hassfest validation
           uses: "home-assistant/actions/hassfest@master"
 
-  style:
-    runs-on: "ubuntu-latest"
-    name: Check style formatting
-    steps:
-        - name: 📥 Checkout the repository
-          uses: actions/checkout@v4
-        - name: 🛠️ Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.x"
-        - run: python3 -m pip install black
-        - run: black .
-
   tests:
     runs-on: "ubuntu-latest"
     name: Run tests
