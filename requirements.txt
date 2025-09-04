@@ -1,2 +1,3 @@
+aiofiles
 backoff
-py_gasbuddy==0.3.8
+py_gasbuddy==0.4.0

@@ -1,0 +1,56 @@
+{
+    "data": {
+        "station": {
+            "brands": [],                
+            "prices": [
+                {
+                    "cash": {
+                        "nickname": "Flemmit",
+                        "postedTime": "2024-09-06T09:54:05.458Z",
+                        "price": 3.17
+                    },
+                    "credit": {
+                        "nickname": "Flemmit",
+                        "postedTime": "2024-09-06T09:54:05.489Z",
+                        "price": 3.27
+                    },
+                    "fuelProduct": "regular_gas",
+                    "longName": "Regular"
+                },
+                {
+                    "cash": {
+                        "nickname": "Flemmit",
+                        "postedTime": "2024-09-05T17:32:42.712Z",
+                        "price": 3.59
+                    },
+                    "credit": {
+                        "nickname": "drwjd",
+                        "postedTime": "2024-09-05T14:53:44.183Z",
+                        "price": 3.59
+                    },
+                    "fuelProduct": "midgrade_gas",
+                    "longName": "Midgrade"
+                },
+                {
+                    "cash": {
+                        "nickname": null,
+                        "postedTime": null,
+                        "price": 0
+                    },
+                    "credit": {
+                        "nickname": null,
+                        "postedTime": null,
+                        "price": 0
+                    },
+                    "fuelProduct": "premium_gas",
+                    "longName": "Premium"
+                }
+            ],
+            "priceUnit": "dollars_per_gallon",
+            "currency": "USD",
+            "id": "205033",
+            "latitude": 40.196589,
+            "longitude": -75.47145
+        }
+    }
+}

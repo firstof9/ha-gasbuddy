@@ -3,7 +3,7 @@
 import logging
 
 import voluptuous as vol
-from gasbuddy import GasBuddy  # pylint: disable=import-self
+from py_gasbuddy import GasBuddy
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import (
@@ -14,11 +14,15 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
+    ATTR_DEVICE_ID,
     ATTR_LIMIT,
     ATTR_POSTAL_CODE,
+    COORDINATOR,
     DOMAIN,
+    SERVICE_CLEAR_CACHE,
     SERVICE_LOOKUP_GPS,
     SERVICE_LOOKUP_ZIP,
 )
@@ -69,10 +73,20 @@ class GasBuddyServices:
             ),
             supports_response=SupportsResponse.ONLY,
         )
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_CLEAR_CACHE,
+            self._clear_cache,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+                }
+            ),
+        )
 
     # Setup services
     async def _price_lookup_gps(self, service: ServiceCall) -> ServiceResponse:
-        """Set the override."""
+        """Lookup prices with GPS coordinates."""
         entity_ids = service.data[ATTR_ENTITY_ID]
 
         limit = 5
@@ -96,7 +110,7 @@ class GasBuddyServices:
         return results
 
     async def _price_lookup_zip(self, service: ServiceCall) -> ServiceResponse:
-        """Set the override."""
+        """Lookup prices via ZIP code."""
         zipcode = service.data[ATTR_POSTAL_CODE]
 
         limit = 5
@@ -114,3 +128,22 @@ class GasBuddyServices:
 
         _LOGGER.debug("ZIP Code price lookup: %s", results)
         return results
+
+    async def _clear_cache(self, service: ServiceCall) -> ServiceResponse:
+        """Clear cache file."""
+        data = service.data
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.connections)[0][1]
+            _LOGGER.debug("Config ID: %s", config_id)
+            manager = self.hass.data[DOMAIN][config_id][COORDINATOR]
+            await manager.clear_cache()
