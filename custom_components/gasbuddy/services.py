@@ -2,8 +2,10 @@
 
 import logging
 
-import voluptuous as vol
 from py_gasbuddy import GasBuddy
+from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
+import voluptuous as vol
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import (
@@ -13,8 +15,7 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 
 from .const import (
     ATTR_DEVICE_ID,
@@ -53,9 +54,7 @@ class GasBuddyServices:
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
-                    vol.Optional(ATTR_LIMIT): vol.All(
-                        vol.Coerce(int), vol.Range(min=1, max=99)
-                    ),
+                    vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
                     vol.Optional(ATTR_SOLVER): cv.string,
                 }
             ),
@@ -68,9 +67,7 @@ class GasBuddyServices:
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_POSTAL_CODE): cv.string,
-                    vol.Optional(ATTR_LIMIT): vol.All(
-                        vol.Coerce(int), vol.Range(min=1, max=99)
-                    ),
+                    vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
                     vol.Optional(ATTR_SOLVER): cv.string,
                 }
             ),
@@ -105,13 +102,14 @@ class GasBuddyServices:
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
-                lat = entity.attributes[ATTR_LATITUDE]
-                lon = entity.attributes[ATTR_LONGITUDE]
-                results[entity_id] = await GasBuddy(
-                    solver_url=solver
-                ).price_lookup_service(lat=lat, lon=lon, limit=limit)
-            except Exception as err:
-                _LOGGER.error("Error checking prices: %s", err)
+                if entity:
+                    lat = entity.attributes[ATTR_LATITUDE]
+                    lon = entity.attributes[ATTR_LONGITUDE]
+                    results[entity_id] = await GasBuddy(solver_url=solver).price_lookup_service(
+                        lat=lat, lon=lon, limit=limit
+                    )
+            except (APIError, LibraryError, CSRFTokenMissing) as ex:
+                _LOGGER.error("Error checking prices: %s", ex)
 
         _LOGGER.debug("GPS price lookup: %s", results)
         return results
@@ -133,13 +131,13 @@ class GasBuddyServices:
             results = await GasBuddy(solver_url=solver).price_lookup_service(
                 zipcode=zipcode, limit=limit
             )
-        except Exception as err:
-            _LOGGER.error("Error checking prices: %s", err)
+        except (APIError, LibraryError, CSRFTokenMissing) as ex:
+            _LOGGER.error("Error checking prices: %s", ex)
 
         _LOGGER.debug("ZIP Code price lookup: %s", results)
         return results
 
-    async def _clear_cache(self, service: ServiceCall) -> ServiceResponse:
+    async def _clear_cache(self, service: ServiceCall) -> None:
         """Clear cache file."""
         data = service.data
         for device in data[ATTR_DEVICE_ID]:

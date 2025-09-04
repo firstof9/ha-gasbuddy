@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -21,30 +22,29 @@ from .const import (
     SENSOR_TYPES,
     UNIT_OF_MEASURE,
 )
+from .coordinator import GasBuddyUpdateCoordinator
+from .entity import GasBuddySensorEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GasBuddy sensors."""
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-
-    sensors = []
-    for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
-        sensors.append(GasBuddySensor(SENSOR_TYPES[sensor], coordinator, entry))
-
+    coordinator: GasBuddyUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    sensors = [
+        GasBuddySensor(SENSOR_TYPES[sensor_type], coordinator, entry)
+        for sensor_type in SENSOR_TYPES
+    ]
     async_add_entities(sensors, False)
 
 
-class GasBuddySensor(
-    CoordinatorEntity, SensorEntity
-):  # pylint: disable=too-many-instance-attributes
+class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-many-instance-attributes
     """Implementation of a GasBuddy sensor."""
 
     def __init__(
         self,
-        sensor_description: SensorEntityDescription,
-        coordinator: str,
+        sensor_description: GasBuddySensorEntityDescription,
+        coordinator: GasBuddyUpdateCoordinator,
         config: ConfigEntry,
     ) -> None:
         """Initialize the sensor."""
@@ -65,15 +65,13 @@ class GasBuddySensor(
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
 
     @property
-    def device_info(self) -> dict:
+    def device_info(self) -> DeviceInfo:
         """Return a port description for device registry."""
-        info = {
-            "manufacturer": "GasBuddy",
-            "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._unique_id)},
-        }
-
-        return info
+        return DeviceInfo(
+            manufacturer="GasBuddy",
+            name=self._config.data[CONF_NAME],
+            connections={(DOMAIN, self._unique_id)},
+        )
 
     @property
     def native_value(self) -> Any:
@@ -81,25 +79,18 @@ class GasBuddySensor(
         data = self.coordinator.data
         if data is None:
             self._state = None
-        if self._type in data.keys():
+        if self._type in data:
             if not self._price:
                 return data[self._type]
             if self._cash and "cash_price" in data[self._type]:
-                if (
-                    data["unit_of_measure"] == "cents_per_liter"
-                    and data[self._type]["cash_price"]
-                ):
+                if data["unit_of_measure"] == "cents_per_liter" and data[self._type]["cash_price"]:
                     self._state = data[self._type]["cash_price"] / 100
                 else:
                     self._state = data[self._type]["cash_price"]
+            elif data["unit_of_measure"] == "cents_per_liter" and data[self._type]["price"]:
+                self._state = data[self._type]["price"] / 100
             else:
-                if (
-                    data["unit_of_measure"] == "cents_per_liter"
-                    and data[self._type]["price"]
-                ):
-                    self._state = data[self._type]["price"] / 100
-                else:
-                    self._state = data[self._type]["price"]
+                self._state = data[self._type]["price"]
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         return self._state
@@ -117,7 +108,7 @@ class GasBuddySensor(
         return None
 
     @property
-    def extra_state_attributes(self) -> Optional[dict]:
+    def extra_state_attributes(self) -> dict | None:
         """Return sesnsor attributes."""
         if not self._price:
             return None

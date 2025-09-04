@@ -1,6 +1,6 @@
 """Constants for tests."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from custom_components.gasbuddy.const import (
     CONF_GPS,
@@ -90,7 +90,7 @@ COORDINATOR_DATA = {
         "cash_price": 3.13,
         "last_updated": "2024-09-27T18:12:09.837Z",
     },
-    "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=timezone.utc),
+    "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=UTC),
 }
 
 COORDINATOR_DATA_CAD = {
@@ -112,5 +112,5 @@ COORDINATOR_DATA_CAD = {
         "cash_price": 145.2,
         "last_updated": "2023-12-10T17:31:01.856Z",
     },
-    "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=timezone.utc),
+    "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=UTC),
 }

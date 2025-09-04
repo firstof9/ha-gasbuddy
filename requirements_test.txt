@@ -9,3 +9,5 @@ pylint
 tox
 pytest
 aioresponses
+ruff
+types-PyYAML

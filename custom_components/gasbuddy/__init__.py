@@ -10,7 +10,6 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
-
 from .const import (
     CONF_GPS,
     CONF_INTERVAL,
@@ -58,8 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         hass.config_entries.async_update_entry(config_entry, options=updated_config)
 
     config_entry.add_update_listener(update_listener)
-    interval = config_entry.options.get(CONF_INTERVAL)
-    coordinator = GasBuddyUpdateCoordinator(hass, interval, config_entry)
+    coordinator = GasBuddyUpdateCoordinator(hass, config_entry)
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
@@ -94,15 +92,15 @@ async def async_migrate_entry(hass, config_entry) -> bool:
     # 1 -> 2: Migrate format
     if version == 1:
         # Add default unit of measure setting if missing
-        if CONF_UOM not in updated_config.keys():
+        if CONF_UOM not in updated_config:
             updated_config[CONF_UOM] = True
 
     if version < 5:
-        if CONF_GPS not in updated_config.keys():
+        if CONF_GPS not in updated_config:
             updated_config[CONF_GPS] = True
 
     if version < 6:
-        if CONF_SOLVER not in updated_config.keys():
+        if CONF_SOLVER not in updated_config:
             updated_config[CONF_SOLVER] = None
 
     if updated_config != config_entry.data:
@@ -119,9 +117,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     """Handle removal of an entry."""
     _LOGGER.debug("Attempting to unload entities from the %s integration", DOMAIN)
 
-    unload_ok = await hass.config_entries.async_unload_platforms(
-        config_entry, PLATFORMS
-    )
+    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
     if unload_ok:
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)

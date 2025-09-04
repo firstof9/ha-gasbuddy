@@ -8,9 +8,10 @@ from typing import Any
 
 import py_gasbuddy
 import voluptuous as vol
+
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
@@ -48,23 +49,21 @@ async def validate_url(url: str) -> bool:
 
 async def validate_station(station: int, solver: str | None = None) -> bool:
     """Validate statation ID."""
-    check = await py_gasbuddy.GasBuddy(
-        solver_url=solver, station_id=station
-    ).price_lookup()
+    check = await py_gasbuddy.GasBuddy(solver_url=solver, station_id=station).price_lookup()
 
-    if "errors" in check.keys():
+    if "errors" in check:
         return False
     return True
 
 
-async def _get_station_list(hass, user_input) -> dict[str, Any] | None:
+async def _get_station_list(hass, user_input) -> dict[str, Any]:
     """Return list of utilities by lat/lon."""
     lat = None
     lon = None
-    postal = ""
+    postal: str | None = ""
     solver = None
 
-    if user_input is not None and CONF_POSTAL in user_input.keys():
+    if user_input is not None and CONF_POSTAL in user_input:
         postal = user_input[CONF_POSTAL]
 
     if not bool(postal):
@@ -83,11 +82,11 @@ async def _get_station_list(hass, user_input) -> dict[str, Any] | None:
     _LOGGER.debug("search reply: %s", stations)
 
     for station in stations["data"]["locationBySearchTerm"]["stations"]["results"]:
-        full_name = f'{station["name"]} @ {station["address"]["line1"]}'
+        full_name = f"{station['name']} @ {station['address']['line1']}"
         stations_list[station["id"]] = full_name
 
     if len(stations_list) == 0:
-        stations_list["-"] = "No stations in search area."
+        stations_list["not_found"] = "No stations in search area."
 
     _LOGGER.debug("stations_list: %s", stations_list)
     return stations_list
@@ -106,15 +105,9 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
-            ): cv.string,
-            vol.Required(
-                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
-            ): cv.string,
-            vol.Optional(
-                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
-            ): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
+            vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -134,9 +127,7 @@ def _get_schema_home(
 
     return vol.Schema(
         {
-            vol.Optional(
-                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
-            ): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -145,7 +136,7 @@ def _get_schema_home2(
     hass: Any,  # pylint: disable=unused-argument
     user_input: dict[str, Any],
     default_dict: dict[str, Any],
-    station_list: list,
+    station_list: dict[str, Any],
 ) -> Any:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:
@@ -157,12 +148,10 @@ def _get_schema_home2(
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
-            ): vol.In(station_list),
-            vol.Required(
-                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
-            ): cv.string,
+            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(
+                station_list
+            ),
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
         }
     )
 
@@ -180,12 +169,8 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
 
     return vol.Schema(
         {
-            vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(
-                str
-            ),
-            vol.Optional(
-                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
-            ): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(str),
+            vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -194,7 +179,7 @@ def _get_schema_station_list(
     hass: Any,  # pylint: disable=unused-argument
     user_input: dict[str, Any],
     default_dict: dict[str, Any],
-    station_list: list,
+    station_list: dict[str, Any],
 ) -> Any:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:
@@ -206,12 +191,10 @@ def _get_schema_station_list(
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
-            ): vol.In(station_list),
-            vol.Required(
-                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
-            ): cv.string,
+            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(
+                station_list
+            ),
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
         }
     )
 
@@ -229,9 +212,9 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)
-            ): vol.All(cv.positive_int, vol.Range(min=900, max=14400)),
+            vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): vol.All(
+                cv.positive_int, vol.Range(min=900, max=14400)
+            ),
             vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
             vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         }
@@ -247,13 +230,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize."""
-        self._data = {}
+        self._data: dict[Any, Any] = {}
         self._errors = {}
-        self._entry = {}
+        self._entry: dict[Any, Any] = {}
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the flow initialized by the user."""
         return self.async_show_menu(step_id="user", menu_options=MENU_OPTIONS)
 
@@ -274,16 +255,12 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_manual(user_input)
 
-            validate = await validate_station(
-                user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
-            )
+            validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
                 self._data.update(user_input)
-                return self.async_create_entry(
-                    title=self._data[CONF_NAME], data=self._data
-                )
+                return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
         return await self._show_config_manual(user_input)
 
     async def _show_config_manual(self, user_input):
@@ -303,7 +280,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_search(
         self,
         user_input: dict[str, Any] | None = None,  # pylint: disable=unused-argument
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the flow initialized by the user."""
         return self.async_show_menu(step_id="search", menu_options=MENU_SEARCH)
 
@@ -330,7 +307,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_home(self, user_input):
         """Show the configuration form to edit location data."""
-        defaults = {}
+        defaults: dict[Any, Any] = {}
 
         return self.async_show_form(
             step_id="home",
@@ -352,18 +329,16 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_home2(self, user_input):
         """Show the configuration form to edit location data."""
-        defaults = {}
+        defaults: dict[Any, Any] = {}
 
         station_list = await _get_station_list(self.hass, self._data)
 
-        if "-" in station_list.keys():
+        if "not_found" in station_list:
             self._errors[CONF_STATION_ID] = "no_results"
 
         return self.async_show_form(
             step_id="home2",
-            data_schema=_get_schema_home2(
-                self.hass, user_input, defaults, station_list
-            ),
+            data_schema=_get_schema_home2(self.hass, user_input, defaults, station_list),
             errors=self._errors,
         )
 
@@ -386,7 +361,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_postal(self, user_input):
         """Show the configuration form to edit location data."""
-        defaults = {}
+        defaults: dict[Any, Any] = {}
 
         return self.async_show_form(
             step_id="postal",
@@ -409,26 +384,24 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_station_list(self, user_input):
         """Show the configuration form to edit location data."""
-        defaults = {}
+        defaults: dict[Any, Any] = {}
 
         station_list = await _get_station_list(self.hass, self._data)
 
-        if "-" in station_list.keys():
+        if "not_found" in station_list:
             self._errors[CONF_STATION_ID] = "no_results"
 
         return self.async_show_form(
             step_id="station_list",
-            data_schema=_get_schema_station_list(
-                self.hass, user_input, defaults, station_list
-            ),
+            data_schema=_get_schema_station_list(self.hass, user_input, defaults, station_list),
             errors=self._errors,
         )
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
         """Add reconfigure step to allow to reconfigure a config entry."""
-        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        assert self._entry
-        self._data = dict(self._entry.data)
+        entry = self._get_reconfigure_entry()
+        # assert self._entry
+        self._data = dict(entry.data)
         self._errors = {}
 
         if user_input is not None:
@@ -441,17 +414,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 user_input[CONF_SOLVER] = None
 
-            validate = await validate_station(
-                user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
-            )
+            validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
 
             if len(self._errors) == 0:
-                self.hass.config_entries.async_update_entry(
-                    self._entry, data=self._data
-                )
-                await self.hass.config_entries.async_reload(self._entry.entry_id)
+                self.hass.config_entries.async_update_entry(entry, data=self._data)
+                await self.hass.config_entries.async_reload(entry.entry_id)
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
 
