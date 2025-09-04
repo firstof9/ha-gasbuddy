@@ -63,7 +63,5 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     def _get_interval(self) -> timedelta:
         """Return the update interval."""
-        interval = self._config.options.get(CONF_INTERVAL)
-        if interval is None:
-            interval = 3600
+        interval = self._config.options.get(CONF_INTERVAL, 3600)
         return timedelta(seconds=interval)
