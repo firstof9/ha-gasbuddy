@@ -107,7 +107,7 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
         {
             vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
             vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
-            vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Optional(CONF_SOLVER, description={"suggested_value":_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -405,14 +405,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
+            user_input.setdefault(CONF_SOLVER)
             self._data.update(user_input)
-            if user_input[CONF_SOLVER] != "":
+            if user_input[CONF_SOLVER] is not None:
                 url_valid = await validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
-            else:
-                user_input[CONF_SOLVER] = None
 
             validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
