@@ -107,7 +107,7 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
         {
             vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
             vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
-            vol.Optional(CONF_SOLVER, description={"suggested_value":_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Optional(CONF_SOLVER, description={"suggested_value":_get_default(CONF_SOLVER, "")}): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
