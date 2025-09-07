@@ -408,10 +408,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_SOLVER)
             self._data.update(user_input)
             if user_input[CONF_SOLVER] is not None:
-                url_valid = await validate_url(user_input[CONF_SOLVER])
-                _LOGGER.debug("URL valid: %s", url_valid)
-                if not url_valid:
-                    self._errors[CONF_SOLVER] = "invalid_url"
+                if user_input[CONF_SOLVER] != "":
+                    url_valid = await validate_url(user_input[CONF_SOLVER])
+                    _LOGGER.debug("URL valid: %s", url_valid)
+                    if not url_valid:
+                        self._errors[CONF_SOLVER] = "invalid_url"
+                else:
+                    user_input[CONF_SOLVER] = None
 
             validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
