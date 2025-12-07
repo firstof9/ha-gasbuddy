@@ -184,9 +184,12 @@ async def test_lookup_zip(
         assert response["results"][0]["regular_gas"]["price"] == 3.28
         assert response["results"][0]["regular_gas"]["credit"] == "fred1129"
         assert response["results"][0]["regular_gas"]["last_updated"] == "2024-11-18T21:58:38.859Z"
-        assert response["trend"]["area"] == "Arizona"
-        assert response["trend"]["average_price"] == 3.33
-        assert response["trend"]["lowest_price"] == 2.59
+        assert response["trend"][0]["area"] == "Arizona"
+        assert response["trend"][0]["average_price"] == 3.33
+        assert response["trend"][0]["lowest_price"] == 2.59
+        assert response["trend"][1]["area"] == "United States"
+        assert response["trend"][1]["average_price"] == 3.11
+        assert response["trend"][1]["lowest_price"] == 0       
 
     mock_aioclient.post(
         TEST_URL,
@@ -206,9 +209,12 @@ async def test_lookup_zip(
         assert response["results"][0]["regular_gas"]["price"] == 3.28
         assert response["results"][0]["regular_gas"]["credit"] == "fred1129"
         assert response["results"][0]["regular_gas"]["last_updated"] == "2024-11-18T21:58:38.859Z"
-        assert response["trend"]["area"] == "Arizona"
-        assert response["trend"]["average_price"] == 3.33
-        assert response["trend"]["lowest_price"] == 2.59
+        assert response["trend"][0]["area"] == "Arizona"
+        assert response["trend"][0]["average_price"] == 3.33
+        assert response["trend"][0]["lowest_price"] == 2.59
+        assert response["trend"][1]["area"] == "United States"
+        assert response["trend"][1]["average_price"] == 3.11
+        assert response["trend"][1]["lowest_price"] == 0     
 
     mock_aioclient.post(
         TEST_URL,
@@ -268,9 +274,12 @@ async def test_clear_cache(
         assert response["results"][0]["regular_gas"]["price"] == 3.28
         assert response["results"][0]["regular_gas"]["credit"] == "fred1129"
         assert response["results"][0]["regular_gas"]["last_updated"] == "2024-11-18T21:58:38.859Z"
-        assert response["trend"]["area"] == "Arizona"
-        assert response["trend"]["average_price"] == 3.33
-        assert response["trend"]["lowest_price"] == 2.59
+        assert response["trend"][0]["area"] == "Arizona"
+        assert response["trend"][0]["average_price"] == 3.33
+        assert response["trend"][0]["lowest_price"] == 2.59
+        assert response["trend"][1]["area"] == "United States"
+        assert response["trend"][1]["average_price"] == 3.11
+        assert response["trend"][1]["lowest_price"] == 0     
 
     entry = entity_registry.async_get("sensor.gas_station_regular_gas")
     assert entry
