@@ -189,7 +189,7 @@ async def test_lookup_zip(
         assert response["trend"][0]["lowest_price"] == 2.59
         assert response["trend"][1]["area"] == "United States"
         assert response["trend"][1]["average_price"] == 3.11
-        assert response["trend"][1]["lowest_price"] == 0       
+        assert response["trend"][1]["lowest_price"] == 0
 
     mock_aioclient.post(
         TEST_URL,
@@ -214,7 +214,7 @@ async def test_lookup_zip(
         assert response["trend"][0]["lowest_price"] == 2.59
         assert response["trend"][1]["area"] == "United States"
         assert response["trend"][1]["average_price"] == 3.11
-        assert response["trend"][1]["lowest_price"] == 0     
+        assert response["trend"][1]["lowest_price"] == 0
 
     mock_aioclient.post(
         TEST_URL,
@@ -279,7 +279,7 @@ async def test_clear_cache(
         assert response["trend"][0]["lowest_price"] == 2.59
         assert response["trend"][1]["area"] == "United States"
         assert response["trend"][1]["average_price"] == 3.11
-        assert response["trend"][1]["lowest_price"] == 0     
+        assert response["trend"][1]["lowest_price"] == 0
 
     entry = entity_registry.async_get("sensor.gas_station_regular_gas")
     assert entry

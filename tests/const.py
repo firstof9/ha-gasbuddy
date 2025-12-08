@@ -6,6 +6,7 @@ from custom_components.gasbuddy.const import (
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
+    CONF_SOLVER,
     CONF_STATION_ID,
     CONF_UOM,
 )
@@ -16,6 +17,7 @@ CONFIG_DATA = {
     CONF_STATION_ID: 208656,
     CONF_UOM: True,
     CONF_GPS: True,
+    CONF_SOLVER: None,
 }
 
 CONFIG_DATA_NO_UOM = {
