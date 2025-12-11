@@ -1274,3 +1274,164 @@ async def test_form_options(
     await hass.async_block_till_done()
 
     assert entry.options.get(CONF_INTERVAL) == 1600
+
+
+@pytest.mark.parametrize(
+    ("input", "input2", "step_id", "title", "data"),
+    [
+        (
+            {
+                CONF_SOLVER: "",  # Test empty string
+            },
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+            },
+            "user",
+            DEFAULT_NAME,
+            {
+                CONF_GPS: True,
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_SOLVER: "",
+            },
+        ),
+    ],
+)
+async def test_form_home_empty_solver(
+    input,
+    input2,
+    step_id,
+    title,
+    data,
+    hass,
+    mock_gasbuddy,
+    mock_aioclient,
+):
+    """Test the Home flow allows an empty solver URL."""
+    # Mock responses for successful flow without solver
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("location_results.json"),
+        repeat=True,
+    )
+    
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ) as mock_setup_entry:
+        # Select Search/Home path
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "search"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "home"}
+        )
+
+        # Submit empty solver
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        
+        # Verify we moved to the next step (home2) and didn't get an error
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "home2"
+        assert result.get("errors") == {} # Ensure no errors
+
+        # Complete the flow
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == title
+        assert result["data"] == data
+
+
+@pytest.mark.parametrize(
+    ("input", "step_id", "title", "data"),
+    [
+        (
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+                CONF_SOLVER: "", # Test empty string
+            },
+            "user",
+            DEFAULT_NAME,
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "208656",
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_GPS: True,
+                CONF_SOLVER: "",
+            },
+        ),
+    ],
+)
+async def test_form_manual_empty_solver(
+    input,
+    step_id,
+    title,
+    data,
+    hass,
+    mock_aioclient,
+    mock_gasbuddy,
+):
+    """Test the Manual flow allows an empty solver URL."""
+    mock_aioclient.get(
+        GB_URL,
+        status=200,
+        body=load_fixture("index.html"),
+        repeat=True,
+    )    
+    mock_aioclient.post(
+        BASE_URL,
+        status=200,
+        body=load_fixture("station.json"),
+        repeat=True,
+    )
+    
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
+    ):
+        # Select Manual path
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+        
+        # Submit empty solver
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+
+        # Verify entry creation without error
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == title
+        assert result["data"] == data
