@@ -49,9 +49,7 @@ async def validate_url(url: str) -> bool:
 
 async def validate_station(station: int, solver: str | None = None) -> bool:
     """Validate statation ID."""
-    check = await py_gasbuddy.GasBuddy(
-        solver_url=solver, station_id=station
-    ).price_lookup()
+    check = await py_gasbuddy.GasBuddy(solver_url=solver, station_id=station).price_lookup()
 
     if "errors" in check:
         return False
@@ -107,15 +105,9 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
-            ): cv.string,
-            vol.Required(
-                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
-            ): cv.string,
-            vol.Optional(
-                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
-            ): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
+            vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -135,9 +127,7 @@ def _get_schema_home(
 
     return vol.Schema(
         {
-            vol.Optional(
-                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
-            ): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -158,12 +148,10 @@ def _get_schema_home2(
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
-            ): vol.In(station_list),
-            vol.Required(
-                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
-            ): cv.string,
+            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(
+                station_list
+            ),
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
         }
     )
 
@@ -181,12 +169,8 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
 
     return vol.Schema(
         {
-            vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(
-                str
-            ),
-            vol.Optional(
-                CONF_SOLVER, default=_get_default(CONF_SOLVER, "")
-            ): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(str),
+            vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
         }
     )
 
@@ -207,12 +191,10 @@ def _get_schema_station_list(
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_STATION_ID, default=_get_default(CONF_STATION_ID)
-            ): vol.In(station_list),
-            vol.Required(
-                CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)
-            ): cv.string,
+            vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(
+                station_list
+            ),
+            vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
         }
     )
 
@@ -230,9 +212,9 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
 
     return vol.Schema(
         {
-            vol.Required(
-                CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)
-            ): vol.All(cv.positive_int, vol.Range(min=900, max=14400)),
+            vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): vol.All(
+                cv.positive_int, vol.Range(min=900, max=14400)
+            ),
             vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
             vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         }
@@ -252,9 +234,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
         self._entry: dict[Any, Any] = {}
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the flow initialized by the user."""
         return self.async_show_menu(step_id="user", menu_options=MENU_OPTIONS)
 
@@ -275,16 +255,12 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_manual(user_input)
 
-            validate = await validate_station(
-                user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
-            )
+            validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
                 self._data.update(user_input)
-                return self.async_create_entry(
-                    title=self._data[CONF_NAME], data=self._data
-                )
+                return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
         return await self._show_config_manual(user_input)
 
     async def _show_config_manual(self, user_input):
@@ -362,9 +338,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="home2",
-            data_schema=_get_schema_home2(
-                self.hass, user_input, defaults, station_list
-            ),
+            data_schema=_get_schema_home2(self.hass, user_input, defaults, station_list),
             errors=self._errors,
         )
 
@@ -419,9 +393,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="station_list",
-            data_schema=_get_schema_station_list(
-                self.hass, user_input, defaults, station_list
-            ),
+            data_schema=_get_schema_station_list(self.hass, user_input, defaults, station_list),
             errors=self._errors,
         )
 
@@ -442,9 +414,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 user_input[CONF_SOLVER] = None
 
-            validate = await validate_station(
-                user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
-            )
+            validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
 

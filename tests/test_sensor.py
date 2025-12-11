@@ -39,9 +39,7 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state.attributes["unit_of_measurement"] == "USD/gallon"
     assert state.attributes[ATTR_LATITUDE] == 33.459108
     assert state.attributes[ATTR_LONGITUDE] == -112.502745
-    assert (
-        state.attributes[ATTR_ENTITY_PICTURE] == "https://images.gasbuddy.io/b/122.png"
-    )
+    assert state.attributes[ATTR_ENTITY_PICTURE] == "https://images.gasbuddy.io/b/122.png"
     state = hass.states.get("sensor.gas_station_midgrade_gas")
     assert state
     assert state.state == "unavailable"
@@ -57,9 +55,7 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert entity_entry.disabled
     assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
-    updated_entry = entity_registry.async_update_entity(
-        entity_entry.entity_id, disabled_by=None
-    )
+    updated_entry = entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
     assert updated_entry != entity_entry
     assert updated_entry.disabled is False
 
@@ -117,9 +113,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
     assert entity_entry.disabled
     assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
-    updated_entry = entity_registry.async_update_entity(
-        entity_entry.entity_id, disabled_by=None
-    )
+    updated_entry = entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
     assert updated_entry != entity_entry
     assert updated_entry.disabled is False
 
@@ -173,9 +167,7 @@ async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRe
     assert entity_entry.disabled
     assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
-    updated_entry = entity_registry.async_update_entity(
-        entity_entry.entity_id, disabled_by=None
-    )
+    updated_entry = entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
     assert updated_entry != entity_entry
     assert updated_entry.disabled is False
 

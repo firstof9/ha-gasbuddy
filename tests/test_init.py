@@ -3,12 +3,7 @@
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gasbuddy.const import (
-    CONF_GPS,
-    CONF_SOLVER,
-    CONF_UOM,
-    DOMAIN,
-)
+from custom_components.gasbuddy.const import CONF_GPS, CONF_SOLVER, CONF_UOM, DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from tests.common import load_fixture
 from tests.const import CONFIG_DATA, CONFIG_DATA_V1
@@ -22,9 +17,7 @@ SOLVER_URL = "http://solver.url"
 
 async def test_setup_and_unload_entry(hass, mock_gasbuddy):
     """Test setup_entry."""
-    entry = MockConfigEntry(
-        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
-    )
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -46,9 +39,7 @@ async def test_setup_and_unload_entry(hass, mock_gasbuddy):
 
 async def test_setup_and_unload_entry_v1(hass, mock_gasbuddy):
     """Test setup_entry."""
-    entry = MockConfigEntry(
-        domain=DOMAIN, title="gas_station", data=CONFIG_DATA_V1, version=1
-    )
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA_V1, version=1)
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -87,9 +78,7 @@ async def test_setup_with_error(hass, mock_aioclient):
         status=200,
         body=load_fixture("solver_response.json"),
     )
-    entry = MockConfigEntry(
-        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
-    )
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -103,9 +92,7 @@ async def test_setup_with_error(hass, mock_aioclient):
 async def test_migrate_entry(hass, mock_gasbuddy):
     """Test entry migration."""
     # Create an entry with version 1 data
-    entry = MockConfigEntry(
-        domain=DOMAIN, title="gas_station", data=CONFIG_DATA_V1, version=1
-    )
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA_V1, version=1)
 
     entry.add_to_hass(hass)
 
