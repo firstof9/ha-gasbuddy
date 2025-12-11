@@ -11,7 +11,9 @@ def get_fixture_path(filename: str, integration: str | None = None) -> pathlib.P
     if integration is None:
         return pathlib.Path(__file__).parent.joinpath("fixtures", filename)
 
-    return pathlib.Path(__file__).parent.joinpath("components", integration, "fixtures", filename)
+    return pathlib.Path(__file__).parent.joinpath(
+        "components", integration, "fixtures", filename
+    )
 
 
 def load_fixture(filename: str, integration: str | None = None) -> str:

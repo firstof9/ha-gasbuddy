@@ -61,7 +61,9 @@ def mock_aioclient():
 @pytest.fixture(name="integration")
 async def integration_fixture(hass):
     """Set up the mail_and_packages integration."""
-    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()

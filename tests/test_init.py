@@ -22,7 +22,9 @@ SOLVER_URL = "http://solver.url"
 
 async def test_setup_and_unload_entry(hass, mock_gasbuddy):
     """Test setup_entry."""
-    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -44,7 +46,9 @@ async def test_setup_and_unload_entry(hass, mock_gasbuddy):
 
 async def test_setup_and_unload_entry_v1(hass, mock_gasbuddy):
     """Test setup_entry."""
-    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA_V1, version=1)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA_V1, version=1
+    )
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -83,7 +87,9 @@ async def test_setup_with_error(hass, mock_aioclient):
         status=200,
         body=load_fixture("solver_response.json"),
     )
-    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -98,21 +104,18 @@ async def test_migrate_entry(hass, mock_gasbuddy):
     """Test entry migration."""
     # Create an entry with version 1 data
     entry = MockConfigEntry(
-        domain=DOMAIN, 
-        title="gas_station", 
-        data=CONFIG_DATA_V1, 
-        version=1
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA_V1, version=1
     )
 
     entry.add_to_hass(hass)
-    
+
     # Setup the entry - this triggers the migration
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
     # Verify the version is updated to current
     assert entry.version == 6
-    
+
     # Verify new keys are added
     assert entry.data[CONF_UOM] is True
     assert entry.data[CONF_GPS] is True

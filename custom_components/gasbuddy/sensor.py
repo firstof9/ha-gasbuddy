@@ -30,7 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GasBuddy sensors."""
-    coordinator: GasBuddyUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator: GasBuddyUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][
+        COORDINATOR
+    ]
     sensors = [
         GasBuddySensor(SENSOR_TYPES[sensor_type], coordinator, entry)
         for sensor_type in SENSOR_TYPES
@@ -38,7 +40,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, False)
 
 
-class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-many-instance-attributes
+class GasBuddySensor(
+    CoordinatorEntity, SensorEntity
+):  # pylint: disable=too-many-instance-attributes
     """Implementation of a GasBuddy sensor."""
 
     def __init__(
@@ -83,11 +87,17 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             if not self._price:
                 return data[self._type]
             if self._cash and "cash_price" in data[self._type]:
-                if data["unit_of_measure"] == "cents_per_liter" and data[self._type]["cash_price"]:
+                if (
+                    data["unit_of_measure"] == "cents_per_liter"
+                    and data[self._type]["cash_price"]
+                ):
                     self._state = data[self._type]["cash_price"] / 100
                 else:
                     self._state = data[self._type]["cash_price"]
-            elif data["unit_of_measure"] == "cents_per_liter" and data[self._type]["price"]:
+            elif (
+                data["unit_of_measure"] == "cents_per_liter"
+                and data[self._type]["price"]
+            ):
                 self._state = data[self._type]["price"] / 100
             else:
                 self._state = data[self._type]["price"]

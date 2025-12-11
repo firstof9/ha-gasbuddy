@@ -54,7 +54,9 @@ class GasBuddyServices:
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
-                    vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
+                    vol.Optional(ATTR_LIMIT): vol.All(
+                        vol.Coerce(int), vol.Range(min=1, max=99)
+                    ),
                     vol.Optional(ATTR_SOLVER): cv.string,
                 }
             ),
@@ -67,7 +69,9 @@ class GasBuddyServices:
             schema=vol.Schema(
                 {
                     vol.Required(ATTR_POSTAL_CODE): cv.string,
-                    vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
+                    vol.Optional(ATTR_LIMIT): vol.All(
+                        vol.Coerce(int), vol.Range(min=1, max=99)
+                    ),
                     vol.Optional(ATTR_SOLVER): cv.string,
                 }
             ),
@@ -105,9 +109,9 @@ class GasBuddyServices:
                 if entity:
                     lat = entity.attributes[ATTR_LATITUDE]
                     lon = entity.attributes[ATTR_LONGITUDE]
-                    results[entity_id] = await GasBuddy(solver_url=solver).price_lookup_service(
-                        lat=lat, lon=lon, limit=limit
-                    )
+                    results[entity_id] = await GasBuddy(
+                        solver_url=solver
+                    ).price_lookup_service(lat=lat, lon=lon, limit=limit)
             except (APIError, LibraryError, CSRFTokenMissing) as ex:
                 _LOGGER.error("Error checking prices: %s", ex)
 

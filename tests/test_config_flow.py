@@ -106,11 +106,15 @@ async def test_form_home(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home2"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input2
+        )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -195,11 +199,15 @@ async def test_form_home_hostname_solver(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home2"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input2
+        )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -285,11 +293,15 @@ async def test_form_postal(
         assert result["type"] == FlowResultType.FORM
 
         assert result["step_id"] == "postal"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "station_list"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input2
+        )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -365,7 +377,9 @@ async def test_form_manual(
         await hass.async_block_till_done()
         assert result["type"] == FlowResultType.FORM
 
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -450,7 +464,9 @@ async def test_form_home_no_stations(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home2"
         assert result["errors"] == {"station_id": "no_results"}
@@ -532,7 +548,9 @@ async def test_form_postal_no_stations(
         assert result["type"] == FlowResultType.FORM
 
         assert result["step_id"] == "postal"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "station_list"
@@ -598,7 +616,9 @@ async def test_form_home_invalid_url(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home"
@@ -666,7 +686,9 @@ async def test_form_postal_invalid_url(
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "postal"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "postal"
@@ -726,7 +748,9 @@ async def test_form_manual_invalid_url(
         await hass.async_block_till_done()
         assert result["type"] == FlowResultType.FORM
 
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "manual"
@@ -1106,7 +1130,9 @@ async def test_form_options_error(
         body=load_fixture("solver_response.json"),
         repeat=True,
     )
-    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -1255,7 +1281,9 @@ async def test_form_options(
         body=load_fixture("solver_response.json"),
         repeat=True,
     )
-    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2
+    )
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -1266,7 +1294,9 @@ async def test_form_options(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "init"
 
-    result = await hass.config_entries.options.async_configure(result["flow_id"], user_input=input)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input=input
+    )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -1324,7 +1354,7 @@ async def test_form_home_empty_solver(
         body=load_fixture("location_results.json"),
         repeat=True,
     )
-    
+
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -1344,15 +1374,19 @@ async def test_form_home_empty_solver(
         )
 
         # Submit empty solver
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
-        
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
+
         # Verify we moved to the next step (home2) and didn't get an error
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "home2"
-        assert result.get("errors") == {} # Ensure no errors
+        assert result.get("errors") == {}  # Ensure no errors
 
         # Complete the flow
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input2)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input2
+        )
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
@@ -1366,7 +1400,7 @@ async def test_form_home_empty_solver(
             {
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
-                CONF_SOLVER: "", # Test empty string
+                CONF_SOLVER: "",  # Test empty string
             },
             "user",
             DEFAULT_NAME,
@@ -1396,14 +1430,14 @@ async def test_form_manual_empty_solver(
         status=200,
         body=load_fixture("index.html"),
         repeat=True,
-    )    
+    )
     mock_aioclient.post(
         BASE_URL,
         status=200,
         body=load_fixture("station.json"),
         repeat=True,
     )
-    
+
     await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -1427,9 +1461,11 @@ async def test_form_manual_empty_solver(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "manual"}
         )
-        
+
         # Submit empty solver
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], input
+        )
 
         # Verify entry creation without error
         assert result["type"] == FlowResultType.CREATE_ENTRY

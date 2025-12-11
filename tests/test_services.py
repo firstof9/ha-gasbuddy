@@ -65,7 +65,9 @@ async def test_lookup_gps(
 
     entity_id = "device_tracker.fake_gps"
     # Set our fake device_tracker state/attributes
-    hass.states.async_set(entity_id, "away", {ATTR_LATITUDE: 1234, ATTR_LONGITUDE: 5678}, True)
+    hass.states.async_set(
+        entity_id, "away", {ATTR_LATITUDE: 1234, ATTR_LONGITUDE: 5678}, True
+    )
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
@@ -183,7 +185,10 @@ async def test_lookup_zip(
 
         assert response["results"][0]["regular_gas"]["price"] == 3.28
         assert response["results"][0]["regular_gas"]["credit"] == "fred1129"
-        assert response["results"][0]["regular_gas"]["last_updated"] == "2024-11-18T21:58:38.859Z"
+        assert (
+            response["results"][0]["regular_gas"]["last_updated"]
+            == "2024-11-18T21:58:38.859Z"
+        )
         assert response["trend"][0]["area"] == "Arizona"
         assert response["trend"][0]["average_price"] == 3.33
         assert response["trend"][0]["lowest_price"] == 2.59
@@ -208,7 +213,10 @@ async def test_lookup_zip(
 
         assert response["results"][0]["regular_gas"]["price"] == 3.28
         assert response["results"][0]["regular_gas"]["credit"] == "fred1129"
-        assert response["results"][0]["regular_gas"]["last_updated"] == "2024-11-18T21:58:38.859Z"
+        assert (
+            response["results"][0]["regular_gas"]["last_updated"]
+            == "2024-11-18T21:58:38.859Z"
+        )
         assert response["trend"][0]["area"] == "Arizona"
         assert response["trend"][0]["average_price"] == 3.33
         assert response["trend"][0]["lowest_price"] == 2.59
@@ -273,7 +281,10 @@ async def test_clear_cache(
 
         assert response["results"][0]["regular_gas"]["price"] == 3.28
         assert response["results"][0]["regular_gas"]["credit"] == "fred1129"
-        assert response["results"][0]["regular_gas"]["last_updated"] == "2024-11-18T21:58:38.859Z"
+        assert (
+            response["results"][0]["regular_gas"]["last_updated"]
+            == "2024-11-18T21:58:38.859Z"
+        )
         assert response["trend"][0]["area"] == "Arizona"
         assert response["trend"][0]["average_price"] == 3.33
         assert response["trend"][0]["lowest_price"] == 2.59
