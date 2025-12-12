@@ -20,6 +20,7 @@
                 "description": "Please enter the Station ID",
                 "data": {
                     "solver": "Flaresolver URL (optional)",
+                    "timeout": "Flaresolver timeout (ms)",
                     "station_id": "Station ID"
                 }
             },
@@ -34,6 +35,7 @@
                 "description": "Please select a station",
                 "data": {
                     "solver": "Flaresolver URL (optional)",
+                    "timeout": "Flaresolver timeout (ms)",
                     "station_id": "Station"
                 }
             },
@@ -41,6 +43,7 @@
                 "description": "Please enter a postal code (zip code)",
                 "data": {
                     "solver": "Flaresolver URL (optional)",
+                    "timeout": "Flaresolver timeout (ms)",
                     "zipcode": "Postal Code (zip code)"
                 }
             },     
@@ -54,6 +57,7 @@
                 "description": "Please enter the Station ID",
                 "data": {
                     "solver": "Flaresolver URL (optional)",
+                    "timeout": "Flaresolver timeout (ms)",
                     "station_id": "Station ID",
                     "name": "Name"
                 }

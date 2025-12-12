@@ -16,9 +16,11 @@ CONF_POSTAL = "zipcode"
 CONF_UOM = "uom"
 CONF_GPS = "gps"
 CONF_SOLVER = "solver"
+CONF_TIMEOUT = "timeout"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
-CONFIG_VER = 6
+DEFAULT_TIMEOUT = 60000
+CONFIG_VER = 7
 
 # hass.data attribues
 ATTR_DEVICE_ID = "device_id"

@@ -13,7 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_INTERVAL, CONF_SOLVER, CONF_STATION_ID, DOMAIN
+from .const import CONF_INTERVAL, CONF_SOLVER, CONF_STATION_ID, CONF_TIMEOUT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             solver_url=config.data[CONF_SOLVER],
             station_id=config.data[CONF_STATION_ID],
             cache_file=self._cache_file,
+            timeout=config.data[CONF_TIMEOUT],
         )
 
         _LOGGER.debug("Data will be update every %s", self.interval)

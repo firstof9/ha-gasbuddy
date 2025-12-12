@@ -21,9 +21,11 @@ from .const import (
     CONF_POSTAL,
     CONF_SOLVER,
     CONF_STATION_ID,
+    CONF_TIMEOUT,
     CONF_UOM,
     CONFIG_VER,
     DEFAULT_NAME,
+    DEFAULT_TIMEOUT,
     DOMAIN,
 )
 
@@ -108,6 +110,9 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
             vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
             vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
             vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Optional(
+                CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            ): cv.positive_int,
         }
     )
 
@@ -128,6 +133,9 @@ def _get_schema_home(
     return vol.Schema(
         {
             vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Optional(
+                CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            ): cv.positive_int,
         }
     )
 
@@ -171,6 +179,9 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
         {
             vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(str),
             vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+            vol.Optional(
+                CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            ): cv.positive_int,
         }
     )
 
@@ -248,6 +259,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_INTERVAL, 3600)
             user_input.setdefault(CONF_UOM, True)
             user_input.setdefault(CONF_GPS, True)
+            user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
             if user_input.get(CONF_SOLVER):
                 url_valid = await validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
@@ -294,6 +306,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_INTERVAL, 3600)
             user_input.setdefault(CONF_UOM, True)
             user_input.setdefault(CONF_GPS, True)
+            user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
             self._data.update(user_input)
             if user_input.get(CONF_SOLVER):
                 url_valid = await validate_url(user_input[CONF_SOLVER])

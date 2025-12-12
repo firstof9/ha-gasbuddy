@@ -14,6 +14,7 @@ from .const import (
     CONF_GPS,
     CONF_INTERVAL,
     CONF_SOLVER,
+    CONF_TIMEOUT,
     CONF_UOM,
     CONFIG_VER,
     COORDINATOR,
@@ -102,6 +103,10 @@ async def async_migrate_entry(hass, config_entry) -> bool:
     if version < 6:
         if CONF_SOLVER not in updated_config:
             updated_config[CONF_SOLVER] = None
+
+    if version < 7:
+        if CONF_TIMEOUT not in updated_config:
+            updated_config[CONF_TIMEOUT] = 60000
 
     if updated_config != config_entry.data:
         hass.config_entries.async_update_entry(

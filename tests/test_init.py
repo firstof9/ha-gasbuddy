@@ -3,7 +3,7 @@
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gasbuddy.const import CONF_GPS, CONF_SOLVER, CONF_UOM, DOMAIN
+from custom_components.gasbuddy.const import CONF_GPS, CONF_SOLVER, CONF_UOM, CONFIG_VER, DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from tests.common import load_fixture
 from tests.const import CONFIG_DATA, CONFIG_DATA_V1
@@ -101,7 +101,7 @@ async def test_migrate_entry(hass, mock_gasbuddy):
     await hass.async_block_till_done()
 
     # Verify the version is updated to current
-    assert entry.version == 6
+    assert entry.version == CONFIG_VER
 
     # Verify new keys are added
     assert entry.data[CONF_UOM] is True
