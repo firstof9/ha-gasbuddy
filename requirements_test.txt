@@ -1,5 +1,5 @@
 -r requirements.txt
-pytest-homeassistant-custom-component==0.13.305
+pytest-homeassistant-custom-component==0.13.306
 black
 flake8
 mypy
