@@ -45,7 +45,7 @@ jobs:
 
           - name: 📦 Install tox
             # We install tox as a tool with the necessary plugins
-            run: uv tool install tox --with tox-uv --with tox-gh-actions
+            run: uv tool install tox --with tox-uv --with tox-gh-actions --prerelease=allow
 
           - name: 🏃 Test with tox
             run: tox
