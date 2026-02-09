@@ -11,4 +11,4 @@ pytest
 aioresponses
 ruff
 types-PyYAML
-pycares>=5,<6
+pycares
