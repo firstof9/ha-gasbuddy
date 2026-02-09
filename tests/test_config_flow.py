@@ -1246,6 +1246,7 @@ async def test_form_options(
     input,
     data,
     hass,
+    integration,
     mock_gasbuddy,
     mock_aioclient,
 ):
@@ -1268,11 +1269,7 @@ async def test_form_options(
         body=load_fixture("solver_response.json"),
         repeat=True,
     )
-    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
-
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    entry = integration
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
 
