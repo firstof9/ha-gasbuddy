@@ -11,8 +11,9 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_GPS,
@@ -49,16 +50,22 @@ async def validate_url(url: str) -> bool:
     return bool(re.match(pattern, url))
 
 
-async def validate_station(station: int, solver: str | None = None) -> bool:
+async def validate_station(
+    hass: HomeAssistant, station: int, solver: str | None = None
+) -> bool:
     """Validate statation ID."""
-    check = await py_gasbuddy.GasBuddy(solver_url=solver, station_id=station).price_lookup()
+    check = await py_gasbuddy.GasBuddy(
+        solver_url=solver,
+        station_id=station,
+        session=async_get_clientsession(hass),
+    ).price_lookup()
 
     if "errors" in check:
         return False
     return True
 
 
-async def _get_station_list(hass, user_input) -> dict[str, Any]:
+async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
     """Return list of utilities by lat/lon."""
     lat = None
     lon = None
@@ -77,9 +84,10 @@ async def _get_station_list(hass, user_input) -> dict[str, Any]:
         solver = user_input[CONF_SOLVER]
         _LOGGER.debug("Using solver URL: %s", solver)
 
-    stations = await py_gasbuddy.GasBuddy(solver_url=solver).location_search(
-        lat=lat, lon=lon, zipcode=postal
-    )
+    stations = await py_gasbuddy.GasBuddy(
+        solver_url=solver,
+        session=async_get_clientsession(hass),
+    ).location_search(lat=lat, lon=lon, zipcode=postal)
     stations_list = {}
     _LOGGER.debug("search reply: %s", stations)
 
@@ -267,7 +275,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_manual(user_input)
 
-            validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
+            validate = await validate_station(self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
@@ -427,7 +435,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 user_input[CONF_SOLVER] = None
 
-            validate = await validate_station(user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
+            validate = await validate_station(self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
 
