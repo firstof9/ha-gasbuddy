@@ -11,6 +11,7 @@ from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import CONF_INTERVAL, CONF_SOLVER, CONF_STATION_ID, CONF_TIMEOUT, DOMAIN
@@ -33,6 +34,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             station_id=config.data[CONF_STATION_ID],
             cache_file=self._cache_file,
             timeout=config.data[CONF_TIMEOUT],
+            session=async_get_clientsession(hass),
         )
 
         _LOGGER.debug("Data will be update every %s", self.interval)

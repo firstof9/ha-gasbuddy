@@ -16,6 +16,7 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     ATTR_DEVICE_ID,
@@ -99,13 +100,14 @@ class GasBuddyServices:
             solver = service.data[ATTR_SOLVER]
 
         results = {}
+        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
                 if entity:
                     lat = entity.attributes[ATTR_LATITUDE]
                     lon = entity.attributes[ATTR_LONGITUDE]
-                    results[entity_id] = await GasBuddy(solver_url=solver).price_lookup_service(
+                    results[entity_id] = await api.price_lookup_service(
                         lat=lat, lon=lon, limit=limit
                     )
             except (APIError, LibraryError, CSRFTokenMissing) as ex:
@@ -128,9 +130,10 @@ class GasBuddyServices:
 
         results = {}
         try:
-            results = await GasBuddy(solver_url=solver).price_lookup_service(
-                zipcode=zipcode, limit=limit
-            )
+            results = await GasBuddy(
+                solver_url=solver,
+                session=async_get_clientsession(self.hass),
+            ).price_lookup_service(zipcode=zipcode, limit=limit)
         except (APIError, LibraryError, CSRFTokenMissing) as ex:
             _LOGGER.error("Error checking prices: %s", ex)
 
