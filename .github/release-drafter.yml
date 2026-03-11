@@ -39,12 +39,14 @@ categories:
   - title: "🔧 Maintenance 🔧"
     labels:
       - "chore"
+    collapse-after: 3
   - title: "🎓 Code Quality 🎓"
     labels:
       - "code-quality"
   - title: "🔩 Dependency 🔩"
     labels:
       - "dependencies"
+    collapse-after: 3
 
 template: |
   [![Downloads for this release](https://img.shields.io/github/downloads/firstof9/ha-gasbuddy/$RESOLVED_VERSION/total.svg)](https://github.com/firstof9/ha-gasbuddy/releases/$RESOLVED_VERSION)

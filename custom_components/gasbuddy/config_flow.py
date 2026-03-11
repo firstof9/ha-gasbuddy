@@ -50,9 +50,7 @@ async def validate_url(url: str) -> bool:
     return bool(re.match(pattern, url))
 
 
-async def validate_station(
-    hass: HomeAssistant, station: int, solver: str | None = None
-) -> bool:
+async def validate_station(hass: HomeAssistant, station: int, solver: str | None = None) -> bool:
     """Validate statation ID."""
     check = await py_gasbuddy.GasBuddy(
         solver_url=solver,
@@ -275,7 +273,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_manual(user_input)
 
-            validate = await validate_station(self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
+            validate = await validate_station(
+                self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
+            )
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
@@ -435,7 +435,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 user_input[CONF_SOLVER] = None
 
-            validate = await validate_station(self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER])
+            validate = await validate_station(
+                self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
+            )
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
 
