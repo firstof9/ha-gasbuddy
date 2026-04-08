@@ -11,4 +11,3 @@
     "requirements": ["aiofiles", "backoff", "py_gasbuddy==0.4.3"],
     "version": "0.0.0-dev"
   }
-  

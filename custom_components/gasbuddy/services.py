@@ -52,37 +52,31 @@ class GasBuddyServices:
             DOMAIN,
             SERVICE_LOOKUP_GPS,
             self._price_lookup_gps,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
-                    vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
-                    vol.Optional(ATTR_SOLVER): cv.string,
-                }
-            ),
+            schema=vol.Schema({
+                vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+                vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
+                vol.Optional(ATTR_SOLVER): cv.string,
+            }),
             supports_response=SupportsResponse.ONLY,
         )
         self.hass.services.async_register(
             DOMAIN,
             SERVICE_LOOKUP_ZIP,
             self._price_lookup_zip,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_POSTAL_CODE): cv.string,
-                    vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
-                    vol.Optional(ATTR_SOLVER): cv.string,
-                }
-            ),
+            schema=vol.Schema({
+                vol.Required(ATTR_POSTAL_CODE): cv.string,
+                vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
+                vol.Optional(ATTR_SOLVER): cv.string,
+            }),
             supports_response=SupportsResponse.ONLY,
         )
         self.hass.services.async_register(
             DOMAIN,
             SERVICE_CLEAR_CACHE,
             self._clear_cache,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
-                }
-            ),
+            schema=vol.Schema({
+                vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+            }),
         )
 
     # Setup services

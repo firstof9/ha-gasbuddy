@@ -34,7 +34,7 @@ disable=
   unexpected-keyword-arg,
   abstract-method,
   cyclic-import,
-  
+
 [REFACTORING]
 
 # Maximum number of nested blocks for function / method body

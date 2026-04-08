@@ -14,7 +14,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_INTERVAL, CONF_SOLVER, CONF_STATION_ID, CONF_TIMEOUT, DOMAIN
+from .const import (
+    CONF_INTERVAL,
+    CONF_SOLVER,
+    CONF_STATION_ID,
+    CONF_TIMEOUT,
+    DEFAULT_TIMEOUT,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,10 +37,10 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._data: dict[Any, Any] = {}
         self._cache_file = f"{self.hass.config.config_dir}/.storage/gasbuddy_cache"
         self._api = GasBuddy(
-            solver_url=config.data[CONF_SOLVER],
+            solver_url=config.data.get(CONF_SOLVER),
             station_id=config.data[CONF_STATION_ID],
             cache_file=self._cache_file,
-            timeout=config.data[CONF_TIMEOUT],
+            timeout=config.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             session=async_get_clientsession(hass),
         )
 
@@ -52,7 +59,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         try:
             self._data = await self._api.price_lookup()
         except (APIError, LibraryError, CSRFTokenMissing) as ex:
-            _LOGGER.error("Error retreiving data: %s", ex)
+            raise UpdateFailed(f"Error retrieving data: {ex}") from ex
         except Exception as exception:
             raise UpdateFailed from exception
 

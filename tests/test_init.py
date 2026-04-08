@@ -3,6 +3,7 @@
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.gasbuddy import async_remove_config_entry_device
 from custom_components.gasbuddy.const import CONF_GPS, CONF_SOLVER, CONF_UOM, CONFIG_VER, DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from tests.common import load_fixture
@@ -81,7 +82,7 @@ async def test_setup_with_error(hass, mock_aioclient):
     entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
 
     entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
+    assert not await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 0
@@ -107,3 +108,9 @@ async def test_migrate_entry(hass, mock_gasbuddy):
     assert entry.data[CONF_UOM] is True
     assert entry.data[CONF_GPS] is True
     assert entry.data[CONF_SOLVER] is None
+
+
+async def test_remove_config_entry_device(hass, integration):
+    """Test async_remove_config_entry_device."""
+
+    assert await async_remove_config_entry_device(hass, integration, None) is True

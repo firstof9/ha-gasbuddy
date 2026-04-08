@@ -76,21 +76,24 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        data = self.coordinator.data
-        if data is None:
-            self._state = None
-        if self._type in data:
-            if not self._price:
-                return data[self._type]
-            if self._cash and "cash_price" in data[self._type]:
-                if data["unit_of_measure"] == "cents_per_liter" and data[self._type]["cash_price"]:
-                    self._state = data[self._type]["cash_price"] / 100
-                else:
-                    self._state = data[self._type]["cash_price"]
-            elif data["unit_of_measure"] == "cents_per_liter" and data[self._type]["price"]:
-                self._state = data[self._type]["price"] / 100
-            else:
-                self._state = data[self._type]["price"]
+        if not (data := self.coordinator.data) or self._type not in data:
+            return None
+
+        if not self._price:
+            return data.get(self._type)
+
+        if self._cash:
+            price = data[self._type].get("cash_price")
+        else:
+            price = data[self._type].get("price")
+
+        if not price:
+            return None
+
+        if data.get("unit_of_measure") == "cents_per_liter":
+            self._state = price / 100
+        else:
+            self._state = price
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         return self._state
@@ -98,46 +101,60 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
     @property
     def native_unit_of_measurement(self) -> Any:
         """Return the unit of measurement."""
-        uom = self.coordinator.data["unit_of_measure"]
-        currency = self.coordinator.data["currency"]
-        if self._config.options.get(CONF_UOM) and self._price:
+        if not (data := self.coordinator.data) or not self._price:
+            return None
+
+        uom = data.get("unit_of_measure")
+        currency = data.get("currency")
+
+        if self._config.options.get(CONF_UOM):
             if uom is not None and currency is not None:
                 return f"{currency}/{UNIT_OF_MEASURE[uom]}"
-        elif currency is not None and self._price:
+        elif currency is not None:
             return currency
         return None
 
     @property
     def extra_state_attributes(self) -> dict | None:
         """Return sesnsor attributes."""
-        if not self._price:
+        if not self._price or not (data := self.coordinator.data) or self._type not in data:
             return None
-        credit = self.coordinator.data[self._type]["credit"]
-        attrs = {}
-        attrs[ATTR_ATTRIBUTION] = f"{credit} via GasBuddy"
-        attrs["last_updated"] = self.coordinator.data[self._type]["last_updated"]
-        attrs[CONF_STATION_ID] = self.coordinator.data[CONF_STATION_ID]
+
+        attrs: dict[str, Any] = {}
+        if credit := data[self._type].get("credit"):
+            attrs[ATTR_ATTRIBUTION] = f"{credit} via GasBuddy"
+
+        attrs["last_updated"] = data[self._type].get("last_updated")
+        attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
         if self._config.options.get(CONF_GPS):
-            attrs[ATTR_LATITUDE] = self.coordinator.data[ATTR_LATITUDE]
-            attrs[ATTR_LONGITUDE] = self.coordinator.data[ATTR_LONGITUDE]
+            attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
+            attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
         return attrs
 
     @property
     def entity_picture(self) -> str | None:
         """Return the entity picture to use in the frontend."""
-        if (
-            ATTR_IMAGEURL in self.coordinator.data
-            and self.coordinator.data[ATTR_IMAGEURL] is not None
-        ):
-            return self.coordinator.data[ATTR_IMAGEURL]
+        if (data := self.coordinator.data) and data.get(ATTR_IMAGEURL):
+            return data[ATTR_IMAGEURL]
         return None
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        data = self.coordinator.data
-        if self._type not in data or (self._type in data and data[self._type] is None):
+        if (
+            not (data := self.coordinator.data)
+            or self._type not in data
+            or data[self._type] is None
+        ):
             return False
+
+        if self._price:
+            if self._cash:
+                if data[self._type].get("cash_price") is None:
+                    return False
+            elif data[self._type].get("price") is None:
+                return False
+
         return self.coordinator.last_update_success
 
     @property

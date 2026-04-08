@@ -34,11 +34,11 @@ Platform | Description
 ## Manual (non-HACS)
 <details>
 <summary>Instructions</summary>
-  
+
 <br>
 You probably do not want to do this! Use the HACS method above unless you know what you are doing and have a good reason as to why you are installing manually
 <br>
-  
+
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 2. If you do not have a `custom_components` directory (folder) there, you need to create it.
 3. In the `custom_components` directory (folder) create a new folder called `gasbuddy`.
@@ -50,9 +50,9 @@ You probably do not want to do this! Use the HACS method above unless you know w
 
 ## Remedying Connection/timeout issues with FlareSolverr (Optional)
 
-Since May 2025, GasBuddy implemented Cloudflare which may lead to blocking of requests to GasBuddy, and cause timeout and log errors. This would lead to the occasional missed data update to obtain the lastest gas prices, along with log errrors.
+Since May 2025, GasBuddy implemented Cloudflare which may lead to blocking of requests to GasBuddy, and cause timeout and log errors. This would lead to the occasional missed data update to obtain the latest gas prices, along with log errors.
 
-To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed as a standalone docker container on your network [here](https://github.com/FlareSolverr/FlareSolverr) or as an addon in Home Assistant [here](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can re-configure your existing GasBuddy entries by clicking the 3 dots of EACH gas station entry, and entering your FlareSolverr URL, ie. `http://ip:port/v1`  
+To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed via [FlareSolverr standalone installation](https://github.com/FlareSolverr/FlareSolverr) or as an [FlareSolverr Home Assistant add-on](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can re-configure your existing GasBuddy entries by clicking the 3 dots of EACH gas station entry, and entering your FlareSolverr URL, ie. `http://ip:port/v1`
 
 <img width="673" height="498" alt="image" src="https://github.com/user-attachments/assets/dbb7f99f-9f4d-4b2b-83c9-8419ba106a97" />
 
