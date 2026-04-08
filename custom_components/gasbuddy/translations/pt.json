@@ -2,7 +2,7 @@
     "config": {
         "abort": {
             "reconfigure_successful": "Reconfigure Successful"
-        },                
+        },
         "error": {
             "station_id": "ID de estação inválido",
             "no_results": "No stations found in this area.",
@@ -29,7 +29,7 @@
                     "home": "Usar coordenadas configuradas no Home Assistant",
                     "postal": "Usar código postal (CEP)"
                 }
-            },           
+            },
             "home": {
                 "description": "Por favor, selecione uma estação",
                 "data": {
@@ -43,7 +43,7 @@
                     "solver": "Flaresolver URL",
                     "zipcode": "Código Postal (CEP)"
                 }
-            },     
+            },
             "station_list": {
                 "description": "Por favor, selecione uma estação",
                 "data": {
@@ -57,7 +57,7 @@
                     "station_id": "Station ID",
                     "name": "Name"
                 }
-            }              
+            }
         }
     },
     "options": {

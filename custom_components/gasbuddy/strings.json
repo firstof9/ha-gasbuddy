@@ -2,7 +2,7 @@
     "config": {
         "abort": {
             "reconfigure_successful": "Reconfigure Successful"
-        },        
+        },
         "error": {
             "station_id": "Invalid station ID",
             "no_results": "No stations found in this area.",
@@ -26,10 +26,10 @@
             "search": {
                 "description": "Search by your configured GPS location or by Postal Code",
                 "menu_options": {
-                    "home": "Use Home Assistant configured coodinates",
+                    "home": "Use Home Assistant configured coordinates",
                     "postal": "Use postal code (zip code)"
                 }
-            },           
+            },
             "home": {
                 "description": "Please select a station",
                 "data": {
@@ -43,7 +43,7 @@
                     "solver": "Flaresolver URL (optional)",
                     "zipcode": "Postal Code (zip code)"
                 }
-            },     
+            },
             "station_list": {
                 "description": "Please select a station",
                 "data": {
@@ -57,7 +57,7 @@
                     "station_id": "Station ID",
                     "name": "Name"
                 }
-            }      
+            }
         }
     },
     "options": {

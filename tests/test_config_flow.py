@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.gasbuddy.config_flow import validate_station
 from custom_components.gasbuddy.const import (
     CONF_GPS,
     CONF_INTERVAL,
@@ -1447,3 +1448,38 @@ async def test_form_manual_empty_solver(
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
         assert result["data"] == data
+
+
+async def test_validate_station_error(hass, mock_aioclient):
+    """Test validate_station with error response."""
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup",
+        return_value={"errors": ["test error"]},
+    ):
+        assert await validate_station(hass, 123) is False
+
+
+async def test_form_manual_invalid_station(hass, mock_aioclient):
+    """Test manual flow with invalid station."""
+    with patch(
+        "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup",
+        return_value={"errors": ["test error"]},
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "123",
+            },
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "manual"
+        assert result["errors"] == {CONF_STATION_ID: "station_id"}

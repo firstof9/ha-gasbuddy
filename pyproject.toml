@@ -328,12 +328,7 @@ enable = [
     #"useless-suppression",  # temporarily every now and then to clean them up
     "use-symbolic-message-instead",
 ]
-per-file-ignores = [
-    # redefined-outer-name: Tests reference fixtures in the test function
-    # use-implicit-booleaness-not-comparison: Tests need to validate that a list
-    # or a dict is returned
-    "/tests/:redefined-outer-name,use-implicit-booleaness-not-comparison",
-]
+# [tool.pylint.refactoring]
 
 [tool.pylint.refactoring]
 max-nested-blocks = 8
@@ -368,6 +363,7 @@ fix = true
 force-exclude = true
 target-version = "py313"
 required-version = ">=0.8.0"
+preview = true
 
 [tool.ruff.format]
 quote-style = "double"
@@ -442,9 +438,9 @@ select = [
   "RUF024", # Do not pass mutable objects as values to dict.fromkeys
   "RUF026", # default_factory is a positional-only argument to defaultdict
   "RUF030", # print() call in assert statement is likely unintentional
-  "RUF032", # Decimal() called with float literal argument
-  "RUF033", # __post_init__ method with argument defaults
-  "RUF034", # Useless if-else condition
+  # "RUF032", # Decimal() called with float literal argument
+  # "RUF033", # __post_init__ method with argument defaults
+  # "RUF034", # Useless if-else condition
   "RUF100", # Unused `noqa` directive
   "RUF101", # noqa directives that use redirected rule codes
   "RUF200", # Failed to parse pyproject.toml: {message}
@@ -494,6 +490,7 @@ ignore = [
   "PLR0912", # Too many branches ({branches} > {max_branches})
   "PLR0913", # Too many arguments to function call ({c_args} > {max_args})
   "PLR0915", # Too many statements ({statements} > {max_statements})
+  "PLR0917", # Too many positional arguments ({args} > {max_args})
   "PLR2004", # Magic value used in comparison, consider replacing {value} with a constant variable
   "PLW1641", # __eq__ without __hash__
   "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
@@ -513,15 +510,17 @@ ignore = [
   "TC002", # Move third-party import {} into a type-checking block
   "TC003", # Move standard library import {} into a type-checking block
   # Quotes for typing.cast generally not necessary, only for performance critical paths
-  "TC006", # Add quotes to type expression in typing.cast()
+  # "TC006", # Add quotes to type expression in typing.cast()
+
 
   "TRY003", # Avoid specifying long messages outside the exception class
   "TRY400", # Use `logging.exception` instead of `logging.error`
   # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
   "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
-  "UP046", # Non PEP 695 generic class
-  "UP047", # Non PEP 696 generic function
-  "UP049", # Avoid private type parameter names
+  # "UP046", # Non PEP 695 generic class
+  # "UP047", # Non PEP 696 generic function
+  # "UP049", # Avoid private type parameter names
+
 
   # May conflict with the formatter, https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
   "W191",
@@ -623,7 +622,7 @@ python = """
 [tool.tox]
 skipsdist = true
 requires = ["tox>=4.19"]
-env_list = ["py313", "py314", "lint", "mypy"]
+env_list = ["py314", "lint", "mypy"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
@@ -640,6 +639,7 @@ commands = [
     ["ruff", "format", "tests{/}"],
     ["ruff", "check", "custom_components{/}"],
     ["ruff", "check", "tests{/}"],
+    ["codespell", "custom_components", "tests", "README.md"],
 ]
 deps = ["-rrequirements_test.txt"]
 
@@ -650,4 +650,4 @@ commands = [["mypy", "custom_components{/}gasbuddy"]]
 deps = ["-rrequirements_test.txt"]
 
 [tool.codespell]
-ignore-words-list = "hass"
+ignore-words-list = "hass,invalide,mesure,Lokal,doubleclick,GoIn,going"

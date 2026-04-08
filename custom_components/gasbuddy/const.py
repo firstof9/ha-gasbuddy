@@ -22,7 +22,7 @@ DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
 CONFIG_VER = 7
 
-# hass.data attribues
+# hass.data attributes
 ATTR_DEVICE_ID = "device_id"
 ATTR_IMAGEURL = "image_url"
 ATTR_LIMIT = "limit"

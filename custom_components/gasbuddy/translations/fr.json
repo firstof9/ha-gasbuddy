@@ -2,11 +2,11 @@
     "config": {
         "abort": {
             "reconfigure_successful": "Reconfigure Successful"
-        },                
+        },
         "error": {
             "station_id": "ID de station invalide",
             "no_results": "No stations found in this area.",
-            "invalid_url": "Not a valid URL."       
+            "invalid_url": "Not a valid URL."
         },
         "step": {
             "user": {
@@ -29,7 +29,7 @@
                     "home": "Utiliser les coordonnées configurées par Home Assistant",
                     "postal": "Utiliser le code postal (code postal)"
                 }
-            },           
+            },
             "home": {
                 "description": "Veuillez sélectionner une station",
                 "data": {
@@ -43,7 +43,7 @@
                     "solver": "Flaresolver URL",
                     "zipcode": "Code postal (code postal)"
                 }
-            },     
+            },
             "station_list": {
                 "description": "Veuillez sélectionner une station",
                 "data": {
@@ -57,7 +57,7 @@
                     "station_id": "Station ID",
                     "name": "Name"
                 }
-            }              
+            }
         }
     },
     "options": {
