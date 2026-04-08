@@ -147,6 +147,14 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             or data[self._type] is None
         ):
             return False
+
+        if self._price:
+            if self._cash:
+                if data[self._type].get("cash_price") is None:
+                    return False
+            elif data[self._type].get("price") is None:
+                return False
+
         return self.coordinator.last_update_success
 
     @property

@@ -11,9 +11,9 @@ repos:
       - id: codespell
         args:
           - --ignore-words-list=hass,doubleclick,Lokal
-          - --skip="./.*,*.csv,*.json,*.ambr"
+          - --skip="./.*,*.csv,*.ambr"
           - --quiet-level=2
-        exclude_types: [csv, json]
+        exclude_types: [csv]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

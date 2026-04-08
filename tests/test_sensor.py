@@ -8,6 +8,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.gasbuddy.const import (
     CONF_STATION_ID,
     CONF_TIMEOUT,
+    CONF_UOM,
     COORDINATOR,
     DEFAULT_TIMEOUT,
     DOMAIN,
@@ -57,7 +58,7 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state.state == "unavailable"
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
-    assert state.state == "unknown"
+    assert state.state == "unavailable"
 
     # enable disabled sensor
     entity_id = "sensor.gas_station_premium_gas_cash"
@@ -115,7 +116,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
     assert state.state == "unavailable"
     state = hass.states.get("sensor.gas_station_premium_gas")
     assert state
-    assert state.state == "unknown"
+    assert state.state == "unavailable"
 
     # enable disabled sensor
     entity_id = "sensor.gas_station_e85_cash"
@@ -136,7 +137,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
 
     state = hass.states.get(entity_id)
     assert state
-    assert state.state == "unknown"
+    assert state.state == "unavailable"
 
 
 async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRegistry):
@@ -241,3 +242,29 @@ async def test_coordinator_success(hass, mock_aioclient):
     data = await coordinator._async_update_data()  # noqa: SLF001
     assert "last_updated" in data
     assert data["station_id"] == "205033"
+
+
+async def test_sensor_coverage_edge_cases(hass, mock_gasbuddy, integration):
+    """Test sensor edge cases for 100% coverage."""
+    coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
+
+    # Test Line 91: price is 0 (falsy but not None)
+    # available will return True, but native_value returns None
+    with patch.dict(
+        coordinator.data,
+        {"regular_gas": {"price": 0, "last_updated": "2023-12-10T17:48:46.584Z"}},
+    ):
+        sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration)
+        assert sensor.available is True
+        assert sensor.native_value is None
+
+    # Test Line 115: currency and uom missing when CONF_UOM is True
+    with patch.dict(coordinator.data, {"unit_of_measure": None, "currency": None}):
+        sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration)
+        assert sensor.native_unit_of_measurement is None
+
+    # Test Line 115: currency missing when CONF_UOM is False
+    hass.config_entries.async_update_entry(integration, options={CONF_UOM: False})
+    with patch.dict(coordinator.data, {"currency": None}):
+        sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration)
+        assert sensor.native_unit_of_measurement is None

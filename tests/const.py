@@ -10,6 +10,7 @@ from custom_components.gasbuddy.const import (
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
+    DEFAULT_TIMEOUT,
 )
 
 CONFIG_DATA = {
@@ -19,7 +20,7 @@ CONFIG_DATA = {
     CONF_UOM: True,
     CONF_GPS: True,
     CONF_SOLVER: None,
-    CONF_TIMEOUT: 60000,
+    CONF_TIMEOUT: DEFAULT_TIMEOUT,
 }
 
 CONFIG_DATA_NO_UOM = {
