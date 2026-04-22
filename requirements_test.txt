@@ -10,7 +10,7 @@ tox
 pytest
 aioresponses
 ruff
-pre-commit==4.5.1
+pre-commit==4.6.0
 codespell==2.4.2
 types-PyYAML
 pycares
