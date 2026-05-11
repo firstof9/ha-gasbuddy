@@ -361,7 +361,7 @@ line-length = 100
 indent-width = 4
 fix = true
 force-exclude = true
-target-version = "py314"
+target-version = "py313"
 required-version = ">=0.8.0"
 preview = true
 
