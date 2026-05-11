@@ -12,15 +12,15 @@ jobs:
     name: Pre-commit
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # @v6
 
       - name: 🛠️ Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # @v6
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: 🔍 Run pre-commit hooks
-        uses: pre-commit/action@v3.0.1
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # @v3.0.1
 
       - name: 🔍 Hassfest validation
         uses: "home-assistant/actions/hassfest@f6f29a7ee3fa0eccadf3620a7b9ee00ab54ec03b"
@@ -37,15 +37,14 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.13"
           - "3.14"
 
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # @v6
 
       - name: 🛠️ Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # @v7
         with:
           enable-cache: true
           cache-dependency-glob: "requirements*.txt"
@@ -61,7 +60,7 @@ jobs:
         run: tox
 
       - name: 📤 Upload coverage to Codecov
-        uses: "actions/upload-artifact@v4"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # @v7
         with:
           name: coverage-data-${{ matrix.python-version }}
           path: "coverage.xml"
@@ -71,15 +70,15 @@ jobs:
     needs: tests
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # @v6
         with:
           fetch-depth: 2
       - name: 📥 Download coverage data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # @v8
         with:
           pattern: coverage-data-*
           merge-multiple: true
       - name: 📤 Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # @v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
