@@ -12,12 +12,12 @@ jobs:
     name: Pre-commit
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🛠️ Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: 🔍 Run pre-commit hooks
         uses: pre-commit/action@v3.0.1
@@ -37,15 +37,14 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.13"
           - "3.14"
 
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🛠️ Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v8
         with:
           enable-cache: true
           cache-dependency-glob: "requirements*.txt"
@@ -61,7 +60,7 @@ jobs:
         run: tox
 
       - name: 📤 Upload coverage to Codecov
-        uses: "actions/upload-artifact@v4"
+        uses: "actions/upload-artifact@v6"
         with:
           name: coverage-data-${{ matrix.python-version }}
           path: "coverage.xml"
@@ -71,15 +70,15 @@ jobs:
     needs: tests
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 2
       - name: 📥 Download coverage data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: coverage-data-*
           merge-multiple: true
       - name: 📤 Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

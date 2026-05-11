@@ -4,7 +4,7 @@ fail_under = 80
 
 [tool.mypy]
 platform = "linux"
-python_version = "3.13"
+python_version = "3.14"
 follow_imports = "silent"
 ignore_missing_imports = true
 check_untyped_defs = true
@@ -615,7 +615,6 @@ property-decorators = ["propcache.cached_property"]
 
 [tool.tox.gh-actions]
 python = """
-    3.13: py313, lint, mypy
     3.14: py314, lint, mypy
 """
 
