@@ -100,3 +100,4 @@ virtualization/vagrant/config
 # Typing
 .mypy_cache
 *.pyc
+uv.lock

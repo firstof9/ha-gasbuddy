@@ -615,7 +615,7 @@ property-decorators = ["propcache.cached_property"]
 
 [tool.tox.gh-actions]
 python = """
-    3.14: py314, lint, mypy
+    3.14.2: py314, lint, mypy
 """
 
 [tool.tox]
