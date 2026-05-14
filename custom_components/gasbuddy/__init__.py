@@ -21,6 +21,7 @@ from .const import (
     DOMAIN,
     ISSUE_URL,
     PLATFORMS,
+    SERVICES,
     VERSION,
 )
 from .coordinator import GasBuddyUpdateCoordinator
@@ -66,9 +67,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
 
-    hass.data[DOMAIN][config_entry.entry_id] = {COORDINATOR: coordinator}
-
     services = GasBuddyServices(hass, config_entry)
+    hass.data[DOMAIN][config_entry.entry_id] = {COORDINATOR: coordinator, SERVICES: services}
     services.async_register()
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
@@ -124,7 +124,9 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     if unload_ok:
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
-        hass.data[DOMAIN].pop(config_entry.entry_id, None)
+        entry_data = hass.data[DOMAIN].pop(config_entry.entry_id, None)
+        if entry_data and (services := entry_data.get(SERVICES)):
+            services.async_unregister()
 
     return unload_ok
 
