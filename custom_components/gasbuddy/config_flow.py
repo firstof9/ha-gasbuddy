@@ -69,11 +69,11 @@ async def validate_station(hass: HomeAssistant, station: int, solver: str | None
             session=async_get_clientsession(hass),
         ).price_lookup()
     except (APIError, LibraryError) as ex:
-        _LOGGER.error("Error validating station: %s", ex)
+        _LOGGER.warning("Error validating station: %s", ex)
         raise InvalidStation from ex
 
     if "errors" in check:
-        _LOGGER.error("Error validating station: %s", check["errors"])
+        _LOGGER.warning("Error validating station: %s", check["errors"])
         return False
 
     return True
@@ -104,7 +104,7 @@ async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
             session=async_get_clientsession(hass),
         ).location_search(lat=lat, lon=lon, zipcode=postal)
     except MissingSearchData as ex:
-        _LOGGER.error("Error searching for stations: %s", ex)
+        _LOGGER.warning("Error searching for stations: %s", ex)
         raise SearchFailed from ex
 
     stations_list = {}
