@@ -1515,8 +1515,8 @@ async def test_get_station_list_missing_data_error(hass):
         await _get_station_list(hass, {})
 
 
-async def test_form_manual_search_failed(hass):
-    """Test manual flow handles SearchFailed."""
+async def test_form_manual_renders(hass):
+    """Test manual flow renders the form."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
