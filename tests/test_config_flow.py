@@ -1528,27 +1528,71 @@ async def test_form_manual_search_failed(hass):
     assert result["step_id"] == "manual"
 
 
-async def test_form_search_search_failed(hass):
-    """Test search flow handles SearchFailed."""
+async def test_form_search_home_failed(hass):
+    """Test search flow (home) handles SearchFailed."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
+    # First enter the search menu
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"next_step_id": "search"}
     )
     assert result["type"] is FlowResultType.MENU
 
+    # Then enter the home search step
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "home"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "home"
+
+    # Submit the first home form to get to home2 step
+    # Schema for home is solver and timeout
     with patch(
-        "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.location_search",
-        side_effect=MissingSearchData("test error"),
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        side_effect=SearchFailed,
     ):
         result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {"next_step_id": "home"}
+            result["flow_id"], {CONF_SOLVER: ""}
         )
 
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "home"
+        assert result["step_id"] == "home2"
+        assert result["errors"] == {CONF_STATION_ID: "no_results"}
+
+
+async def test_form_search_postal_failed(hass):
+    """Test search flow (postal) handles SearchFailed."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    # First enter the search menu
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    assert result["type"] is FlowResultType.MENU
+
+    # Then enter the postal search step
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "postal"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "postal"
+
+    # Submit postal code to get to station_list step
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        side_effect=SearchFailed,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_POSTAL: "12345"}
+        )
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+        assert result["errors"] == {CONF_STATION_ID: "no_results"}
 
 
 async def test_reconfigure_invalid_station_exception(hass, integration):
