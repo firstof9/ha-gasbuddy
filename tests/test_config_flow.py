@@ -1521,8 +1521,6 @@ async def test_form_manual_search_failed(hass):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    # Manual step doesn't call _get_station_list directly in the way I thought.
-    # It just shows the form.
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"next_step_id": "manual"}
     )
@@ -1536,13 +1534,11 @@ async def test_form_search_search_failed(hass):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    # First enter the search menu
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"next_step_id": "search"}
     )
     assert result["type"] is FlowResultType.MENU
 
-    # Then enter the home search step
     with patch(
         "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.location_search",
         side_effect=MissingSearchData("test error"),
