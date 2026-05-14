@@ -7,11 +7,13 @@ import re
 from typing import Any
 
 import py_gasbuddy
+from py_gasbuddy.exceptions import APIError, LibraryError, MissingSearchData
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -35,6 +37,14 @@ MENU_OPTIONS = ["manual", "search"]
 MENU_SEARCH = ["home", "postal"]
 
 
+class InvalidStation(HomeAssistantError):
+    """Error to indicate the station is invalid."""
+
+
+class SearchFailed(HomeAssistantError):
+    """Error to indicate the search failed."""
+
+
 async def validate_url(url: str) -> bool:
     """Validate user input URL."""
     pattern = re.compile(
@@ -52,14 +62,20 @@ async def validate_url(url: str) -> bool:
 
 async def validate_station(hass: HomeAssistant, station: int, solver: str | None = None) -> bool:
     """Validate statation ID."""
-    check = await py_gasbuddy.GasBuddy(
-        solver_url=solver,
-        station_id=station,
-        session=async_get_clientsession(hass),
-    ).price_lookup()
+    try:
+        check = await py_gasbuddy.GasBuddy(
+            solver_url=solver,
+            station_id=station,
+            session=async_get_clientsession(hass),
+        ).price_lookup()
+    except (APIError, LibraryError) as ex:
+        _LOGGER.error("Error validating station: %s", ex)
+        raise InvalidStation from ex
 
     if "errors" in check:
+        _LOGGER.error("Error validating station: %s", check["errors"])
         return False
+
     return True
 
 
@@ -82,10 +98,15 @@ async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
         solver = user_input[CONF_SOLVER]
         _LOGGER.debug("Using solver URL: %s", solver)
 
-    stations = await py_gasbuddy.GasBuddy(
-        solver_url=solver,
-        session=async_get_clientsession(hass),
-    ).location_search(lat=lat, lon=lon, zipcode=postal)
+    try:
+        stations = await py_gasbuddy.GasBuddy(
+            solver_url=solver,
+            session=async_get_clientsession(hass),
+        ).location_search(lat=lat, lon=lon, zipcode=postal)
+    except MissingSearchData as ex:
+        _LOGGER.error("Error searching for stations: %s", ex)
+        raise SearchFailed from ex
+
     stations_list = {}
     _LOGGER.debug("search reply: %s", stations)
 
@@ -257,9 +278,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_manual(user_input)
 
-            validate = await validate_station(
-                self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
-            )
+            try:
+                validate = await validate_station(
+                    self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
+                )
+            except InvalidStation:
+                validate = False
+
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
@@ -336,7 +361,10 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Show the configuration form to edit location data."""
         defaults: dict[Any, Any] = {}
 
-        station_list = await _get_station_list(self.hass, self._data)
+        try:
+            station_list = await _get_station_list(self.hass, self._data)
+        except SearchFailed:
+            station_list = {"not_found": "Error searching for stations."}
 
         if "not_found" in station_list:
             self._errors[CONF_STATION_ID] = "no_results"
@@ -391,7 +419,10 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Show the configuration form to edit location data."""
         defaults: dict[Any, Any] = {}
 
-        station_list = await _get_station_list(self.hass, self._data)
+        try:
+            station_list = await _get_station_list(self.hass, self._data)
+        except SearchFailed:
+            station_list = {"not_found": "Error searching for stations."}
 
         if "not_found" in station_list:
             self._errors[CONF_STATION_ID] = "no_results"
@@ -419,15 +450,18 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 user_input[CONF_SOLVER] = None
 
-            validate = await validate_station(
-                self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
-            )
+            try:
+                validate = await validate_station(
+                    self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
+                )
+            except InvalidStation:
+                validate = False
+
             if not validate:
                 self._errors[CONF_STATION_ID] = "station_id"
 
             if len(self._errors) == 0:
                 self.hass.config_entries.async_update_entry(entry, data=self._data)
-                await self.hass.config_entries.async_reload(entry.entry_id)
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
 
