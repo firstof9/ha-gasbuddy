@@ -2,10 +2,16 @@
 
 from unittest.mock import patch
 
+from py_gasbuddy.exceptions import APIError, MissingSearchData
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gasbuddy.config_flow import validate_station
+from custom_components.gasbuddy.config_flow import (
+    InvalidStation,
+    SearchFailed,
+    _get_station_list,  # noqa: PLC2701
+    validate_station,
+)
 from custom_components.gasbuddy.const import (
     CONF_GPS,
     CONF_INTERVAL,
@@ -1469,6 +1475,129 @@ async def test_form_manual_invalid_station(hass, mock_aioclient):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_USER}
         )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "123",
+            },
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "manual"
+        assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+async def test_validate_station_api_error(hass):
+    """Test validate_station raises InvalidStation on APIError."""
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup",
+            side_effect=APIError("test error"),
+        ),
+        pytest.raises(InvalidStation),
+    ):
+        await validate_station(hass, 123)
+
+
+async def test_get_station_list_missing_data_error(hass):
+    """Test _get_station_list raises SearchFailed on MissingSearchData."""
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.location_search",
+            side_effect=MissingSearchData("test error"),
+        ),
+        pytest.raises(SearchFailed),
+    ):
+        await _get_station_list(hass)
+
+
+async def test_form_manual_search_failed(hass):
+    """Test manual flow handles SearchFailed."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        side_effect=SearchFailed,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "manual"
+        assert result["errors"] == {"base": "search_failed"}
+
+
+async def test_form_search_search_failed(hass):
+    """Test search flow handles SearchFailed."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        side_effect=SearchFailed,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "search"}
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "search"
+        assert result["errors"] == {"base": "search_failed"}
+
+
+async def test_reconfigure_invalid_station_exception(hass, integration):
+    """Test reconfigure flow handles InvalidStation exception."""
+    entry = integration
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        side_effect=InvalidStation,
+    ):
+        reconfigure_result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        assert reconfigure_result["type"] is FlowResultType.FORM
+
+        result = await hass.config_entries.flow.async_configure(
+            reconfigure_result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "123",
+            },
+        )
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+async def test_form_manual_invalid_station_exception(hass):
+    """Test manual flow handles InvalidStation exception."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value=STATION_LIST,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            side_effect=InvalidStation,
+        ),
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "manual"}
         )
