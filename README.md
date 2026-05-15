@@ -25,7 +25,7 @@ Platform | Description
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=firstof9&repository=ha-gasbuddy)
 
 1. Follow the link [here](https://hacs.xyz/docs/faq/custom_repositories/)
-2. Use the custom repo link https://github.com/firstof9/ha-gasbuddy
+2. Use the custom repo link [https://github.com/firstof9/ha-gasbuddy][ha-gasbuddy]
 3. Select the category type `integration`
 4. Then once it's there (still in HACS) click the INSTALL button
 5. Restart Home Assistant
@@ -70,11 +70,11 @@ Configuration is done via the Home Assistant UI. When adding the integration, yo
 
 The following services are available:
 
-| Service | Description | Arguments |
-| :--- | :--- | :--- |
-| `lookup_gps` | Lookup prices using GPS coordinates from a list of entities (e.g., `device_tracker` or `person`). | `entity_id` (Required), `limit` (Optional, 1-99), `solver` (Optional) |
-| `lookup_zip` | Lookup prices via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional, 1-99), `solver` (Optional) |
-| `clear_cache` | Clear the cache for specific device(s). | `device_id` (Required) |
+Service | Description | Arguments
+:--- | :--- | :---
+`lookup_gps` | Lookup prices using GPS coordinates from a list of entities (e.g., `device_tracker` or `person`). | `entity_id` (Required), `limit` (Optional, 1-99), `solver` (Optional)
+`lookup_zip` | Lookup prices via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional, 1-99), `solver` (Optional)
+`clear_cache` | Clear the cache for specific device(s). | `device_id` (Required)
 
 ## Contributions are welcome!
 
