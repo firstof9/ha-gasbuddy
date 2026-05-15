@@ -1,0 +1,20 @@
+# This file configures the actions/labeler GitHub Action.
+# It automatically adds labels to pull requests based on the head branch name
+# or the files that have been changed.
+
+chore:
+  - head-branch: ['^chore-.*', '^docs-.*']
+
+bugfix:
+  - head-branch: ['^fix-.*']
+
+feature:
+  - head-branch: ['^feat-.*']
+
+documentation:
+  - head-branch: ['^docs-.*']
+  - changed-files:
+      - any-glob-to-any-file: ['README.md', 'docs/**', 'CONTRIBUTING.md']
+
+dependencies:
+  - head-branch: ['^deps-.*', '^dependabot/.*']

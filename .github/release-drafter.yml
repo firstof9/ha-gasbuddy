@@ -5,34 +5,42 @@ sort-direction: ascending
 autolabeler:
   - label: "chore"
     branch:
-      - "/^chore-.*/i"
+      - "chore-*"
+      - "docs-*"
     title:
       - "/^chore(\\s*\\(.*\\))?:/i"
+      - "/^docs(\\s*\\(.*\\))?:/i"
+  - label: "documentation"
+    branch:
+      - "docs-*"
+    title:
+      - "/^docs(\\s*\\(.*\\))?:/i"
   - label: "bugfix"
     branch:
-      - "/^fix-.*/i"
+      - "fix-*"
     title:
       - "/^fix(\\s*\\(.*\\))?:/i"
   - label: "feature"
     branch:
-      - "/^feat-.*/i"
+      - "feat-*"
     title:
       - "/^feat(\\s*\\(.*\\))?:/i"
   - label: "enhancement"
     branch:
-      - "/^refactor-.*/i"
+      - "refactor-*"
     title:
       - "/^refactor(\\s*\\(.*\\))?:/i"
   - label: "code-quality"
     branch:
-      - "/^test-.*/i"
+      - "test-*"
     title:
       - "/^test(s)?(\\s*\\(.*\\))?:/i"
   - label: "dependencies"
     branch:
-      - "/^deps-.*/i"
+      - "deps-*"
     title:
       - "/^build\\(deps\\):/i"
+      - "/^chore\\(deps\\):/i"
 categories:
   - title: "💥 Breaking Change 💥"
     labels:
@@ -51,6 +59,8 @@ categories:
   - title: "🔧 Maintenance 🔧"
     labels:
       - "chore"
+      - "docs"
+      - "documentation"
     collapse-after: 3
   - title: "🎓 Code Quality 🎓"
     labels:
