@@ -133,9 +133,15 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema({
-        vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): cv.string,
-        vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
-        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+        vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.All(
+            cv.string, vol.Strip
+        ),
+        vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
+            cv.string, vol.Strip
+        ),
+        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
+            cv.string, vol.Strip
+        ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
         ): cv.positive_int,
@@ -156,7 +162,9 @@ def _get_schema_home(
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema({
-        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
+            cv.string, vol.Strip
+        ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
         ): cv.positive_int,
@@ -179,7 +187,9 @@ def _get_schema_home2(
 
     return vol.Schema({
         vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(station_list),
-        vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
+        vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
+            cv.string, vol.Strip
+        ),
     })
 
 
@@ -195,8 +205,12 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema({
-        vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.Coerce(str),
-        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): cv.string,  # pylint: disable=no-value-for-parameter
+        vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.All(
+            vol.Coerce(str), vol.Strip
+        ),
+        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
+            cv.string, vol.Strip
+        ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
         ): cv.positive_int,
@@ -219,7 +233,9 @@ def _get_schema_station_list(
 
     return vol.Schema({
         vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(station_list),
-        vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): cv.string,
+        vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
+            cv.string, vol.Strip
+        ),
     })
 
 
