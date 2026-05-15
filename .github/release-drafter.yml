@@ -4,35 +4,23 @@ change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
 sort-direction: ascending
 autolabeler:
   - label: "chore"
-    branch:
-      - "/^chore-.*/i"
     title:
-      - "/^chore(\\s*\\(.*\\))?:/i"
+      - "/chore:/i"
   - label: "bugfix"
-    branch:
-      - "/^fix-.*/i"
     title:
-      - "/^fix(\\s*\\(.*\\))?:/i"
+      - "/fix:/i"
   - label: "feature"
-    branch:
-      - "/^feat-.*/i"
     title:
-      - "/^feat(\\s*\\(.*\\))?:/i"
+      - "/feat:/i"
   - label: "enhancement"
-    branch:
-      - "/^refactor-.*/i"
     title:
-      - "/^refactor(\\s*\\(.*\\))?:/i"
+      - "/refactor:/i"
   - label: "code-quality"
-    branch:
-      - "/^test-.*/i"
     title:
-      - "/^test(s)?(\\s*\\(.*\\))?:/i"
+      - "/tests:/i"
   - label: "dependencies"
-    branch:
-      - "/^deps-.*/i"
     title:
-      - "/^build\\(deps\\):/i"
+      - "/build(deps):/i"
 categories:
   - title: "💥 Breaking Change 💥"
     labels:
