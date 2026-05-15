@@ -79,6 +79,13 @@ class GasBuddyServices:
             }),
         )
 
+    @callback
+    def async_unregister(self) -> None:
+        """Unregister all our services."""
+        self.hass.services.async_remove(DOMAIN, SERVICE_LOOKUP_GPS)
+        self.hass.services.async_remove(DOMAIN, SERVICE_LOOKUP_ZIP)
+        self.hass.services.async_remove(DOMAIN, SERVICE_CLEAR_CACHE)
+
     # Setup services
     async def _price_lookup_gps(self, service: ServiceCall) -> ServiceResponse:
         """Lookup prices with GPS coordinates."""

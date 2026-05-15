@@ -1,5 +1,7 @@
 """Test gasbuddy setup process."""
 
+from unittest.mock import patch
+
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -114,3 +116,31 @@ async def test_remove_config_entry_device(hass, integration):
     """Test async_remove_config_entry_device."""
 
     assert await async_remove_config_entry_device(hass, integration, None) is True
+
+
+async def test_options_reload(hass, mock_gasbuddy):
+    """Test integration reloads on option changes."""
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch("homeassistant.config_entries.ConfigEntries.async_reload") as mock_reload:
+        hass.config_entries.async_update_entry(entry, options={**entry.options, "interval": 1200})
+        await hass.async_block_till_done()
+        assert mock_reload.called
+
+
+async def test_service_unregistration_on_unload(hass, mock_gasbuddy):
+    """Test services are unregistered on unload."""
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.services.has_service(DOMAIN, "lookup_gps")
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert not hass.services.has_service(DOMAIN, "lookup_gps")
