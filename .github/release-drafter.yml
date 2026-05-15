@@ -6,8 +6,15 @@ autolabeler:
   - label: "chore"
     branch:
       - "/^chore-.*/i"
+      - "/^docs-.*/i"
     title:
       - "/^chore(\\s*\\(.*\\))?:/i"
+      - "/^docs(\\s*\\(.*\\))?:/i"
+  - label: "documentation"
+    branch:
+      - "/^docs-.*/i"
+    title:
+      - "/^docs(\\s*\\(.*\\))?:/i"
   - label: "bugfix"
     branch:
       - "/^fix-.*/i"
@@ -33,6 +40,7 @@ autolabeler:
       - "/^deps-.*/i"
     title:
       - "/^build\\(deps\\):/i"
+      - "/^chore\\(deps\\):/i"
 categories:
   - title: "💥 Breaking Change 💥"
     labels:
@@ -51,6 +59,8 @@ categories:
   - title: "🔧 Maintenance 🔧"
     labels:
       - "chore"
+      - "docs"
+      - "documentation"
     collapse-after: 3
   - title: "🎓 Code Quality 🎓"
     labels:
