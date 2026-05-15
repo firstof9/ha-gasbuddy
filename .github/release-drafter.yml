@@ -5,22 +5,22 @@ sort-direction: ascending
 autolabeler:
   - label: "chore"
     title:
-      - "/chore:/i"
+      - "/^chore(\\s*\\(.*\\))?:/i"
   - label: "bugfix"
     title:
-      - "/fix:/i"
+      - "/^fix(\\s*\\(.*\\))?:/i"
   - label: "feature"
     title:
-      - "/feat:/i"
+      - "/^feat(\\s*\\(.*\\))?:/i"
   - label: "enhancement"
     title:
-      - "/refactor:/i"
+      - "/^refactor(\\s*\\(.*\\))?:/i"
   - label: "code-quality"
     title:
-      - "/tests:/i"
+      - "/^test(s)?(\\s*\\(.*\\))?:/i"
   - label: "dependencies"
     title:
-      - "/build(deps):/i"
+      - "/^build\\(deps\\):/i"
 categories:
   - title: "💥 Breaking Change 💥"
     labels:
