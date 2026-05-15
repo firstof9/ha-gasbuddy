@@ -141,7 +141,7 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
         ),
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
-        ),  # pylint: disable=no-value-for-parameter
+        ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
         ): cv.positive_int,
@@ -164,7 +164,7 @@ def _get_schema_home(
     return vol.Schema({
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
-        ),  # pylint: disable=no-value-for-parameter
+        ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
         ): cv.positive_int,
@@ -210,7 +210,7 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
         ),
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
-        ),  # pylint: disable=no-value-for-parameter
+        ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
         ): cv.positive_int,
