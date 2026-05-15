@@ -11,9 +11,9 @@
 [![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
 
-_Component to integrate with [GasBuddy][GasBuddy] fuel price tracker._
+_Integration to track fuel prices from [GasBuddy][GasBuddy]._
 
-**This component will set up the following platforms.**
+**This integration will set up the following platforms.**
 
 Platform | Description
 -- | --
@@ -25,7 +25,7 @@ Platform | Description
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=firstof9&repository=ha-gasbuddy)
 
 1. Follow the link [here](https://hacs.xyz/docs/faq/custom_repositories/)
-2. Use the custom repo link https://github.com/firstof9/ha-gasbuddy
+2. Use the custom repo link [https://github.com/firstof9/ha-gasbuddy][ha-gasbuddy]
 3. Select the category type `integration`
 4. Then once it's there (still in HACS) click the INSTALL button
 5. Restart Home Assistant
@@ -58,9 +58,23 @@ To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. Fl
 
 Future changes to your FlareSolverr instance can be edited the same way.
 
-## Configuration is done in the UI
+## Configuration
 
-<!---->
+Configuration is done via the Home Assistant UI. When adding the integration, you will be presented with several search options:
+
+*   **Manual**: Enter the GasBuddy Station ID directly.
+*   **Search by Home**: Uses your Home Assistant zone coordinates to find nearby stations.
+*   **Search by Postal Code**: Enter a specific Zip or Postal Code to find stations in that area.
+
+## Services
+
+The following services are available:
+
+Service | Description | Arguments
+:--- | :--- | :---
+`lookup_gps` | Lookup prices using GPS coordinates from a list of entities (e.g., `device_tracker` or `person`). | `entity_id` (Required), `limit` (Optional, 1-99), `solver` (Optional)
+`lookup_zip` | Lookup prices via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional, 1-99), `solver` (Optional)
+`clear_cache` | Clear the cache for specific device(s). | `device_id` (Required)
 
 ## Contributions are welcome!
 
@@ -68,13 +82,10 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ***
 
-## TODO
-
-- [ ] Add tests
 
 
 [GasBuddy]: https://gasbuddy.com/
-[integration_blueprint]: https://github.com/firstof9/ha-gasbuddy
+[ha-gasbuddy]: https://github.com/firstof9/ha-gasbuddy
 [buymecoffee]: https://www.buymeacoffee.com/firstof9
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
 [commits-shield]: https://img.shields.io/github/commit-activity/y/firstof9/ha-gasbuddy.svg?style=for-the-badge
