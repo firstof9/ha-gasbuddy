@@ -1652,3 +1652,30 @@ async def test_form_manual_invalid_station_exception(hass):
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "manual"
         assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+async def test_manual_flow_trimming(hass):
+    """Test manual flow trims spaces from input."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value=True,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: " 12345 ",
+                CONF_NAME: " My Station ",
+            },
+        )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_STATION_ID] == "12345"
+    assert result["data"][CONF_NAME] == "My Station"
