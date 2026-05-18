@@ -1,0 +1,427 @@
+"""Unit tests covering EV station coordinator fallback, enrichment, and services."""
+
+import logging
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from py_gasbuddy.exceptions import APIError
+import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.gasbuddy.const import (
+    ATTR_POSTAL_CODE,
+    CONF_EV_CHARGING,
+    CONF_GPS,
+    CONF_INTERVAL,
+    CONF_NAME,
+    CONF_STATION_ID,
+    CONF_TIMEOUT,
+    CONF_UOM,
+    DEFAULT_NAME,
+    DEFAULT_TIMEOUT,
+    DOMAIN,
+)
+from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator
+from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.helpers.update_coordinator import UpdateFailed
+
+pytestmark = pytest.mark.asyncio
+
+
+async def test_coordinator_fallback_ev_matching(hass):
+    """Test coordinator fallback when main price lookup fails, but ev_stations_nearby succeeds with a match."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={
+            CONF_EV_CHARGING: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    # Mock price_lookup to fail, and ev_stations_nearby to succeed with a matching ID
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
+    mock_api.ev_stations_nearby = AsyncMock(
+        return_value={
+            "stations": [
+                {
+                    "station_id": "208656",
+                    "name": "Matching Costco EV",
+                    "latitude": 33.45,
+                    "longitude": -112.50,
+                }
+            ]
+        }
+    )
+    coordinator._api = mock_api  # noqa: SLF001
+
+    data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["station_id"] == "208656"
+    assert data["name"] == "Matching Costco EV"
+    assert data["latitude"] == 33.45
+    assert data["longitude"] == -112.50
+    assert mock_api.price_lookup.called
+    assert mock_api.ev_stations_nearby.called
+
+
+async def test_coordinator_fallback_ev_no_match(hass):
+    """Test coordinator fallback when main price lookup fails, and ev_stations_nearby has no match."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={
+            CONF_EV_CHARGING: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
+    mock_api.ev_stations_nearby = AsyncMock(
+        return_value={
+            "stations": [
+                {
+                    "station_id": "999999",  # No match
+                    "name": "Other Station",
+                    "latitude": 34.0,
+                    "longitude": -113.0,
+                }
+            ]
+        }
+    )
+    coordinator._api = mock_api  # noqa: SLF001
+
+    data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["station_id"] == "208656"
+    assert data["name"] == "EV Station"
+    assert data["latitude"] == hass.config.latitude
+    assert data["longitude"] == hass.config.longitude
+
+
+async def test_coordinator_fallback_ev_exception(hass):
+    """Test coordinator fallback when both price lookup and ev_stations_nearby fail."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={
+            CONF_EV_CHARGING: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
+    mock_api.ev_stations_nearby = AsyncMock(side_effect=Exception("EV lookup failed"))
+    coordinator._api = mock_api  # noqa: SLF001
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()  # noqa: SLF001
+
+
+async def test_coordinator_enrichment_success(hass):
+    """Test coordinator success path with EV charging enabled and successful enrichment."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={
+            CONF_EV_CHARGING: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(
+        return_value={
+            "station_id": "208656",
+            "name": "Costco Station",
+            "latitude": 33.459108,
+            "longitude": -112.502745,
+            "unit_of_measure": "dollars_per_gallon",
+            "currency": "USD",
+        }
+    )
+    mock_api.ev_stations_nearby = AsyncMock(
+        return_value={
+            "stations": [
+                {
+                    "station_id": "208656",
+                    "name": "Costco EV Station",
+                    "level1_count": 0,
+                    "level2_count": 2,
+                    "dc_fast_count": 4,
+                    "j1772_count": 2,
+                    "j1772_power": 7.2,
+                    "ccs_count": 4,
+                    "ccs_power": 150.0,
+                    "chademo_count": 0,
+                    "chademo_power": 0.0,
+                    "nacs_count": 0,
+                    "nacs_power": 0.0,
+                    "status_code": "operational",
+                    "network": "Costco Network",
+                    "network_web": "http://costco.com",
+                    "pricing": "Free for members",
+                    "access_hours": "24/7",
+                    "access_code": "None",
+                    "cards_accepted": "Visa",
+                    "date_last_confirmed": "2026-05-18",
+                    "street_address": "1101 N Verrado Way",
+                    "city": "Buckeye",
+                    "state": "AZ",
+                    "distance_miles": 1.5,
+                }
+            ]
+        }
+    )
+    coordinator._api = mock_api  # noqa: SLF001
+
+    data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["ev_level1"] == 0
+    assert data["ev_level2"] == 2
+    assert data["ev_dc_fast"] == 4
+    assert data["ev_j1772"] == 2
+    assert data["ev_j1772_power"] == 7.2
+    assert data["ev_ccs"] == 4
+    assert data["ev_ccs_power"] == 150.0
+    assert data["ev_status"] == "operational"
+    assert data["ev_network"] == "Costco Network"
+    assert data["ev_station_address"] == "1101 N Verrado Way, Buckeye, AZ"
+    assert data["ev_distance_miles"] == 1.5
+
+
+async def test_coordinator_enrichment_exception_logged(hass, caplog):
+    """Test coordinator enrichment handles exception gracefully."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={
+            CONF_EV_CHARGING: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(
+        return_value={
+            "station_id": "208656",
+            "name": "Costco Station",
+            "latitude": 33.459108,
+            "longitude": -112.502745,
+            "unit_of_measure": "dollars_per_gallon",
+            "currency": "USD",
+        }
+    )
+    mock_api.ev_stations_nearby = AsyncMock(side_effect=Exception("GraphQLTimeout"))
+    coordinator._api = mock_api  # noqa: SLF001
+
+    with caplog.at_level(logging.WARNING):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["station_id"] == "208656"
+    assert "Failed to fetch EV station data: GraphQLTimeout" in caplog.text
+
+
+async def test_services_ev_lookup_gps(hass, mock_gasbuddy):
+    """Test ev_lookup_gps service under different entity coordinate scenarios."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={
+            CONF_GPS: True,
+            CONF_NAME: DEFAULT_NAME,
+            CONF_STATION_ID: "208656",
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # 1. Entity with valid coordinates
+    entity_valid = "device_tracker.valid_gps"
+    hass.states.async_set(
+        entity_valid, "home", {ATTR_LATITUDE: 33.459108, ATTR_LONGITUDE: -112.502745}, True
+    )
+
+    # 2. Entity missing coordinates
+    entity_no_coords = "device_tracker.no_coords"
+    hass.states.async_set(entity_no_coords, "home", {}, True)
+
+    # 3. Entity that causes exception in API lookup
+    entity_exception = "device_tracker.exception_trigger"
+    hass.states.async_set(
+        entity_exception, "home", {ATTR_LATITUDE: 34.0, ATTR_LONGITUDE: -113.0}, True
+    )
+
+    await hass.async_block_till_done()
+
+    # Patch the GasBuddy client used inside services.py
+    with (
+        patch("custom_components.gasbuddy.services.GasBuddy.ev_stations_nearby") as mock_ev_api,
+    ):
+        mock_ev_api.side_effect = lambda lat, lon, radius, limit: (
+            {"stations": [{"station_id": "123", "name": "Test EV Station"}]}
+            if lat == 33.459108
+            else Exception("Simulated service exception")
+        )
+
+        response = await hass.services.async_call(
+            DOMAIN,
+            "ev_lookup_gps",
+            {ATTR_ENTITY_ID: [entity_valid, entity_no_coords, entity_exception]},
+            blocking=True,
+            return_response=True,
+        )
+
+        # Check results
+        assert entity_valid in response
+        assert response[entity_valid] == [{"station_id": "123", "name": "Test EV Station"}]
+
+        assert entity_no_coords in response
+        assert response[entity_no_coords] == []
+
+        assert entity_exception in response
+        assert response[entity_exception] == []
+
+
+async def test_services_ev_lookup_zip_success(hass, mock_gasbuddy):
+    """Test ev_lookup_zip service with successful coordinates and station lookup."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={
+            CONF_GPS: True,
+            CONF_NAME: DEFAULT_NAME,
+            CONF_STATION_ID: "208656",
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with (
+        patch("custom_components.gasbuddy.services.GasBuddy.price_lookup_service") as mock_lookup,
+        patch("custom_components.gasbuddy.services.GasBuddy.ev_stations_nearby") as mock_ev,
+    ):
+        mock_lookup.return_value = {"results": [{"latitude": 33.45, "longitude": -112.50}]}
+        mock_ev.return_value = {"stations": [{"station_id": "999", "name": "Zip EV Station"}]}
+
+        response = await hass.services.async_call(
+            DOMAIN,
+            "ev_lookup_zip",
+            {ATTR_POSTAL_CODE: "85326"},
+            blocking=True,
+            return_response=True,
+        )
+
+        assert response["stations"] == [{"station_id": "999", "name": "Zip EV Station"}]
+        assert "error" not in response
+
+
+async def test_services_ev_lookup_zip_missing_coords(hass, mock_gasbuddy):
+    """Test ev_lookup_zip service when price_lookup_service succeeds but coordinates are missing."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={
+            CONF_GPS: True,
+            CONF_NAME: DEFAULT_NAME,
+            CONF_STATION_ID: "208656",
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with (
+        patch("custom_components.gasbuddy.services.GasBuddy.price_lookup_service") as mock_lookup,
+    ):
+        # Coordinates missing in the return payload
+        mock_lookup.return_value = {"results": [{"latitude": None, "longitude": None}]}
+
+        response = await hass.services.async_call(
+            DOMAIN,
+            "ev_lookup_zip",
+            {ATTR_POSTAL_CODE: "85326"},
+            blocking=True,
+            return_response=True,
+        )
+
+        assert response["stations"] == []
+        assert response["error"] == "Location coordinates not found for zip code"
+
+
+async def test_services_ev_lookup_zip_exception(hass, mock_gasbuddy):
+    """Test ev_lookup_zip service when price_lookup_service raises an exception."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={
+            CONF_GPS: True,
+            CONF_NAME: DEFAULT_NAME,
+            CONF_STATION_ID: "208656",
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with (
+        patch("custom_components.gasbuddy.services.GasBuddy.price_lookup_service") as mock_lookup,
+    ):
+        mock_lookup.side_effect = Exception("API down")
+
+        response = await hass.services.async_call(
+            DOMAIN,
+            "ev_lookup_zip",
+            {ATTR_POSTAL_CODE: "85326"},
+            blocking=True,
+            return_response=True,
+        )
+
+        assert response["stations"] == []
+        assert response["error"] == "API down"

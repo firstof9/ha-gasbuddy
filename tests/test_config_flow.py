@@ -1283,7 +1283,7 @@ async def test_form_options(
     )
     entry = integration
 
-    with patch("homeassistant.config_entries.ConfigEntries.async_reload"):
+    with patch("homeassistant.config_entries.ConfigEntries.async_reload") as mock_reload:
         result = await hass.config_entries.options.async_init(entry.entry_id)
 
         assert result["type"] is FlowResultType.FORM
@@ -1299,6 +1299,7 @@ async def test_form_options(
         await hass.async_block_till_done()
 
         assert entry.options.get(CONF_INTERVAL) == 1600
+        mock_reload.assert_called_once_with(entry.entry_id)
 
 
 @pytest.mark.parametrize(

@@ -3,7 +3,6 @@
 import logging
 from unittest.mock import patch
 
-import _pytest.logging
 from aioresponses import aioresponses
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -71,9 +70,7 @@ async def integration_fixture(hass, mock_gasbuddy):
     return entry
 
 
-@pytest.fixture(name="caplog")
-def caplog_fixture(request):
-    """Override caplog fixture to prevent recursive dependency in pytest-homeassistant-custom-component."""
-    for caplog in _pytest.logging.caplog._fixture_function(request):  # noqa: SLF001
-        caplog.set_level(logging.DEBUG)
-        yield caplog
+@pytest.fixture(autouse=True)
+def set_caplog_debug_level(caplog):
+    """Force DEBUG log capture for tests that use caplog."""
+    caplog.set_level(logging.DEBUG)

@@ -62,8 +62,12 @@ async def validate_url(url: str) -> bool:
 
 
 async def validate_station(
-    hass: HomeAssistant, station: int | str, solver: str | None = None
-) -> bool:
+    hass: HomeAssistant,
+    station: int | str,
+    solver: str | None = None,
+    lat: float | None = None,
+    lon: float | None = None,
+) -> str | bool:
     """Validate station ID."""
     price_error = None
     try:
@@ -73,7 +77,7 @@ async def validate_station(
             session=async_get_clientsession(hass),
         ).price_lookup()
         if "errors" not in check:
-            return True
+            return "gas"
     except (APIError, LibraryError) as ex:
         _LOGGER.warning("Error validating station via price_lookup: %s. Trying EV check...", ex)
         price_error = ex
@@ -83,14 +87,16 @@ async def validate_station(
             solver_url=solver,
             session=async_get_clientsession(hass),
         )
+        val_lat = lat if lat is not None else hass.config.latitude
+        val_lon = lon if lon is not None else hass.config.longitude
         ev_res = await ev_gb.ev_stations_nearby(
-            lat=hass.config.latitude,
-            lon=hass.config.longitude,
+            lat=val_lat,
+            lon=val_lon,
             radius=100,
             limit=50,
         )
         if any(s["station_id"] == str(station) for s in ev_res.get("stations", [])):
-            return True
+            return "ev"
     except Exception as ev_ex:  # noqa: BLE001
         _LOGGER.warning("Error validating EV station: %s", ev_ex)
 
@@ -330,6 +336,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._data: dict[Any, Any] = {}
         self._errors = {}
         self._entry: dict[Any, Any] = {}
+        self._station_list: dict[str, Any] = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the flow initialized by the user."""
@@ -364,27 +371,6 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
                 self._data.update(user_input)
-                # Check if manual station is EV station
-                ev_charging = False
-                try:
-                    ev_gb = py_gasbuddy.GasBuddy(
-                        solver_url=self._data.get(CONF_SOLVER),
-                        session=async_get_clientsession(self.hass),
-                    )
-                    ev_res = await ev_gb.ev_stations_nearby(
-                        lat=self.hass.config.latitude,
-                        lon=self.hass.config.longitude,
-                        radius=100,
-                        limit=50,
-                    )
-                    if any(
-                        s["station_id"] == str(self._data[CONF_STATION_ID])
-                        for s in ev_res.get("stations", [])
-                    ):
-                        ev_charging = True
-                except Exception:  # noqa: BLE001
-                    pass
-
                 return self.async_create_entry(
                     title=self._data[CONF_NAME],
                     data=self._data,
@@ -392,7 +378,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
                         CONF_UOM: self._data.get(CONF_UOM, True),
                         CONF_GPS: self._data.get(CONF_GPS, True),
-                        CONF_EV_CHARGING: ev_charging,
+                        CONF_EV_CHARGING: validate == "ev",
                     },
                 )
         return await self._show_config_manual(user_input)
@@ -461,12 +447,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._data.update(user_input)
 
             ev_charging = False
-            try:
-                station_list = await _get_station_list(self.hass, self._data)
-                if station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
-                    ev_charging = True
-            except Exception:  # noqa: BLE001
-                pass
+            if self._station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
+                ev_charging = True
 
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
@@ -486,6 +468,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             station_list = await _get_station_list(self.hass, self._data)
+            self._station_list = station_list
         except SearchFailed:
             station_list = {"not_found": "Error searching for stations."}
 
@@ -537,12 +520,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._data.update(user_input)
 
             ev_charging = False
-            try:
-                station_list = await _get_station_list(self.hass, self._data)
-                if station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
-                    ev_charging = True
-            except Exception:  # noqa: BLE001
-                pass
+            if self._station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
+                ev_charging = True
 
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
@@ -562,6 +541,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             station_list = await _get_station_list(self.hass, self._data)
+            self._station_list = station_list
         except SearchFailed:
             station_list = {"not_found": "Error searching for stations."}
 

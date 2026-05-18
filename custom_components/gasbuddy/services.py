@@ -190,15 +190,26 @@ class GasBuddyServices:
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
-                if entity:
+                if (
+                    entity
+                    and ATTR_LATITUDE in entity.attributes
+                    and ATTR_LONGITUDE in entity.attributes
+                ):
                     lat = entity.attributes[ATTR_LATITUDE]
                     lon = entity.attributes[ATTR_LONGITUDE]
                     res = await api.ev_stations_nearby(lat=lat, lon=lon, radius=radius, limit=limit)
                     results[entity_id] = res.get("stations", [])
+                else:
+                    _LOGGER.warning("Entity %s lacks latitude/longitude coordinates", entity_id)
+                    results[entity_id] = []
             except Exception as ex:  # noqa: BLE001
-                _LOGGER.error("Error checking EV stations: %s", ex)
+                _LOGGER.error("Error checking EV stations for %s: %s", entity_id, ex)
+                results[entity_id] = []
 
-        _LOGGER.debug("GPS EV station lookup: %s", results)
+        _LOGGER.debug(
+            "GPS EV station lookup for entities completed. Station counts per entity: %s",
+            {ent_id: len(stations) for ent_id, stations in results.items()},
+        )
         return results
 
     async def _ev_lookup_zip(self, service: ServiceCall) -> ServiceResponse:
@@ -234,7 +245,11 @@ class GasBuddyServices:
             _LOGGER.error("Error checking EV stations: %s", ex)
             results = {"stations": [], "error": str(ex)}
 
-        _LOGGER.debug("ZIP Code EV station lookup: %s", results)
+        _LOGGER.debug(
+            "ZIP Code EV station lookup completed. Found %s stations. Error: %s",
+            len(results.get("stations", [])),
+            results.get("error"),
+        )
         return results
 
     async def _clear_cache(self, service: ServiceCall) -> None:

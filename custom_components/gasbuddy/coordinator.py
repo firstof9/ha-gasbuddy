@@ -74,8 +74,10 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                     matching = next(
                         (
                             s
-                            for s in ev_res.get("stations", [])
-                            if s["station_id"] == self._config.data[CONF_STATION_ID]
+                            for s in (ev_res or {}).get("stations", [])
+                            if s.get("station_id") is not None
+                            and str(s["station_id"]).strip()
+                            == str(self._config.data[CONF_STATION_ID]).strip()
                         ),
                         None,
                     )
@@ -114,11 +116,17 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                     radius=5,
                     limit=10,
                 )
-                stations = ev_res.get("stations", [])
+                stations = (ev_res or {}).get("stations", [])
                 if stations:
                     matching = next(
-                        (s for s in stations if s["station_id"] == self._data["station_id"]),
-                        stations[0],
+                        (
+                            s
+                            for s in stations
+                            if s.get("station_id") is not None
+                            and str(s["station_id"]).strip()
+                            == str(self._data["station_id"]).strip()
+                        ),
+                        None,
                     )
                     if matching is not None:
                         self._data["ev_level1"] = matching.get("level1_count")
