@@ -18,6 +18,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_EV_CHARGING,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
@@ -60,23 +61,43 @@ async def validate_url(url: str) -> bool:
     return bool(re.match(pattern, url))
 
 
-async def validate_station(hass: HomeAssistant, station: int, solver: str | None = None) -> bool:
-    """Validate statation ID."""
+async def validate_station(
+    hass: HomeAssistant, station: int | str, solver: str | None = None
+) -> bool:
+    """Validate station ID."""
+    price_error = None
     try:
         check = await py_gasbuddy.GasBuddy(
             solver_url=solver,
             station_id=station,
             session=async_get_clientsession(hass),
         ).price_lookup()
+        if "errors" not in check:
+            return True
     except (APIError, LibraryError) as ex:
-        _LOGGER.warning("Error validating station: %s", ex)
-        raise InvalidStation from ex
+        _LOGGER.warning("Error validating station via price_lookup: %s. Trying EV check...", ex)
+        price_error = ex
 
-    if "errors" in check:
-        _LOGGER.warning("Error validating station: %s", check["errors"])
-        return False
+    try:
+        ev_gb = py_gasbuddy.GasBuddy(
+            solver_url=solver,
+            session=async_get_clientsession(hass),
+        )
+        ev_res = await ev_gb.ev_stations_nearby(
+            lat=hass.config.latitude,
+            lon=hass.config.longitude,
+            radius=100,
+            limit=50,
+        )
+        if any(s["station_id"] == str(station) for s in ev_res.get("stations", [])):
+            return True
+    except Exception as ev_ex:  # noqa: BLE001
+        _LOGGER.warning("Error validating EV station: %s", ev_ex)
 
-    return True
+    if price_error is not None:
+        raise InvalidStation from price_error
+
+    return False
 
 
 async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
@@ -110,9 +131,46 @@ async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
     stations_list = {}
     _LOGGER.debug("search reply: %s", stations)
 
-    for station in stations["data"]["locationBySearchTerm"]["stations"]["results"]:
+    for station in stations.get("results", []):
         full_name = f"{station['name']} @ {station['address']['line1']}"
-        stations_list[station["id"]] = full_name
+        stations_list[station["station_id"]] = full_name
+
+    # Query EV stations nearby and merge them
+    search_lat = lat
+    search_lon = lon
+
+    if search_lat is None and postal is not None:
+        try:
+            res = await py_gasbuddy.GasBuddy(
+                solver_url=solver,
+                session=async_get_clientsession(hass),
+            ).price_lookup_service(zipcode=postal)
+            if res.get("results"):
+                search_lat = res["results"][0].get("latitude")
+                search_lon = res["results"][0].get("longitude")
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.debug(
+                "Could not resolve postal code to coordinates via price_lookup_service: %s", ex
+            )
+
+    if search_lat is not None and search_lon is not None:
+        try:
+            ev_gb = py_gasbuddy.GasBuddy(
+                solver_url=solver,
+                session=async_get_clientsession(hass),
+            )
+            ev_res = await ev_gb.ev_stations_nearby(
+                lat=search_lat,
+                lon=search_lon,
+                radius=10,
+                limit=20,
+            )
+            for ev_station in ev_res.get("stations", []):
+                ev_id = ev_station["station_id"]
+                full_name = f"{ev_station['name']} @ {ev_station.get('street_address') or ''} [EV]"
+                stations_list[ev_id] = full_name
+        except Exception as ev_ex:  # noqa: BLE001
+            _LOGGER.warning("Failed to fetch EV stations for search: %s", ev_ex)
 
     if len(stations_list) == 0:
         stations_list["not_found"] = "No stations in search area."
@@ -256,6 +314,7 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
         ),
         vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
         vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
+        vol.Optional(CONF_EV_CHARGING, default=_get_default(CONF_EV_CHARGING, False)): cv.boolean,
     })
 
 
@@ -305,7 +364,37 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
                 self._data.update(user_input)
-                return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+                # Check if manual station is EV station
+                ev_charging = False
+                try:
+                    ev_gb = py_gasbuddy.GasBuddy(
+                        solver_url=self._data.get(CONF_SOLVER),
+                        session=async_get_clientsession(self.hass),
+                    )
+                    ev_res = await ev_gb.ev_stations_nearby(
+                        lat=self.hass.config.latitude,
+                        lon=self.hass.config.longitude,
+                        radius=100,
+                        limit=50,
+                    )
+                    if any(
+                        s["station_id"] == str(self._data[CONF_STATION_ID])
+                        for s in ev_res.get("stations", [])
+                    ):
+                        ev_charging = True
+                except Exception:  # noqa: BLE001
+                    pass
+
+                return self.async_create_entry(
+                    title=self._data[CONF_NAME],
+                    data=self._data,
+                    options={
+                        CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
+                        CONF_UOM: self._data.get(CONF_UOM, True),
+                        CONF_GPS: self._data.get(CONF_GPS, True),
+                        CONF_EV_CHARGING: ev_charging,
+                    },
+                )
         return await self._show_config_manual(user_input)
 
     async def _show_config_manual(self, user_input):
@@ -370,7 +459,25 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_UOM, True)
             user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
-            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+
+            ev_charging = False
+            try:
+                station_list = await _get_station_list(self.hass, self._data)
+                if station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
+                    ev_charging = True
+            except Exception:  # noqa: BLE001
+                pass
+
+            return self.async_create_entry(
+                title=self._data[CONF_NAME],
+                data=self._data,
+                options={
+                    CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
+                    CONF_UOM: self._data.get(CONF_UOM, True),
+                    CONF_GPS: self._data.get(CONF_GPS, True),
+                    CONF_EV_CHARGING: ev_charging,
+                },
+            )
         return await self._show_config_home2(user_input)
 
     async def _show_config_home2(self, user_input):
@@ -428,7 +535,25 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_GPS, True)
             self._data.pop(CONF_POSTAL)
             self._data.update(user_input)
-            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+
+            ev_charging = False
+            try:
+                station_list = await _get_station_list(self.hass, self._data)
+                if station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
+                    ev_charging = True
+            except Exception:  # noqa: BLE001
+                pass
+
+            return self.async_create_entry(
+                title=self._data[CONF_NAME],
+                data=self._data,
+                options={
+                    CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
+                    CONF_UOM: self._data.get(CONF_UOM, True),
+                    CONF_GPS: self._data.get(CONF_GPS, True),
+                    CONF_EV_CHARGING: ev_charging,
+                },
+            )
         return await self._show_config_station_list(user_input)
 
     async def _show_config_station_list(self, user_input):

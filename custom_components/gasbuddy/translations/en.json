@@ -70,7 +70,8 @@
                 "data": {
                     "interval": "Polling interval",
                     "uom": "Show per liter/gallon in unit of measure",
-                    "gps": "Show stations on map (disable lat/long attributes)"
+                    "gps": "Show stations on map (disable lat/long attributes)",
+                    "ev_charging": "Enable EV charging sensors"
                 }
             }
         }

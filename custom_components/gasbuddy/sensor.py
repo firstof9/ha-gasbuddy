@@ -13,6 +13,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ATTR_IMAGEURL,
+    CONF_EV_CHARGING,
     CONF_GPS,
     CONF_NAME,
     CONF_STATION_ID,
@@ -31,10 +32,14 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GasBuddy sensors."""
     coordinator: GasBuddyUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    sensors = [
-        GasBuddySensor(SENSOR_TYPES[sensor_type], coordinator, entry)
-        for sensor_type in SENSOR_TYPES
-    ]
+    ev_charging = entry.options.get(CONF_EV_CHARGING, False)
+
+    sensors = []
+    for sensor_type in SENSOR_TYPES:
+        if sensor_type.startswith("ev_") and not ev_charging:
+            continue
+        sensors.append(GasBuddySensor(SENSOR_TYPES[sensor_type], coordinator, entry))
+
     async_add_entities(sensors, False)
 
 
@@ -117,10 +122,33 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
     @property
     def extra_state_attributes(self) -> dict | None:
         """Return sesnsor attributes."""
-        if not self._price or not (data := self.coordinator.data) or self._type not in data:
+        if not (data := self.coordinator.data):
             return None
 
         attrs: dict[str, Any] = {}
+
+        if not self._price:
+            if not self._type.startswith("ev_"):
+                return None
+            attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
+            attrs["station_name"] = data.get("ev_station_name")
+            attrs["station_address"] = data.get("ev_station_address")
+            if data.get("ev_distance_miles") is not None:
+                attrs["distance_miles"] = data.get("ev_distance_miles")
+            if data.get("ev_network") is not None:
+                attrs["network"] = data.get("ev_network")
+            if data.get("ev_pricing") is not None:
+                attrs["pricing"] = data.get("ev_pricing")
+            if data.get("ev_access_hours") is not None:
+                attrs["access_hours"] = data.get("ev_access_hours")
+            if self._config.options.get(CONF_GPS):
+                attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
+                attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
+            return attrs
+
+        if self._type not in data:
+            return None
+
         if credit := data[self._type].get("credit"):
             attrs[ATTR_ATTRIBUTION] = f"{credit} via GasBuddy"
 

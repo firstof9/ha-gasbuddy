@@ -65,13 +65,15 @@ async def test_lookup_gps(
 
     entity_id = "device_tracker.fake_gps"
     # Set our fake device_tracker state/attributes
-    hass.states.async_set(entity_id, "away", {ATTR_LATITUDE: 1234, ATTR_LONGITUDE: 5678}, True)
+    hass.states.async_set(
+        entity_id, "away", {ATTR_LATITUDE: 33.459108, ATTR_LONGITUDE: -112.502745}, True
+    )
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
     assert state
-    assert state.attributes[ATTR_LATITUDE] == 1234
-    assert state.attributes[ATTR_LONGITUDE] == 5678
+    assert state.attributes[ATTR_LATITUDE] == 33.459108
+    assert state.attributes[ATTR_LONGITUDE] == -112.502745
 
     with caplog.at_level(logging.DEBUG):
         response = await hass.services.async_call(

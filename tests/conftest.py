@@ -1,7 +1,9 @@
 """Global fixtures for gasbuddy integration."""
 
+import logging
 from unittest.mock import patch
 
+import _pytest.logging
 from aioresponses import aioresponses
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -59,7 +61,7 @@ def mock_aioclient():
 
 
 @pytest.fixture(name="integration")
-async def integration_fixture(hass):
+async def integration_fixture(hass, mock_gasbuddy):
     """Set up the mail_and_packages integration."""
     entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
     entry.add_to_hass(hass)
@@ -67,3 +69,11 @@ async def integration_fixture(hass):
     await hass.async_block_till_done()
 
     return entry
+
+
+@pytest.fixture(name="caplog")
+def caplog_fixture(request):
+    """Override caplog fixture to prevent recursive dependency in pytest-homeassistant-custom-component."""
+    for caplog in _pytest.logging.caplog._fixture_function(request):  # noqa: SLF001
+        caplog.set_level(logging.DEBUG)
+        yield caplog
