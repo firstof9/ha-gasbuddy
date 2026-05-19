@@ -1,56 +1,160 @@
 {
-    "data": {
-        "station": {
-            "brands": [],
-            "prices": [
-                {
-                    "cash": {
-                        "nickname": "Flemmit",
-                        "postedTime": "2024-09-06T09:54:05.458Z",
-                        "price": 3.17
-                    },
-                    "credit": {
-                        "nickname": "Flemmit",
-                        "postedTime": "2024-09-06T09:54:05.489Z",
-                        "price": 3.27
-                    },
-                    "fuelProduct": "regular_gas",
-                    "longName": "Regular"
-                },
-                {
-                    "cash": {
-                        "nickname": "Flemmit",
-                        "postedTime": "2024-09-05T17:32:42.712Z",
-                        "price": 3.59
-                    },
-                    "credit": {
-                        "nickname": "drwjd",
-                        "postedTime": "2024-09-05T14:53:44.183Z",
-                        "price": 3.59
-                    },
-                    "fuelProduct": "midgrade_gas",
-                    "longName": "Midgrade"
-                },
-                {
-                    "cash": {
-                        "nickname": null,
-                        "postedTime": null,
-                        "price": 0
-                    },
-                    "credit": {
-                        "nickname": null,
-                        "postedTime": null,
-                        "price": 0
-                    },
-                    "fuelProduct": "premium_gas",
-                    "longName": "Premium"
-                }
-            ],
-            "priceUnit": "dollars_per_gallon",
-            "currency": "USD",
-            "id": "205033",
-            "latitude": 40.196589,
-            "longitude": -75.47145
+  "data": {
+    "station": {
+      "id": "32394",
+      "name": "Holiday",
+      "phone": "(507)281-3105",
+      "openStatus": "open",
+      "priceUnit": "dollars_per_gallon",
+      "currency": "USD",
+      "latitude": 44.019263,
+      "longitude": -92.457476,
+      "enterprise": false,
+      "fuels": [
+        "regular_gas",
+        "midgrade_gas",
+        "premium_gas",
+        "diesel"
+      ],
+      "hasActiveOutage": false,
+      "isFuelmanSite": false,
+      "starRating": 4.1,
+      "ratingsCount": 170,
+      "address": {
+        "country": "US",
+        "line1": "400 4th St SE",
+        "line2": "",
+        "locality": "Rochester",
+        "postalCode": "55904",
+        "region": "MN"
+      },
+      "brands": [
+        {
+          "brandId": "32",
+          "brandingType": "cstore",
+          "imageUrl": "https://images.gasbuddy.io/b/32.png",
+          "name": "Circle K"
+        },
+        {
+          "brandId": "165",
+          "brandingType": "fuel",
+          "imageUrl": "https://images.gasbuddy.io/b/165.png",
+          "name": "Holiday"
         }
+      ],
+      "amenities": [
+        {
+          "amenityId": "c_store",
+          "imageUrl": "https://images.gasbuddy.com/di/features/v2/9.png",
+          "name": "C-Store"
+        },
+        {
+          "amenityId": "pay_at_pump",
+          "imageUrl": "https://images.gasbuddy.com/di/features/v2/11.png",
+          "name": "Pay At Pump"
+        },
+        {
+          "amenityId": "restrooms",
+          "imageUrl": "https://images.gasbuddy.com/di/features/v2/13.png",
+          "name": "Restrooms"
+        },
+        {
+          "amenityId": "air",
+          "imageUrl": "https://images.gasbuddy.com/di/features/v2/14.png",
+          "name": "Air Pump"
+        },
+        {
+          "amenityId": "payphone",
+          "imageUrl": "https://images.gasbuddy.com/di/features/v2/15.png",
+          "name": "Payphone"
+        },
+        {
+          "amenityId": "atm",
+          "imageUrl": "https://images.gasbuddy.com/di/features/v2/16.png",
+          "name": "ATM"
+        }
+      ],
+      "hours": {
+        "openingHours": "24/7",
+        "status": "24/7",
+        "nextIntervals": []
+      },
+      "emergencyStatus": null,
+      "prices": [
+        {
+          "cash": null,
+          "credit": {
+            "nickname": "tigerdoodles",
+            "postedTime": "2026-05-19T15:02:49.375Z",
+            "price": 4.59,
+            "formattedPrice": "$4.59"
+          },
+          "fuelProduct": "regular_gas",
+          "longName": "Regular"
+        },
+        {
+          "cash": null,
+          "credit": {
+            "nickname": "tigerdoodles",
+            "postedTime": "2026-05-19T15:02:49.391Z",
+            "price": 4.59,
+            "formattedPrice": "$4.59"
+          },
+          "fuelProduct": "midgrade_gas",
+          "longName": "Midgrade"
+        },
+        {
+          "cash": null,
+          "credit": {
+            "nickname": "tigerdoodles",
+            "postedTime": "2026-05-19T15:02:49.422Z",
+            "price": 5.39,
+            "formattedPrice": "$5.39"
+          },
+          "fuelProduct": "premium_gas",
+          "longName": "Premium"
+        },
+        {
+          "cash": null,
+          "credit": {
+            "nickname": "tigerdoodles",
+            "postedTime": "2026-05-19T15:02:49.438Z",
+            "price": 5.42,
+            "formattedPrice": "$5.42"
+          },
+          "fuelProduct": "diesel",
+          "longName": "Diesel"
+        }
+      ],
+      "offers": [
+        {
+          "discounts": [
+            {
+              "grades": [
+                "regular_gas",
+                "midgrade_gas",
+                "premium_gas",
+                "diesel"
+              ],
+              "highlight": "Flash Deal: Save 2\u00a2 per gallon",
+              "pwgbDiscount": "0.02",
+              "receiptDiscount": null
+            }
+          ],
+          "highlight": "Flash Deal: Save 2\u00a2 per gallon",
+          "id": "H532394-2-2-2-2-0-0-0-0-Hbe0uM02mSLR3glz2cKlxV0",
+          "types": [
+            "gasbuddy"
+          ],
+          "use": [
+            "strike",
+            "sort"
+          ]
+        }
+      ],
+      "payStatus": {
+        "isPayAvailable": true
+      }
     }
+  }
 }

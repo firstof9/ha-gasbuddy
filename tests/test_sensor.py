@@ -241,7 +241,7 @@ async def test_coordinator_success(hass, mock_aioclient):
     # This will call _async_update_data UNPATCHED
     data = await coordinator._async_update_data()  # noqa: SLF001
     assert "last_updated" in data
-    assert data["station_id"] == "205033"
+    assert data["station_id"] == "32394"
 
 
 async def test_sensor_coverage_edge_cases(hass, mock_gasbuddy, integration):

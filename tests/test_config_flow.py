@@ -69,14 +69,14 @@ pytestmark = pytest.mark.asyncio
             },
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
             },
             "user",
             DEFAULT_NAME,
             {
                 CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_SOLVER: SOLVER_URL,
@@ -145,8 +145,8 @@ async def test_form_home(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 40.196589,
-            "longitude": -75.47145,
+            "latitude": 44.019263,
+            "longitude": -92.457476,
         }
 
         await hass.async_block_till_done()
@@ -162,14 +162,14 @@ async def test_form_home(
             },
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
             },
             "user",
             DEFAULT_NAME,
             {
                 CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_SOLVER: HOSTNAME_SOLVER_URL,
@@ -238,8 +238,8 @@ async def test_form_home_hostname_solver(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 40.196589,
-            "longitude": -75.47145,
+            "latitude": 44.019263,
+            "longitude": -92.457476,
         }
 
         await hass.async_block_till_done()
@@ -255,13 +255,13 @@ async def test_form_home_hostname_solver(
                 CONF_SOLVER: SOLVER_URL,
             },
             {
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_NAME: DEFAULT_NAME,
             },
             DEFAULT_NAME,
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_GPS: True,
@@ -332,8 +332,8 @@ async def test_form_postal(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 40.196589,
-            "longitude": -75.47145,
+            "latitude": 44.019263,
+            "longitude": -92.457476,
         }
 
         await hass.async_block_till_done()
@@ -413,8 +413,8 @@ async def test_form_manual(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 40.196589,
-            "longitude": -75.47145,
+            "latitude": 44.019263,
+            "longitude": -92.457476,
         }
 
         await hass.async_block_till_done()
@@ -1343,14 +1343,14 @@ async def test_form_options(
             },
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
             },
             "user",
             DEFAULT_NAME,
             {
                 CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_SOLVER: "",
@@ -1416,8 +1416,8 @@ async def test_form_home_empty_solver(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 40.196589,
-            "longitude": -75.47145,
+            "latitude": 44.019263,
+            "longitude": -92.457476,
         }
 
 

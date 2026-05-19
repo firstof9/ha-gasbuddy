@@ -1,151 +1,652 @@
 {
-    "data": {
-        "locationBySearchTerm": {
-            "stations": {
-                "count": 92,
-                "results": [
-                    {
-                        "address": {
-                            "line1": "1520 N Verrado Way"
-                        },
-                        "id": "187725",
-                        "name": "Shell"
-                    },
-                    {
-                        "address": {
-                            "line1": "1101 N Verrado Way"
-                        },
-                        "id": "208656",
-                        "name": "Costco"
-                    },
-                    {
-                        "address": {
-                            "line1": "1419 N 195th Ave"
-                        },
-                        "id": "87490",
-                        "name": "Chevron"
-                    },
-                    {
-                        "address": {
-                            "line1": "721 N 195th Ave"
-                        },
-                        "id": "110402",
-                        "name": "Circle K"
-                    },
-                    {
-                        "address": {
-                            "line1": "19600 W Indian School Rd"
-                        },
-                        "id": "203982",
-                        "name": "Fry's"
-                    },
-                    {
-                        "address": {
-                            "line1": "537 S Watson Rd"
-                        },
-                        "id": "126744",
-                        "name": "Circle K"
-                    },
-                    {
-                        "address": {
-                            "line1": "900 S Watson Rd"
-                        },
-                        "id": "201250",
-                        "name": "QuikTrip"
-                    },
-                    {
-                        "address": {
-                            "line1": "1300 S Watson Rd"
-                        },
-                        "id": "38363",
-                        "name": "Fry's"
-                    },
-                    {
-                        "address": {
-                            "line1": "1610 N Miller Rd"
-                        },
-                        "id": "27487",
-                        "name": "Love's Travel Stop"
-                    },
-                    {
-                        "address": {
-                            "line1": "1850 S Miller Rd"
-                        },
-                        "id": "160044",
-                        "name": "QuikTrip"
-                    },
-                    {
-                        "address": {
-                            "line1": "2075 S Miller Rd"
-                        },
-                        "id": "135437",
-                        "name": "Chevron"
-                    },
-                    {
-                        "address": {
-                            "line1": "16380 W Yuma Rd"
-                        },
-                        "id": "130812",
-                        "name": "Fry's"
-                    },
-                    {
-                        "address": {
-                            "line1": "15535 W McDowell Rd"
-                        },
-                        "id": "200905",
-                        "name": "Circle K"
-                    },
-                    {
-                        "address": {
-                            "line1": "440 N Estrella Pkwy"
-                        },
-                        "id": "85320",
-                        "name": "Safeway"
-                    },
-                    {
-                        "address": {
-                            "line1": "575 N Estrella Pkwy"
-                        },
-                        "id": "155795",
-                        "name": "QuikTrip"
-                    },
-                    {
-                        "address": {
-                            "line1": "307 E US-85"
-                        },
-                        "id": "118417",
-                        "name": "Circle K"
-                    },
-                    {
-                        "address": {
-                            "line1": "825 E Monroe Ave"
-                        },
-                        "id": "154238",
-                        "name": "Chevron"
-                    },
-                    {
-                        "address": {
-                            "line1": "501 E Monroe Ave"
-                        },
-                        "id": "150938",
-                        "name": "Shell"
-                    },
-                    {
-                        "address": {
-                            "line1": "1540 N Bullard Ave"
-                        },
-                        "id": "209199",
-                        "name": "QuikTrip"
-                    },
-                    {
-                        "address": {
-                            "line1": "14175 W Indian School Rd"
-                        },
-                        "id": "27442",
-                        "name": "Safeway"
-                    }
-                ]
-            }
-        }
+  "data": {
+    "locationBySearchTerm": {
+      "countryCode": "US",
+      "displayName": null,
+      "latitude": 44.02,
+      "longitude": -92.46,
+      "regionCode": null,
+      "stations": {
+        "count": 57,
+        "cursor": {
+          "next": "20"
+        },
+        "results": [
+          {
+            "address": {
+              "country": "US",
+              "line1": "400 4th St SE",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "32",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/32.png",
+                "name": "Circle K"
+              },
+              {
+                "brandId": "165",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/165.png",
+                "name": "Holiday"
+              }
+            ],
+            "distance": "0.14mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas",
+              "diesel"
+            ],
+            "id": "32394",
+            "name": "Holiday",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 170,
+            "starRating": 4.1
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "205 6th St SW",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55902",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "123",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/123.png",
+                "name": "Sinclair"
+              }
+            ],
+            "distance": "0.36mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas",
+              "diesel",
+              "e85"
+            ],
+            "id": "77862",
+            "name": "Sinclair",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 163,
+            "starRating": 4.4
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1025 4th St SE",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904-7265",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "87",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/87.png",
+                "name": "Marathon"
+              }
+            ],
+            "distance": "0.55mi",
+            "fuels": [],
+            "id": "53558",
+            "name": "Apollo Superette",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 63,
+            "starRating": 3.3
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "701 Broadway Ave",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55906",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "165",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/165.png",
+                "name": "Holiday"
+              }
+            ],
+            "distance": "0.77mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas",
+              "diesel"
+            ],
+            "id": "9286",
+            "name": "Holiday",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 163,
+            "starRating": 4
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "315 12th St SE",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              },
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              }
+            ],
+            "distance": "0.88mi",
+            "fuels": [
+              "regular_gas",
+              "premium_gas",
+              "diesel",
+              "e15"
+            ],
+            "id": "104712",
+            "name": "Kwik Trip",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 97,
+            "starRating": 4.2
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1005 N Broadway Ave",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55901",
+              "region": "MN"
+            },
+            "brands": [],
+            "distance": "0.94mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas",
+              "diesel"
+            ],
+            "id": "111572",
+            "name": "Broadway Gas",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 69,
+            "starRating": 3.8
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1101 2nd St SW",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55902",
+              "region": "MN"
+            },
+            "brands": [],
+            "distance": "0.97mi",
+            "fuels": [],
+            "id": "53554",
+            "name": "Virgil's Auto Clinic",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 27,
+            "starRating": 2.9
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1031 15th Ave SE",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "32",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/32.png",
+                "name": "Circle K"
+              },
+              {
+                "brandId": "165",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/165.png",
+                "name": "Holiday"
+              }
+            ],
+            "distance": "1.03mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas"
+            ],
+            "id": "30475",
+            "name": "Holiday",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 59,
+            "starRating": 3.7
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "560 11th Ave Nw",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              },
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              }
+            ],
+            "distance": "1.12mi",
+            "fuels": [
+              "regular_gas",
+              "premium_gas",
+              "diesel",
+              "e15"
+            ],
+            "id": "53556",
+            "name": "Kwik Trip",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 169,
+            "starRating": 4.3
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1221 Marion Rd SE",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904-5711",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              },
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              }
+            ],
+            "distance": "1.26mi",
+            "fuels": [
+              "regular_gas",
+              "premium_gas",
+              "diesel",
+              "e15"
+            ],
+            "id": "100091",
+            "name": "Kwik Trip",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 100,
+            "starRating": 4.3
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1520 2nd St SW",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55902",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "165",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/165.png",
+                "name": "Holiday"
+              }
+            ],
+            "distance": "1.29mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas"
+            ],
+            "id": "9284",
+            "name": "Holiday",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 137,
+            "starRating": 3.7
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1125 4th St SE",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "87",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/87.png",
+                "name": "Marathon"
+              }
+            ],
+            "distance": "1.35mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas"
+            ],
+            "id": "214323",
+            "name": "Marathon",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 17,
+            "starRating": 3.7
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1600 Eastwood Rd Se",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904-5198",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "28",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/28.png",
+                "name": "Casey's"
+              },
+              {
+                "brandId": "28",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/28.png",
+                "name": "Casey's"
+              }
+            ],
+            "distance": "1.37mi",
+            "fuels": [
+              "diesel",
+              "regular_gas"
+            ],
+            "id": "21171",
+            "name": "Casey's",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 66,
+            "starRating": 4.3
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1740 3rd Ave SE",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904-7921",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "29",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/29.png",
+                "name": "Cenex"
+              }
+            ],
+            "distance": "1.60mi",
+            "fuels": [],
+            "id": "126370",
+            "name": "Cenex",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 23,
+            "starRating": 3.5
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1350 Salem Rd SW",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55902",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              },
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              }
+            ],
+            "distance": "1.70mi",
+            "fuels": [
+              "regular_gas",
+              "premium_gas",
+              "diesel",
+              "e15"
+            ],
+            "id": "81959",
+            "name": "Kwik Trip",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 89,
+            "starRating": 4
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "2109 2nd St SW",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55902",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              },
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              }
+            ],
+            "distance": "1.79mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas",
+              "diesel",
+              "e85",
+              "e15"
+            ],
+            "id": "32398",
+            "name": "Kwik Trip",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 115,
+            "starRating": 4
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1907 7th St Nw",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55901-0269",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "28",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/28.png",
+                "name": "Casey's"
+              },
+              {
+                "brandId": "28",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/28.png",
+                "name": "Casey's"
+              }
+            ],
+            "distance": "1.84mi",
+            "fuels": [
+              "diesel",
+              "e15",
+              "e85",
+              "midgrade_gas",
+              "premium_gas",
+              "regular_gas"
+            ],
+            "id": "195928",
+            "name": "Casey's",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 102,
+            "starRating": 4.5
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1933 Broadway S",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55904",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              },
+              {
+                "brandId": "79",
+                "brandingType": "cstore",
+                "imageUrl": "https://images.gasbuddy.io/b/79.png",
+                "name": "Kwik Trip"
+              }
+            ],
+            "distance": "1.88mi",
+            "fuels": [
+              "regular_gas",
+              "premium_gas",
+              "diesel",
+              "e85",
+              "e15"
+            ],
+            "id": "30471",
+            "name": "Kwik Trip",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 116,
+            "starRating": 4.5
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "1851 Assisi Dr NW",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55901",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "165",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/165.png",
+                "name": "Holiday"
+              }
+            ],
+            "distance": "2.06mi",
+            "fuels": [
+              "regular_gas",
+              "premium_gas",
+              "diesel",
+              "e85",
+              "e15"
+            ],
+            "id": "173584",
+            "name": "Holiday",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 210,
+            "starRating": 4.5
+          },
+          {
+            "address": {
+              "country": "US",
+              "line1": "2525 Schuster Ln NW",
+              "line2": "",
+              "locality": "Rochester",
+              "postalCode": "55901",
+              "region": "MN"
+            },
+            "brands": [
+              {
+                "brandId": "2149",
+                "brandingType": "fuel",
+                "imageUrl": "https://images.gasbuddy.io/b/2149.png",
+                "name": "Consolidated Energy"
+              }
+            ],
+            "distance": "2.34mi",
+            "fuels": [
+              "regular_gas",
+              "midgrade_gas",
+              "premium_gas",
+              "diesel"
+            ],
+            "id": "104720",
+            "name": "Throndson Oil",
+            "priceUnit": "dollars_per_gallon",
+            "ratingsCount": 86,
+            "starRating": 4.2
+          }
+        ]
+      }
     }
+  }
 }
