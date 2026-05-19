@@ -18,6 +18,7 @@ CONF_GPS = "gps"
 CONF_SOLVER = "solver"
 CONF_TIMEOUT = "timeout"
 CONF_EV_CHARGING = "ev_charging"
+CONF_FETCH_GAS = "fetch_gas"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
@@ -247,6 +248,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV Station Status",
         icon="mdi:check-circle-outline",
         price=False,
+        entity_registry_enabled_default=False,
     ),
     "ev_network": GasBuddySensorEntityDescription(
         key="ev_network",
@@ -275,7 +277,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
     ),
     "ev_access_code": GasBuddySensorEntityDescription(
         key="ev_access_code",
-        name="EV Access Code",
+        name="EV Access",
         icon="mdi:lock-open-outline",
         price=False,
         entity_registry_enabled_default=False,

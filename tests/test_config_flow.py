@@ -1,7 +1,9 @@
 """Test config flow."""
 
+import json
 from unittest.mock import patch
 
+from aioresponses import CallbackResult
 from py_gasbuddy.exceptions import APIError, MissingSearchData
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -14,6 +16,7 @@ from custom_components.gasbuddy.config_flow import (
 )
 from custom_components.gasbuddy.const import (
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
@@ -37,6 +40,27 @@ GB_URL = "https://www.gasbuddy.com/home"
 SOLVER_URL = "http://solver.url"
 HOSTNAME_SOLVER_URL = "http://flaresolverr:8191/v1"
 NO_STATIONS_LIST = {"-": "No stations in search area."}
+EXPECTED_STATION_COORDS = {
+    "latitude": 44.019263,
+    "longitude": -92.457476,
+}
+
+
+def gb_graphql_callback(url, **kwargs):
+    """Return mock responses for the GasBuddy GraphQL API based on operationName."""
+    payload = kwargs.get("json") or json.loads(kwargs.get("data", "{}"))
+    op = payload.get("operationName")
+    if op == "LocationBySearchTerm":
+        return CallbackResult(status=200, body=load_fixture("location_results.json"))
+    if op == "GetStation":
+        return CallbackResult(status=200, body=load_fixture("station.json"))
+    if op == "EvStationsSearch":
+        return CallbackResult(
+            status=200,
+            payload={"data": {"evStationsNearby": {"stations": [], "total": 0, "limit": 20}}},
+        )
+    raise AssertionError(f"Unhandled GraphQL operationName in test callback: {op!r}")
+
 
 pytestmark = pytest.mark.asyncio
 
@@ -50,14 +74,14 @@ pytestmark = pytest.mark.asyncio
             },
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
             },
             "user",
             DEFAULT_NAME,
             {
                 CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_SOLVER: SOLVER_URL,
@@ -85,8 +109,7 @@ async def test_form_home(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
     mock_aioclient.post(
@@ -125,7 +148,10 @@ async def test_form_home(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            **EXPECTED_STATION_COORDS,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -140,14 +166,14 @@ async def test_form_home(
             },
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
             },
             "user",
             DEFAULT_NAME,
             {
                 CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_SOLVER: HOSTNAME_SOLVER_URL,
@@ -175,8 +201,7 @@ async def test_form_home_hostname_solver(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
     mock_aioclient.post(
@@ -215,7 +240,10 @@ async def test_form_home_hostname_solver(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            **EXPECTED_STATION_COORDS,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -230,13 +258,13 @@ async def test_form_home_hostname_solver(
                 CONF_SOLVER: SOLVER_URL,
             },
             {
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_NAME: DEFAULT_NAME,
             },
             DEFAULT_NAME,
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_GPS: True,
@@ -264,8 +292,7 @@ async def test_form_postal(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
     mock_aioclient.post(
@@ -306,7 +333,10 @@ async def test_form_postal(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            **EXPECTED_STATION_COORDS,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -383,7 +413,10 @@ async def test_form_manual(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            **EXPECTED_STATION_COORDS,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -811,7 +844,7 @@ async def test_reconfigure(
         ),
         patch(
             "custom_components.gasbuddy.config_flow.validate_station",
-            return_value=True,
+            return_value={"type": "gas", **EXPECTED_STATION_COORDS},
         ),
         patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
@@ -835,7 +868,10 @@ async def test_reconfigure(
         await hass.async_block_till_done()
 
         entry = hass.config_entries.async_entries(DOMAIN)[0]
-        assert entry.data.copy() == data
+        assert entry.data.copy() == {
+            **data,
+            **EXPECTED_STATION_COORDS,
+        }
 
 
 @pytest.mark.parametrize(
@@ -1209,7 +1245,7 @@ async def test_reconfigure_no_solver(
         ),
         patch(
             "custom_components.gasbuddy.config_flow.validate_station",
-            return_value=True,
+            return_value={"type": "gas", **EXPECTED_STATION_COORDS},
         ),
         patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
@@ -1233,7 +1269,10 @@ async def test_reconfigure_no_solver(
         await hass.async_block_till_done()
 
         entry = hass.config_entries.async_entries(DOMAIN)[0]
-        assert entry.data.copy() == data
+        assert entry.data.copy() == {
+            **data,
+            **EXPECTED_STATION_COORDS,
+        }
 
 
 @pytest.mark.parametrize(
@@ -1247,6 +1286,7 @@ async def test_reconfigure_no_solver(
             },
             {
                 CONF_EV_CHARGING: False,
+                CONF_FETCH_GAS: True,
                 CONF_GPS: True,
                 CONF_INTERVAL: 1600,
                 CONF_UOM: True,
@@ -1311,14 +1351,14 @@ async def test_form_options(
             },
             {
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
             },
             "user",
             DEFAULT_NAME,
             {
                 CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
-                CONF_STATION_ID: "208656",
+                CONF_STATION_ID: "32394",
                 CONF_INTERVAL: 3600,
                 CONF_UOM: True,
                 CONF_SOLVER: "",
@@ -1347,8 +1387,7 @@ async def test_form_home_empty_solver(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
 
@@ -1383,7 +1422,10 @@ async def test_form_home_empty_solver(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            **EXPECTED_STATION_COORDS,
+        }
 
 
 @pytest.mark.parametrize(
@@ -1688,3 +1730,181 @@ async def test_manual_flow_trimming(hass):
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_STATION_ID] == "12345"
     assert result["data"][CONF_NAME] == "My Station"
+
+
+async def test_home2_invalid_station_exception(hass):
+    """Test home2 flow handles InvalidStation exception."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "home"}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value={"32394": "Holiday @ 400 4th St SE"},
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            side_effect=InvalidStation,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_SOLVER: SOLVER_URL}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+        assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+async def test_home2_non_dict_validation(hass):
+    """Test home2 flow handles non-dict validation return (ev_charging = False)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "home"}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        return_value={"32394": "Holiday @ 400 4th St SE"},
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_SOLVER: SOLVER_URL}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["options"][CONF_EV_CHARGING] is False
+
+
+async def test_station_list_invalid_station_exception(hass):
+    """Test station_list flow handles InvalidStation exception."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "postal"}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value={"32394": "Holiday @ 400 4th St SE"},
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            side_effect=InvalidStation,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_POSTAL: "55904",
+                CONF_SOLVER: SOLVER_URL,
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+        assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+async def test_station_list_non_dict_validation(hass):
+    """Test station_list flow handles non-dict validation return (ev_charging = False)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "postal"}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        return_value={"32394": "Holiday @ 400 4th St SE"},
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_POSTAL: "55904",
+                CONF_SOLVER: SOLVER_URL,
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["options"][CONF_EV_CHARGING] is False

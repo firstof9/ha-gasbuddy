@@ -1,6 +1,7 @@
 """Update coordinator for GasBuddy."""
 
 from datetime import UTC, datetime, timedelta
+import json
 import logging
 from typing import Any
 
@@ -26,6 +27,34 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _redact(data: Any) -> str:
+    """Redact sensitive data for logging."""
+    sensitive_keys = {
+        "latitude",
+        "longitude",
+        "street_address",
+        "ev_station_address",
+        "city",
+        "state",
+        "zip",
+    }
+
+    def _redact_recursive(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {
+                k: "**REDACTED**" if k in sensitive_keys else _redact_recursive(v)
+                for k, v in obj.items()
+            }
+        if isinstance(obj, list):
+            return [_redact_recursive(item) for item in obj]
+        return obj
+
+    try:
+        return json.dumps(_redact_recursive(data), default=str)
+    except Exception:  # noqa: BLE001
+        return str(_redact_recursive(data))
 
 
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
@@ -61,16 +90,36 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
         try:
             self._data = await self._api.price_lookup()
+            _LOGGER.debug("Gas station data: %s", _redact(self._data))
+
+            config_lat = self._config.data.get("latitude")
+            config_lon = self._config.data.get("longitude")
+            if config_lat is not None and config_lon is not None:
+                gas_lat = self._data.get("latitude")
+                gas_lon = self._data.get("longitude")
+                if gas_lat is not None and gas_lon is not None:
+                    if abs(gas_lat - config_lat) > 1.0 or abs(gas_lon - config_lon) > 1.0:
+                        raise APIError("Station ID collision detected")  # noqa: TRY301
         except (APIError, LibraryError, CSRFTokenMissing) as ex:
             if ev_charging_enabled:
                 _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
                 try:
+                    # Use coordinates from config entry if available, otherwise home coordinates
+                    lat = self._config.data.get("latitude")
+                    lon = self._config.data.get("longitude")
+                    if lat is None:
+                        lat = self.hass.config.latitude
+                    if lon is None:
+                        lon = self.hass.config.longitude
                     ev_res = await self._api.ev_stations_nearby(
-                        lat=self.hass.config.latitude,
-                        lon=self.hass.config.longitude,
+                        lat=lat,
+                        lon=lon,
                         radius=100,
-                        limit=50,
+                        limit=100,
                     )
+
+                    _LOGGER.debug("EV station fallback search result: %s", _redact(ev_res))
+
                     matching = next(
                         (
                             s
@@ -90,12 +139,23 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                             "unit_of_measure": "dollars_per_gallon",
                             "currency": "USD",
                         }
+                        # Update config entry if coordinates are new or changed
+                        if (
+                            self._config.data.get("latitude") != matching["latitude"]
+                            or self._config.data.get("longitude") != matching["longitude"]
+                        ):
+                            new_data = {
+                                **self._config.data,
+                                "latitude": matching["latitude"],
+                                "longitude": matching["longitude"],
+                            }
+                            self.hass.config_entries.async_update_entry(self._config, data=new_data)
                     else:
                         self._data = {
                             "station_id": self._config.data[CONF_STATION_ID],
                             "name": self._config.data.get(CONF_NAME, "EV Station"),
-                            "latitude": self.hass.config.latitude,
-                            "longitude": self.hass.config.longitude,
+                            "latitude": lat,
+                            "longitude": lon,
                             "unit_of_measure": "dollars_per_gallon",
                             "currency": "USD",
                         }
@@ -116,6 +176,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                     radius=5,
                     limit=10,
                 )
+                _LOGGER.debug("EV station search result: %s", _redact(ev_res))
                 stations = (ev_res or {}).get("stations", [])
                 if stations:
                     matching = next(
@@ -146,7 +207,19 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                         self._data["ev_pricing"] = matching.get("pricing")
                         self._data["ev_access_hours"] = matching.get("access_hours")
                         self._data["ev_access_code"] = matching.get("access_code")
-                        self._data["ev_cards_accepted"] = matching.get("cards_accepted")
+                        cards = matching.get("cards_accepted")
+                        if cards and isinstance(cards, str):
+                            card_map = {
+                                "A": "American Express",
+                                "D": "Discover",
+                                "Debit": "Debit Card",
+                                "M": "Mastercard",
+                                "V": "Visa",
+                            }
+                            mapped_cards = [card_map.get(c, c) for c in cards.split()]
+                            self._data["ev_cards_accepted"] = ", ".join(mapped_cards)
+                        else:
+                            self._data["ev_cards_accepted"] = cards
                         self._data["ev_date_last_confirmed"] = matching.get("date_last_confirmed")
 
                         self._data["ev_station_name"] = matching.get("name")
@@ -158,6 +231,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning("Failed to fetch EV station data: %s", ev_ex)
 
         self._data["last_updated"] = datetime.now(UTC)
+        _LOGGER.debug("Final coordinator data: %s", _redact(self._data))
         return self._data
 
     async def clear_cache(self) -> None:

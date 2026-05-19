@@ -19,6 +19,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
@@ -67,7 +68,7 @@ async def validate_station(
     solver: str | None = None,
     lat: float | None = None,
     lon: float | None = None,
-) -> str | bool:
+) -> dict[str, Any] | bool:
     """Validate station ID."""
     price_error = None
     try:
@@ -77,7 +78,19 @@ async def validate_station(
             session=async_get_clientsession(hass),
         ).price_lookup()
         if "errors" not in check:
-            return "gas"
+            gas_lat = check.get("latitude")
+            gas_lon = check.get("longitude")
+
+            # Anti-collision check: if the gas station is far from our search coordinates, it's an ID collision
+            if lat is not None and lon is not None and gas_lat is not None and gas_lon is not None:
+                if abs(gas_lat - lat) > 1.0 or abs(gas_lon - lon) > 1.0:
+                    raise APIError("Station ID collision detected")  # noqa: TRY301
+
+            return {
+                "type": "gas",
+                "latitude": gas_lat,
+                "longitude": gas_lon,
+            }
     except (APIError, LibraryError) as ex:
         _LOGGER.warning("Error validating station via price_lookup: %s. Trying EV check...", ex)
         price_error = ex
@@ -95,8 +108,16 @@ async def validate_station(
             radius=100,
             limit=50,
         )
-        if any(s["station_id"] == str(station) for s in ev_res.get("stations", [])):
-            return "ev"
+        matching = next(
+            (s for s in ev_res.get("stations", []) if str(s["station_id"]) == str(station)),
+            None,
+        )
+        if matching:
+            return {
+                "type": "ev",
+                "latitude": matching.get("latitude"),
+                "longitude": matching.get("longitude"),
+            }
     except Exception as ev_ex:  # noqa: BLE001
         _LOGGER.warning("Error validating EV station: %s", ev_ex)
 
@@ -106,7 +127,9 @@ async def validate_station(
     return False
 
 
-async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
+async def _get_station_list(
+    hass: HomeAssistant, user_input, flow_id: str | None = None
+) -> dict[str, Any]:
     """Return list of utilities by lat/lon."""
     lat = None
     lon = None
@@ -175,6 +198,16 @@ async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
                 ev_id = ev_station["station_id"]
                 full_name = f"{ev_station['name']} @ {ev_station.get('street_address') or ''} [EV]"
                 stations_list[ev_id] = full_name
+                # Cache coordinates
+                hass.data.setdefault(DOMAIN, {})
+                hass.data[DOMAIN].setdefault("station_coordinates_by_flow", {})
+                flow_cache = hass.data[DOMAIN]["station_coordinates_by_flow"].setdefault(
+                    flow_id, {}
+                )
+                flow_cache[str(ev_id)] = (
+                    ev_station.get("latitude"),
+                    ev_station.get("longitude"),
+                )
         except Exception as ev_ex:  # noqa: BLE001
             _LOGGER.warning("Failed to fetch EV stations for search: %s", ev_ex)
 
@@ -321,6 +354,7 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
         vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         vol.Optional(CONF_EV_CHARGING, default=_get_default(CONF_EV_CHARGING, False)): cv.boolean,
+        vol.Optional(CONF_FETCH_GAS, default=_get_default(CONF_FETCH_GAS, True)): cv.boolean,
     })
 
 
@@ -371,6 +405,12 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors[CONF_STATION_ID] = "station_id"
             else:
                 self._data.update(user_input)
+                if isinstance(validate, dict):
+                    self._data["latitude"] = validate.get("latitude")
+                    self._data["longitude"] = validate.get("longitude")
+                    ev_charging = validate["type"] == "ev"
+                else:
+                    ev_charging = False
                 return self.async_create_entry(
                     title=self._data[CONF_NAME],
                     data=self._data,
@@ -378,7 +418,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
                         CONF_UOM: self._data.get(CONF_UOM, True),
                         CONF_GPS: self._data.get(CONF_GPS, True),
-                        CONF_EV_CHARGING: validate == "ev",
+                        CONF_EV_CHARGING: ev_charging,
+                        CONF_FETCH_GAS: not ev_charging,
                     },
                 )
         return await self._show_config_manual(user_input)
@@ -446,9 +487,36 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
 
-            ev_charging = False
-            if self._station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
-                ev_charging = True
+            # Get cached coordinates if available
+            cached_coords = (
+                self.hass.data
+                .get(DOMAIN, {})
+                .get("station_coordinates_by_flow", {})
+                .get(self.flow_id, {})
+                .get(str(self._data[CONF_STATION_ID]))
+            )
+            lat, lon = cached_coords or (None, None)
+
+            try:
+                validate = await validate_station(
+                    self.hass,
+                    self._data[CONF_STATION_ID],
+                    self._data.get(CONF_SOLVER),
+                    lat=lat,
+                    lon=lon,
+                )
+            except InvalidStation:
+                validate = False
+
+            if not validate:
+                self._errors[CONF_STATION_ID] = "station_id"
+                return await self._show_config_home2(user_input)
+            if isinstance(validate, dict):
+                self._data["latitude"] = validate.get("latitude")
+                self._data["longitude"] = validate.get("longitude")
+                ev_charging = validate["type"] == "ev"
+            else:
+                ev_charging = False
 
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
@@ -458,6 +526,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_UOM: self._data.get(CONF_UOM, True),
                     CONF_GPS: self._data.get(CONF_GPS, True),
                     CONF_EV_CHARGING: ev_charging,
+                    CONF_FETCH_GAS: not ev_charging,
                 },
             )
         return await self._show_config_home2(user_input)
@@ -467,7 +536,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         defaults: dict[Any, Any] = {}
 
         try:
-            station_list = await _get_station_list(self.hass, self._data)
+            station_list = await _get_station_list(self.hass, self._data, self.flow_id)
             self._station_list = station_list
         except SearchFailed:
             station_list = {"not_found": "Error searching for stations."}
@@ -519,9 +588,36 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._data.pop(CONF_POSTAL)
             self._data.update(user_input)
 
-            ev_charging = False
-            if self._station_list.get(self._data[CONF_STATION_ID], "").endswith(" [EV]"):
-                ev_charging = True
+            # Get cached coordinates if available
+            cached_coords = (
+                self.hass.data
+                .get(DOMAIN, {})
+                .get("station_coordinates_by_flow", {})
+                .get(self.flow_id, {})
+                .get(str(self._data[CONF_STATION_ID]))
+            )
+            lat, lon = cached_coords or (None, None)
+
+            try:
+                validate = await validate_station(
+                    self.hass,
+                    self._data[CONF_STATION_ID],
+                    self._data.get(CONF_SOLVER),
+                    lat=lat,
+                    lon=lon,
+                )
+            except InvalidStation:
+                validate = False
+
+            if not validate:
+                self._errors[CONF_STATION_ID] = "station_id"
+                return await self._show_config_station_list(user_input)
+            if isinstance(validate, dict):
+                self._data["latitude"] = validate.get("latitude")
+                self._data["longitude"] = validate.get("longitude")
+                ev_charging = validate["type"] == "ev"
+            else:
+                ev_charging = False
 
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
@@ -531,6 +627,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_UOM: self._data.get(CONF_UOM, True),
                     CONF_GPS: self._data.get(CONF_GPS, True),
                     CONF_EV_CHARGING: ev_charging,
+                    CONF_FETCH_GAS: not ev_charging,
                 },
             )
         return await self._show_config_station_list(user_input)
@@ -540,7 +637,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         defaults: dict[Any, Any] = {}
 
         try:
-            station_list = await _get_station_list(self.hass, self._data)
+            station_list = await _get_station_list(self.hass, self._data, self.flow_id)
             self._station_list = station_list
         except SearchFailed:
             station_list = {"not_found": "Error searching for stations."}
@@ -582,7 +679,18 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors[CONF_STATION_ID] = "station_id"
 
             if len(self._errors) == 0:
-                self.hass.config_entries.async_update_entry(entry, data=self._data)
+                options = dict(entry.options)
+                if isinstance(validate, dict):
+                    self._data["latitude"] = validate.get("latitude")
+                    self._data["longitude"] = validate.get("longitude")
+                    options[CONF_EV_CHARGING] = validate["type"] == "ev"
+                    options[CONF_FETCH_GAS] = validate["type"] != "ev"
+                else:
+                    options[CONF_EV_CHARGING] = False
+                    options[CONF_FETCH_GAS] = True
+
+                self.hass.config_entries.async_update_entry(entry, data=self._data, options=options)
+                self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
 

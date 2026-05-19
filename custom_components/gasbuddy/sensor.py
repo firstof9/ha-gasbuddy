@@ -14,6 +14,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     ATTR_IMAGEURL,
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_GPS,
     CONF_NAME,
     CONF_STATION_ID,
@@ -33,10 +34,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the GasBuddy sensors."""
     coordinator: GasBuddyUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     ev_charging = entry.options.get(CONF_EV_CHARGING, False)
+    fetch_gas = entry.options.get(CONF_FETCH_GAS, True)
 
     sensors = []
     for sensor_type in SENSOR_TYPES:
         if sensor_type.startswith("ev_") and not ev_charging:
+            continue
+        if not sensor_type.startswith("ev_") and sensor_type != "last_updated" and not fetch_gas:
             continue
         sensors.append(GasBuddySensor(SENSOR_TYPES[sensor_type], coordinator, entry))
 

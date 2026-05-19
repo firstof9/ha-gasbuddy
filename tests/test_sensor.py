@@ -6,6 +6,8 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import (
+    CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
@@ -14,7 +16,10 @@ from custom_components.gasbuddy.const import (
     DOMAIN,
     SENSOR_TYPES,
 )
-from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator
+from custom_components.gasbuddy.coordinator import (
+    GasBuddyUpdateCoordinator,
+    _redact,  # noqa: PLC2701
+)
 from custom_components.gasbuddy.sensor import GasBuddySensor
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
@@ -241,7 +246,7 @@ async def test_coordinator_success(hass, mock_aioclient):
     # This will call _async_update_data UNPATCHED
     data = await coordinator._async_update_data()  # noqa: SLF001
     assert "last_updated" in data
-    assert data["station_id"] == "205033"
+    assert data["station_id"] == "32394"
 
 
 async def test_sensor_coverage_edge_cases(hass, mock_gasbuddy, integration):
@@ -304,3 +309,44 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
         assert attrs["access_hours"] == "24/7"
         assert attrs[ATTR_LATITUDE] == 33.459108
         assert attrs[ATTR_LONGITUDE] == -112.502745
+
+
+async def test_sensors_ev_only(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
+    """Test setup_entry with EV charging enabled and gas sensors disabled."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="EV Only Station",
+        data=CONFIG_DATA,
+        options={
+            CONF_EV_CHARGING: True,
+            CONF_FETCH_GAS: False,
+        },
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Get states
+    states = hass.states.async_entity_ids(SENSOR_DOMAIN)
+    # Gas sensors should be filtered out
+    # "last_updated" is kept, and EV sensors are kept
+    assert "sensor.gas_station_regular_gas" not in states
+    assert "sensor.gas_station_last_updated" in states
+    assert "sensor.gas_station_ev_level_2_chargers" in states
+
+
+async def test_redact_fallback():
+    """Test coordinator._redact fallback logic when JSON serialization fails."""
+
+    class UnserializableKey:
+        def __str__(self):
+            return "UnserializableKey"
+
+    # A dict with an unserializable key fails json.dumps but succeeds on str()
+    bad_dict = {UnserializableKey(): "value", "latitude": 12.34}
+    redacted = _redact(bad_dict)
+    assert "UnserializableKey" in redacted
+    assert "value" in redacted
+    assert "12.34" not in redacted
+    assert "**REDACTED**" in redacted
