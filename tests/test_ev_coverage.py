@@ -7,12 +7,18 @@ from py_gasbuddy.exceptions import APIError
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.gasbuddy.config_flow import (
+    GasBuddyFlowHandler,
+    _get_station_list,  # noqa: PLC2701
+    validate_station,
+)
 from custom_components.gasbuddy.const import (
     ATTR_POSTAL_CODE,
     CONF_EV_CHARGING,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
+    CONF_POSTAL,
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
@@ -425,3 +431,171 @@ async def test_services_ev_lookup_zip_exception(hass, mock_gasbuddy):
 
         assert response["stations"] == []
         assert response["error"] == "API down"
+
+
+async def test_services_ev_lookup_optional_params(hass, mock_gasbuddy):
+    """Test ev_lookup_gps and ev_lookup_zip services with all optional parameters (limit, radius, solver)."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={
+            CONF_GPS: True,
+            CONF_NAME: DEFAULT_NAME,
+            CONF_STATION_ID: "208656",
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_valid = "device_tracker.valid_gps"
+    hass.states.async_set(
+        entity_valid, "home", {ATTR_LATITUDE: 33.459108, ATTR_LONGITUDE: -112.502745}, True
+    )
+    await hass.async_block_till_done()
+
+    with (
+        patch("custom_components.gasbuddy.services.GasBuddy.price_lookup_service") as mock_lookup,
+        patch("custom_components.gasbuddy.services.GasBuddy.ev_stations_nearby") as mock_ev,
+    ):
+        mock_lookup.return_value = {"results": [{"latitude": 33.45, "longitude": -112.50}]}
+        mock_ev.return_value = {"stations": [{"station_id": "999", "name": "Zip EV Station"}]}
+
+        # 1. Test GPS EV service with optional parameters
+        gps_response = await hass.services.async_call(
+            DOMAIN,
+            "ev_lookup_gps",
+            {
+                ATTR_ENTITY_ID: [entity_valid],
+                "limit": 10,
+                "radius": 50,
+                "solver": "http://custom-solver.local",
+            },
+            blocking=True,
+            return_response=True,
+        )
+        assert entity_valid in gps_response
+        assert gps_response[entity_valid] == [{"station_id": "999", "name": "Zip EV Station"}]
+
+        # 2. Test ZIP EV service with optional parameters
+        zip_response = await hass.services.async_call(
+            DOMAIN,
+            "ev_lookup_zip",
+            {
+                ATTR_POSTAL_CODE: "85326",
+                "limit": 10,
+                "radius": 50,
+                "solver": "http://custom-solver.local",
+            },
+            blocking=True,
+            return_response=True,
+        )
+        assert zip_response["stations"] == [{"station_id": "999", "name": "Zip EV Station"}]
+
+
+async def test_validate_station_ev(hass):
+    """Test validate_station when price_lookup fails but station exists in nearby EV stations."""
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup",
+            side_effect=APIError("Fail"),
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.ev_stations_nearby"
+        ) as mock_ev,
+    ):
+        mock_ev.return_value = {
+            "stations": [
+                {
+                    "station_id": "208656",
+                    "name": "Costco EV",
+                }
+            ]
+        }
+        result = await validate_station(hass, station="208656")
+        assert result == "ev"
+
+
+async def test_get_station_list_postal_coordinates_and_ev(hass):
+    """Test direct _get_station_list call resolving postal coordinates and merging EV stations."""
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.location_search"
+        ) as mock_loc,
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup_service"
+        ) as mock_price_srv,
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.ev_stations_nearby"
+        ) as mock_ev,
+    ):
+        mock_loc.return_value = {
+            "results": [
+                {
+                    "station_id": "1",
+                    "name": "Gas Station 1",
+                    "address": {"line1": "123 Main St"},
+                }
+            ]
+        }
+        mock_price_srv.return_value = {
+            "results": [
+                {
+                    "latitude": 33.45,
+                    "longitude": -112.50,
+                }
+            ]
+        }
+        mock_ev.return_value = {
+            "stations": [
+                {
+                    "station_id": "ev_1",
+                    "name": "EV Station 1",
+                    "street_address": "456 Charge Rd",
+                }
+            ]
+        }
+
+        stations = await _get_station_list(hass, {CONF_POSTAL: "85326"})
+        assert stations == {
+            "1": "Gas Station 1 @ 123 Main St",
+            "ev_1": "EV Station 1 @ 456 Charge Rd [EV]",
+        }
+
+
+async def test_config_flow_ev_charging_flag(hass):
+    """Test ConfigFlow sets ev_charging to True when station ends with [EV]."""
+    flow = GasBuddyFlowHandler()
+    flow.hass = hass
+    flow._station_list = {"208656": "Costco [EV]"}  # noqa: SLF001
+    flow._data = {CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
+
+    # 1. Test async_step_home2
+    with (
+        patch("custom_components.gasbuddy.config_flow.validate_station", return_value="ev"),
+        patch("custom_components.gasbuddy.async_setup_entry", return_value=True),
+    ):
+        result = await flow.async_step_home2({
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "Costco Station",
+        })
+        assert result["type"] == "create_entry"
+        assert result["options"][CONF_EV_CHARGING] is True
+
+    # 2. Test async_step_station_list
+    flow._data = {CONF_POSTAL: "85326", CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
+
+    with (
+        patch("custom_components.gasbuddy.async_setup_entry", return_value=True),
+    ):
+        result = await flow.async_step_station_list({
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "Costco Station",
+        })
+        assert result["type"] == "create_entry"
+        assert result["options"][CONF_EV_CHARGING] is True
