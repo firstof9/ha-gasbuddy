@@ -843,7 +843,7 @@ async def test_reconfigure(
         ),
         patch(
             "custom_components.gasbuddy.config_flow.validate_station",
-            return_value=True,
+            return_value={"type": "gas", "latitude": 44.019263, "longitude": -92.457476},
         ),
         patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
@@ -867,7 +867,11 @@ async def test_reconfigure(
         await hass.async_block_till_done()
 
         entry = hass.config_entries.async_entries(DOMAIN)[0]
-        assert entry.data.copy() == data
+        assert entry.data.copy() == {
+            **data,
+            "latitude": 44.019263,
+            "longitude": -92.457476,
+        }
 
 
 @pytest.mark.parametrize(
@@ -1241,7 +1245,7 @@ async def test_reconfigure_no_solver(
         ),
         patch(
             "custom_components.gasbuddy.config_flow.validate_station",
-            return_value=True,
+            return_value={"type": "gas", "latitude": 44.019263, "longitude": -92.457476},
         ),
         patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
@@ -1265,7 +1269,11 @@ async def test_reconfigure_no_solver(
         await hass.async_block_till_done()
 
         entry = hass.config_entries.async_entries(DOMAIN)[0]
-        assert entry.data.copy() == data
+        assert entry.data.copy() == {
+            **data,
+            "latitude": 44.019263,
+            "longitude": -92.457476,
+        }
 
 
 @pytest.mark.parametrize(
@@ -1723,3 +1731,181 @@ async def test_manual_flow_trimming(hass):
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_STATION_ID] == "12345"
     assert result["data"][CONF_NAME] == "My Station"
+
+
+async def test_home2_invalid_station_exception(hass):
+    """Test home2 flow handles InvalidStation exception."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "home"}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value={"32394": "Holiday @ 400 4th St SE"},
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            side_effect=InvalidStation,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_SOLVER: SOLVER_URL}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+        assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+async def test_home2_non_dict_validation(hass):
+    """Test home2 flow handles non-dict validation return (ev_charging = False)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "home"}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        return_value={"32394": "Holiday @ 400 4th St SE"},
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_SOLVER: SOLVER_URL}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["options"][CONF_EV_CHARGING] is False
+
+
+async def test_station_list_invalid_station_exception(hass):
+    """Test station_list flow handles InvalidStation exception."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "postal"}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value={"32394": "Holiday @ 400 4th St SE"},
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            side_effect=InvalidStation,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_POSTAL: "55904",
+                CONF_SOLVER: SOLVER_URL,
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+        assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+async def test_station_list_non_dict_validation(hass):
+    """Test station_list flow handles non-dict validation return (ev_charging = False)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "postal"}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_station_list",
+        return_value={"32394": "Holiday @ 400 4th St SE"},
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_POSTAL: "55904",
+                CONF_SOLVER: SOLVER_URL,
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["options"][CONF_EV_CHARGING] is False
