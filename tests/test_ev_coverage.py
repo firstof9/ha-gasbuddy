@@ -630,3 +630,88 @@ async def test_config_flow_ev_charging_flag(hass):
         assert result["options"][CONF_EV_CHARGING] is True
         assert flow._data["latitude"] == 33.45  # noqa: SLF001
         assert flow._data["longitude"] == -112.50  # noqa: SLF001
+
+
+async def test_ev_station_id_collision_coordinator(hass) -> None:
+    """Test coordinator handles ID collision by raising APIError and falling back to EV search."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Collision Station",
+        data={
+            CONF_NAME: "Collision Station",
+            CONF_STATION_ID: "8861",
+            "latitude": 44.0,
+            "longitude": -92.0,
+        },
+        options={CONF_EV_CHARGING: True},
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    mock_api = MagicMock()
+
+    # Gas lookup succeeds but returns distant coordinates
+    mock_api.price_lookup = AsyncMock(
+        return_value={
+            "station_id": "8861",
+            "name": "Wrong Station",
+            "latitude": 47.0,
+            "longitude": -121.0,
+        }
+    )
+
+    # Fallback EV search succeeds with correct nearby coordinates
+    mock_api.ev_stations_nearby = AsyncMock(
+        return_value={
+            "stations": [
+                {
+                    "station_id": "8861",
+                    "name": "Correct EV Station",
+                    "latitude": 44.0,
+                    "longitude": -92.0,
+                    "distance_miles": 0.0,
+                    "level2_count": 2,
+                }
+            ]
+        }
+    )
+
+    coordinator._api = mock_api  # noqa: SLF001
+    await coordinator.async_refresh()
+
+    assert coordinator.last_update_success
+    assert mock_api.price_lookup.called
+    assert mock_api.ev_stations_nearby.called
+    assert coordinator.data["ev_level2"] == 2
+    assert "regular_gas" not in coordinator.data
+
+
+async def test_validate_station_id_collision(hass) -> None:
+    """Test validate_station handles ID collision correctly."""
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup",
+            new_callable=AsyncMock,
+        ) as mock_price_lookup,
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.ev_stations_nearby",
+            new_callable=AsyncMock,
+        ) as mock_ev_search,
+    ):
+        # Distant gas station
+        mock_price_lookup.return_value = {
+            "latitude": 47.0,
+            "longitude": -121.0,
+        }
+        # Correct EV station nearby
+        mock_ev_search.return_value = {
+            "stations": [{"station_id": "8861", "latitude": 44.0, "longitude": -92.0}]
+        }
+
+        result = await validate_station(hass, station="8861", solver=None, lat=44.0, lon=-92.0)
+
+        assert isinstance(result, dict)
+        assert result["type"] == "ev"
+        assert result["latitude"] == 44.0

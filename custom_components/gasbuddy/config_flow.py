@@ -77,10 +77,18 @@ async def validate_station(
             session=async_get_clientsession(hass),
         ).price_lookup()
         if "errors" not in check:
+            gas_lat = check.get("latitude")
+            gas_lon = check.get("longitude")
+
+            # Anti-collision check: if the gas station is far from our search coordinates, it's an ID collision
+            if lat is not None and lon is not None and gas_lat is not None and gas_lon is not None:
+                if abs(gas_lat - lat) > 1.0 or abs(gas_lon - lon) > 1.0:
+                    raise APIError("Station ID collision detected")  # noqa: TRY301
+
             return {
                 "type": "gas",
-                "latitude": check.get("latitude"),
-                "longitude": check.get("longitude"),
+                "latitude": gas_lat,
+                "longitude": gas_lon,
             }
     except (APIError, LibraryError) as ex:
         _LOGGER.warning("Error validating station via price_lookup: %s. Trying EV check...", ex)

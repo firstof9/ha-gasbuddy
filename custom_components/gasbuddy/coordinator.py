@@ -61,6 +61,15 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
         try:
             self._data = await self._api.price_lookup()
+
+            config_lat = self._config.data.get("latitude")
+            config_lon = self._config.data.get("longitude")
+            if config_lat is not None and config_lon is not None:
+                gas_lat = self._data.get("latitude")
+                gas_lon = self._data.get("longitude")
+                if gas_lat is not None and gas_lon is not None:
+                    if abs(gas_lat - config_lat) > 1.0 or abs(gas_lon - config_lon) > 1.0:
+                        raise APIError("Station ID collision detected")  # noqa: TRY301
         except (APIError, LibraryError, CSRFTokenMissing) as ex:
             if ev_charging_enabled:
                 _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
