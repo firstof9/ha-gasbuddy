@@ -66,8 +66,12 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
                 try:
                     # Use coordinates from config entry if available, otherwise home coordinates
-                    lat = self._config.data.get("latitude", self.hass.config.latitude)
-                    lon = self._config.data.get("longitude", self.hass.config.longitude)
+                    lat = self._config.data.get("latitude")
+                    lon = self._config.data.get("longitude")
+                    if lat is None:
+                        lat = self.hass.config.latitude
+                    if lon is None:
+                        lon = self.hass.config.longitude
                     ev_res = await self._api.ev_stations_nearby(
                         lat=lat,
                         lon=lon,

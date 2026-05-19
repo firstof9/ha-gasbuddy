@@ -659,10 +659,16 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors[CONF_STATION_ID] = "station_id"
 
             if len(self._errors) == 0:
+                options = dict(entry.options)
                 if isinstance(validate, dict):
                     self._data["latitude"] = validate.get("latitude")
                     self._data["longitude"] = validate.get("longitude")
-                self.hass.config_entries.async_update_entry(entry, data=self._data)
+                    options[CONF_EV_CHARGING] = validate["type"] == "ev"
+                else:
+                    options[CONF_EV_CHARGING] = False
+
+                self.hass.config_entries.async_update_entry(entry, data=self._data, options=options)
+                self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
 
