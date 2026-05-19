@@ -71,7 +71,8 @@
                     "interval": "Intervalo de consulta",
                     "uom": "Mostrar por litro/galão na unidade de medida",
                     "gps": "Mostrar estações no mapa (desativar atributos lat/long)",
-                    "ev_charging": "Ativar sensores de carregamento de VE"
+                    "ev_charging": "Ativar sensores de carregamento de VE",
+                    "fetch_gas": "Buscar preços de combustível"
                 }
             }
         }

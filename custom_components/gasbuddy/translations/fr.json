@@ -71,7 +71,8 @@
                     "interval": "Intervalle d'interrogation",
                     "uom": "Afficher par litre/gallon en unité de mesure",
                     "gps": "Afficher les stations sur la carte (désactiver les attributs lat/long)",
-                    "ev_charging": "Activer les capteurs de recharge VE"
+                    "ev_charging": "Activer les capteurs de recharge VE",
+                    "fetch_gas": "Récupérer les prix de l'essence"
                 }
             }
         }
