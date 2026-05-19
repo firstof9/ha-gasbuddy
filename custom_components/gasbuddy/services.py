@@ -22,10 +22,13 @@ from .const import (
     ATTR_DEVICE_ID,
     ATTR_LIMIT,
     ATTR_POSTAL_CODE,
+    ATTR_RADIUS,
     ATTR_SOLVER,
     COORDINATOR,
     DOMAIN,
     SERVICE_CLEAR_CACHE,
+    SERVICE_EV_LOOKUP_GPS,
+    SERVICE_EV_LOOKUP_ZIP,
     SERVICE_LOOKUP_GPS,
     SERVICE_LOOKUP_ZIP,
 )
@@ -72,6 +75,30 @@ class GasBuddyServices:
         )
         self.hass.services.async_register(
             DOMAIN,
+            SERVICE_EV_LOOKUP_GPS,
+            self._ev_lookup_gps,
+            schema=vol.Schema({
+                vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+                vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
+                vol.Optional(ATTR_RADIUS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+                vol.Optional(ATTR_SOLVER): cv.string,
+            }),
+            supports_response=SupportsResponse.ONLY,
+        )
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_EV_LOOKUP_ZIP,
+            self._ev_lookup_zip,
+            schema=vol.Schema({
+                vol.Required(ATTR_POSTAL_CODE): cv.string,
+                vol.Optional(ATTR_LIMIT): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
+                vol.Optional(ATTR_RADIUS): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+                vol.Optional(ATTR_SOLVER): cv.string,
+            }),
+            supports_response=SupportsResponse.ONLY,
+        )
+        self.hass.services.async_register(
+            DOMAIN,
             SERVICE_CLEAR_CACHE,
             self._clear_cache,
             schema=vol.Schema({
@@ -84,6 +111,8 @@ class GasBuddyServices:
         """Unregister all our services."""
         self.hass.services.async_remove(DOMAIN, SERVICE_LOOKUP_GPS)
         self.hass.services.async_remove(DOMAIN, SERVICE_LOOKUP_ZIP)
+        self.hass.services.async_remove(DOMAIN, SERVICE_EV_LOOKUP_GPS)
+        self.hass.services.async_remove(DOMAIN, SERVICE_EV_LOOKUP_ZIP)
         self.hass.services.async_remove(DOMAIN, SERVICE_CLEAR_CACHE)
 
     # Setup services
@@ -139,6 +168,88 @@ class GasBuddyServices:
             _LOGGER.error("Error checking prices: %s", ex)
 
         _LOGGER.debug("ZIP Code price lookup: %s", results)
+        return results
+
+    async def _ev_lookup_gps(self, service: ServiceCall) -> ServiceResponse:
+        """Lookup EV stations with GPS coordinates."""
+        entity_ids = service.data[ATTR_ENTITY_ID]
+
+        limit = 5
+        radius = 25
+        solver = None
+
+        if ATTR_LIMIT in service.data:
+            limit = service.data[ATTR_LIMIT]
+        if ATTR_RADIUS in service.data:
+            radius = service.data[ATTR_RADIUS]
+        if ATTR_SOLVER in service.data:
+            solver = service.data[ATTR_SOLVER]
+
+        results = {}
+        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        for entity_id in entity_ids:
+            try:
+                entity = self.hass.states.get(entity_id)
+                if (
+                    entity
+                    and ATTR_LATITUDE in entity.attributes
+                    and ATTR_LONGITUDE in entity.attributes
+                ):
+                    lat = entity.attributes[ATTR_LATITUDE]
+                    lon = entity.attributes[ATTR_LONGITUDE]
+                    res = await api.ev_stations_nearby(lat=lat, lon=lon, radius=radius, limit=limit)
+                    results[entity_id] = res.get("stations", [])
+                else:
+                    _LOGGER.warning("Entity %s lacks latitude/longitude coordinates", entity_id)
+                    results[entity_id] = []
+            except Exception as ex:  # noqa: BLE001
+                _LOGGER.error("Error checking EV stations for %s: %s", entity_id, ex)
+                results[entity_id] = []
+
+        _LOGGER.debug(
+            "GPS EV station lookup for entities completed. Station counts per entity: %s",
+            {ent_id: len(stations) for ent_id, stations in results.items()},
+        )
+        return results
+
+    async def _ev_lookup_zip(self, service: ServiceCall) -> ServiceResponse:
+        """Lookup EV stations via ZIP code."""
+        zipcode = service.data[ATTR_POSTAL_CODE]
+
+        limit = 5
+        radius = 25
+        solver = None
+
+        if ATTR_LIMIT in service.data:
+            limit = service.data[ATTR_LIMIT]
+        if ATTR_RADIUS in service.data:
+            radius = service.data[ATTR_RADIUS]
+        if ATTR_SOLVER in service.data:
+            solver = service.data[ATTR_SOLVER]
+
+        results = {}
+        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        try:
+            res = await api.price_lookup_service(zipcode=zipcode)
+            lat = None
+            lon = None
+            if res.get("results"):
+                lat = res["results"][0].get("latitude")
+                lon = res["results"][0].get("longitude")
+            if lat is not None and lon is not None:
+                res = await api.ev_stations_nearby(lat=lat, lon=lon, radius=radius, limit=limit)
+                results = {"stations": res.get("stations", [])}
+            else:
+                results = {"stations": [], "error": "Location coordinates not found for zip code"}
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.error("Error checking EV stations: %s", ex)
+            results = {"stations": [], "error": str(ex)}
+
+        _LOGGER.debug(
+            "ZIP Code EV station lookup completed. Found %s stations. Error: %s",
+            len(results.get("stations", [])),
+            results.get("error"),
+        )
         return results
 
     async def _clear_cache(self, service: ServiceCall) -> None:

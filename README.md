@@ -17,7 +17,7 @@ _Integration to track fuel prices from [GasBuddy][GasBuddy]._
 
 Platform | Description
 -- | --
-`sensor` | Show info from an GasBuddy listed station.
+`sensor` | Show info, prices, and EV charging details from a GasBuddy listed station.
 
 
 ## Installation via HACS (recommended)
@@ -66,6 +66,12 @@ Configuration is done via the Home Assistant UI. When adding the integration, yo
 *   **Search by Home**: Uses your Home Assistant zone coordinates to find nearby stations.
 *   **Search by Postal Code**: Enter a specific Zip or Postal Code to find stations in that area.
 
+You can configure the following options by clicking **Configure** on the integration card:
+*   **Polling interval**: Polling frequency in seconds.
+*   **Show per liter/gallon in unit of measure**: Standardizes price representation.
+*   **Show stations on map**: Enables rendering of stations on the Map panel.
+*   **Enable EV charging sensors**: Toggles dedicated EV charging sensors (`sensor.gas_station_ev_stations_nearby`, `sensor.gas_station_closest_ev_station`, `sensor.gas_station_closest_ev_distance`) which fetch and display nearby EV station coordinates, addresses, connector counts, connection types, charging power (kW), and speed details.
+
 ## Services
 
 The following services are available:
@@ -74,6 +80,8 @@ Service | Description | Arguments
 :--- | :--- | :---
 `lookup_gps` | Lookup prices using GPS coordinates from a list of entities (e.g., `device_tracker` or `person`). | `entity_id` (Required), `limit` (Optional, 1-99), `solver` (Optional)
 `lookup_zip` | Lookup prices via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional, 1-99), `solver` (Optional)
+`ev_lookup_gps` | Lookup nearby EV stations using GPS coordinates from a list of entities. | `entity_id` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
+`ev_lookup_zip` | Lookup nearby EV stations via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
 `clear_cache` | Clear the cache for specific device(s). | `device_id` (Required)
 
 ## Contributions are welcome!

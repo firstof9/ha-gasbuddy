@@ -268,3 +268,39 @@ async def test_sensor_coverage_edge_cases(hass, mock_gasbuddy, integration):
     with patch.dict(coordinator.data, {"currency": None}):
         sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration)
         assert sensor.native_unit_of_measurement is None
+
+
+async def test_ev_sensors(hass, mock_gasbuddy, integration):
+    """Test EV charging sensors and their attributes."""
+    coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
+
+    ev_data = {
+        "station_id": "208656",
+        "ev_level1": 0,
+        "ev_level2": 2,
+        "ev_dc_fast": 4,
+        "ev_station_name": "Costco EV Station",
+        "ev_station_address": "1101 N Verrado Way",
+        "ev_distance_miles": 1.5,
+        "ev_network": "Costco",
+        "ev_pricing": "Free",
+        "ev_access_hours": "24/7",
+        "latitude": 33.459108,
+        "longitude": -112.502745,
+    }
+
+    with patch.dict(coordinator.data, ev_data):
+        sensor = GasBuddySensor(SENSOR_TYPES["ev_level2"], coordinator, integration)
+        assert sensor.native_value == 2
+
+        attrs = sensor.extra_state_attributes
+        assert attrs is not None
+        assert attrs[CONF_STATION_ID] == "208656"
+        assert attrs["station_name"] == "Costco EV Station"
+        assert attrs["station_address"] == "1101 N Verrado Way"
+        assert attrs["distance_miles"] == 1.5
+        assert attrs["network"] == "Costco"
+        assert attrs["pricing"] == "Free"
+        assert attrs["access_hours"] == "24/7"
+        assert attrs[ATTR_LATITUDE] == 33.459108
+        assert attrs[ATTR_LONGITUDE] == -112.502745

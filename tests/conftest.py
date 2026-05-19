@@ -1,5 +1,6 @@
 """Global fixtures for gasbuddy integration."""
 
+import logging
 from unittest.mock import patch
 
 from aioresponses import aioresponses
@@ -59,7 +60,7 @@ def mock_aioclient():
 
 
 @pytest.fixture(name="integration")
-async def integration_fixture(hass):
+async def integration_fixture(hass, mock_gasbuddy):
     """Set up the mail_and_packages integration."""
     entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
     entry.add_to_hass(hass)
@@ -67,3 +68,9 @@ async def integration_fixture(hass):
     await hass.async_block_till_done()
 
     return entry
+
+
+@pytest.fixture(autouse=True)
+def set_caplog_debug_level(caplog):
+    """Force DEBUG log capture for tests that use caplog."""
+    caplog.set_level(logging.DEBUG)

@@ -19,7 +19,8 @@
             "manual": {
                 "description": "Veuillez saisir l'ID de la station",
                 "data": {
-                    "solver": "Flaresolver URL",
+                    "solver": "FlareSolverr URL (optionnel)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "station_id": "Identifiant de la station"
                 }
             },
@@ -33,14 +34,16 @@
             "home": {
                 "description": "Veuillez sélectionner une station",
                 "data": {
-                    "solver": "Flaresolver URL",
+                    "solver": "FlareSolverr URL (optionnel)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "station_id": "Identifiant de la station"
                 }
             },
             "postal": {
                 "description": "Veuillez entrer un code postal (code postal)",
                 "data": {
-                    "solver": "Flaresolver URL",
+                    "solver": "FlareSolverr URL (optionnel)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "zipcode": "Code postal (code postal)"
                 }
             },
@@ -53,7 +56,8 @@
             "reconfigure": {
                 "description": "Please enter the Station ID",
                 "data": {
-                    "solver": "Flaresolver URL (optional)",
+                    "solver": "FlareSolverr URL (optionnel)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "station_id": "Station ID",
                     "name": "Name"
                 }
@@ -66,7 +70,8 @@
                 "data": {
                     "interval": "Intervalle d'interrogation",
                     "uom": "Afficher par litre/gallon en unité de mesure",
-                    "gps": "Show stations on map (disable lat/long attributes)"
+                    "gps": "Afficher les stations sur la carte (désactiver les attributs lat/long)",
+                    "ev_charging": "Activer les capteurs de recharge VE"
                 }
             }
         }

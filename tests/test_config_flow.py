@@ -13,6 +13,7 @@ from custom_components.gasbuddy.config_flow import (
     validate_station,
 )
 from custom_components.gasbuddy.const import (
+    CONF_EV_CHARGING,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
@@ -812,6 +813,7 @@ async def test_reconfigure(
             "custom_components.gasbuddy.config_flow.validate_station",
             return_value=True,
         ),
+        patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
@@ -1064,6 +1066,7 @@ async def test_reconfigure_server_error(
             "custom_components.gasbuddy.config_flow.validate_station",
             return_value=True,
         ),
+        patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
@@ -1208,6 +1211,7 @@ async def test_reconfigure_no_solver(
             "custom_components.gasbuddy.config_flow.validate_station",
             return_value=True,
         ),
+        patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
         reconfigure_result = await hass.config_entries.flow.async_init(
             DOMAIN,
@@ -1242,6 +1246,7 @@ async def test_reconfigure_no_solver(
                 CONF_GPS: True,
             },
             {
+                CONF_EV_CHARGING: False,
                 CONF_GPS: True,
                 CONF_INTERVAL: 1600,
                 CONF_UOM: True,
@@ -1278,19 +1283,23 @@ async def test_form_options(
     )
     entry = integration
 
-    result = await hass.config_entries.options.async_init(entry.entry_id)
+    with patch("homeassistant.config_entries.ConfigEntries.async_reload") as mock_reload:
+        result = await hass.config_entries.options.async_init(entry.entry_id)
 
-    assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "init"
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "init"
 
-    result = await hass.config_entries.options.async_configure(result["flow_id"], user_input=input)
-    await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input=input
+        )
+        await hass.async_block_till_done()
 
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["data"] == data
-    await hass.async_block_till_done()
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"] == data
+        await hass.async_block_till_done()
 
-    assert entry.options.get(CONF_INTERVAL) == 1600
+        assert entry.options.get(CONF_INTERVAL) == 1600
+        mock_reload.assert_called_once_with(entry.entry_id)
 
 
 @pytest.mark.parametrize(

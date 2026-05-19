@@ -19,8 +19,8 @@
             "manual": {
                 "description": "Please enter the Station ID",
                 "data": {
-                    "solver": "Flaresolver URL (optional)",
-                    "timeout": "Flaresolver timeout (ms)",
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)",
                     "station_id": "Station ID"
                 }
             },
@@ -34,16 +34,16 @@
             "home": {
                 "description": "Please select a station",
                 "data": {
-                    "solver": "Flaresolver URL (optional)",
-                    "timeout": "Flaresolver timeout (ms)",
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)",
                     "station_id": "Station"
                 }
             },
             "postal": {
                 "description": "Please enter a postal code (zip code)",
                 "data": {
-                    "solver": "Flaresolver URL (optional)",
-                    "timeout": "Flaresolver timeout (ms)",
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)",
                     "zipcode": "Postal Code (zip code)"
                 }
             },
@@ -56,8 +56,8 @@
             "reconfigure": {
                 "description": "Please enter the Station ID",
                 "data": {
-                    "solver": "Flaresolver URL (optional)",
-                    "timeout": "Flaresolver timeout (ms)",
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)",
                     "station_id": "Station ID",
                     "name": "Name"
                 }
@@ -70,7 +70,8 @@
                 "data": {
                     "interval": "Polling interval",
                     "uom": "Show per liter/gallon in unit of measure",
-                    "gps": "Show stations on map (disable lat/long attributes)"
+                    "gps": "Show stations on map (disable lat/long attributes)",
+                    "ev_charging": "Enable EV charging sensors"
                 }
             }
         }

@@ -15,7 +15,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    CONF_EV_CHARGING,
     CONF_INTERVAL,
+    CONF_NAME,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -56,12 +58,104 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Update data via library."""
+        ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
         try:
             self._data = await self._api.price_lookup()
         except (APIError, LibraryError, CSRFTokenMissing) as ex:
-            raise UpdateFailed(f"Error retrieving data: {ex}") from ex
+            if ev_charging_enabled:
+                _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
+                try:
+                    ev_res = await self._api.ev_stations_nearby(
+                        lat=self.hass.config.latitude,
+                        lon=self.hass.config.longitude,
+                        radius=100,
+                        limit=50,
+                    )
+                    matching = next(
+                        (
+                            s
+                            for s in (ev_res or {}).get("stations", [])
+                            if s.get("station_id") is not None
+                            and str(s["station_id"]).strip()
+                            == str(self._config.data[CONF_STATION_ID]).strip()
+                        ),
+                        None,
+                    )
+                    if matching:
+                        self._data = {
+                            "station_id": matching["station_id"],
+                            "name": matching["name"],
+                            "latitude": matching["latitude"],
+                            "longitude": matching["longitude"],
+                            "unit_of_measure": "dollars_per_gallon",
+                            "currency": "USD",
+                        }
+                    else:
+                        self._data = {
+                            "station_id": self._config.data[CONF_STATION_ID],
+                            "name": self._config.data.get(CONF_NAME, "EV Station"),
+                            "latitude": self.hass.config.latitude,
+                            "longitude": self.hass.config.longitude,
+                            "unit_of_measure": "dollars_per_gallon",
+                            "currency": "USD",
+                        }
+                except Exception as fallback_ex:  # noqa: BLE001
+                    _LOGGER.error("EV fallback failed: %s", fallback_ex)
+                    raise UpdateFailed(f"Error retrieving data: {ex}") from ex
+            else:
+                raise UpdateFailed(f"Error retrieving data: {ex}") from ex
         except Exception as exception:
             raise UpdateFailed from exception
+
+        # Query EV station details if enabled
+        if ev_charging_enabled and "latitude" in self._data and "longitude" in self._data:
+            try:
+                ev_res = await self._api.ev_stations_nearby(
+                    lat=self._data["latitude"],
+                    lon=self._data["longitude"],
+                    radius=5,
+                    limit=10,
+                )
+                stations = (ev_res or {}).get("stations", [])
+                if stations:
+                    matching = next(
+                        (
+                            s
+                            for s in stations
+                            if s.get("station_id") is not None
+                            and str(s["station_id"]).strip()
+                            == str(self._data["station_id"]).strip()
+                        ),
+                        None,
+                    )
+                    if matching is not None:
+                        self._data["ev_level1"] = matching.get("level1_count")
+                        self._data["ev_level2"] = matching.get("level2_count")
+                        self._data["ev_dc_fast"] = matching.get("dc_fast_count")
+                        self._data["ev_j1772"] = matching.get("j1772_count")
+                        self._data["ev_j1772_power"] = matching.get("j1772_power")
+                        self._data["ev_ccs"] = matching.get("ccs_count")
+                        self._data["ev_ccs_power"] = matching.get("ccs_power")
+                        self._data["ev_chademo"] = matching.get("chademo_count")
+                        self._data["ev_chademo_power"] = matching.get("chademo_power")
+                        self._data["ev_nacs"] = matching.get("nacs_count")
+                        self._data["ev_nacs_power"] = matching.get("nacs_power")
+                        self._data["ev_status"] = matching.get("status_code")
+                        self._data["ev_network"] = matching.get("network")
+                        self._data["ev_network_web"] = matching.get("network_web")
+                        self._data["ev_pricing"] = matching.get("pricing")
+                        self._data["ev_access_hours"] = matching.get("access_hours")
+                        self._data["ev_access_code"] = matching.get("access_code")
+                        self._data["ev_cards_accepted"] = matching.get("cards_accepted")
+                        self._data["ev_date_last_confirmed"] = matching.get("date_last_confirmed")
+
+                        self._data["ev_station_name"] = matching.get("name")
+                        self._data["ev_station_address"] = (
+                            f"{matching.get('street_address') or ''}, {matching.get('city') or ''}, {matching.get('state') or ''}"
+                        )
+                        self._data["ev_distance_miles"] = matching.get("distance_miles")
+            except Exception as ev_ex:  # noqa: BLE001
+                _LOGGER.warning("Failed to fetch EV station data: %s", ev_ex)
 
         self._data["last_updated"] = datetime.now(UTC)
         return self._data
