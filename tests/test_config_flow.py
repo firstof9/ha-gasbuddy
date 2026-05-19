@@ -40,6 +40,10 @@ GB_URL = "https://www.gasbuddy.com/home"
 SOLVER_URL = "http://solver.url"
 HOSTNAME_SOLVER_URL = "http://flaresolverr:8191/v1"
 NO_STATIONS_LIST = {"-": "No stations in search area."}
+EXPECTED_STATION_COORDS = {
+    "latitude": 44.019263,
+    "longitude": -92.457476,
+}
 
 
 def gb_graphql_callback(url, **kwargs):
@@ -55,7 +59,7 @@ def gb_graphql_callback(url, **kwargs):
             status=200,
             payload={"data": {"evStationsNearby": {"stations": [], "total": 0, "limit": 20}}},
         )
-    return CallbackResult(status=400)
+    raise AssertionError(f"Unhandled GraphQL operationName in test callback: {op!r}")
 
 
 pytestmark = pytest.mark.asyncio
@@ -146,8 +150,7 @@ async def test_form_home(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 44.019263,
-            "longitude": -92.457476,
+            **EXPECTED_STATION_COORDS,
         }
 
         await hass.async_block_till_done()
@@ -239,8 +242,7 @@ async def test_form_home_hostname_solver(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 44.019263,
-            "longitude": -92.457476,
+            **EXPECTED_STATION_COORDS,
         }
 
         await hass.async_block_till_done()
@@ -333,8 +335,7 @@ async def test_form_postal(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 44.019263,
-            "longitude": -92.457476,
+            **EXPECTED_STATION_COORDS,
         }
 
         await hass.async_block_till_done()
@@ -414,8 +415,7 @@ async def test_form_manual(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 44.019263,
-            "longitude": -92.457476,
+            **EXPECTED_STATION_COORDS,
         }
 
         await hass.async_block_till_done()
@@ -844,7 +844,7 @@ async def test_reconfigure(
         ),
         patch(
             "custom_components.gasbuddy.config_flow.validate_station",
-            return_value={"type": "gas", "latitude": 44.019263, "longitude": -92.457476},
+            return_value={"type": "gas", **EXPECTED_STATION_COORDS},
         ),
         patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
@@ -870,8 +870,7 @@ async def test_reconfigure(
         entry = hass.config_entries.async_entries(DOMAIN)[0]
         assert entry.data.copy() == {
             **data,
-            "latitude": 44.019263,
-            "longitude": -92.457476,
+            **EXPECTED_STATION_COORDS,
         }
 
 
@@ -1246,7 +1245,7 @@ async def test_reconfigure_no_solver(
         ),
         patch(
             "custom_components.gasbuddy.config_flow.validate_station",
-            return_value={"type": "gas", "latitude": 44.019263, "longitude": -92.457476},
+            return_value={"type": "gas", **EXPECTED_STATION_COORDS},
         ),
         patch("homeassistant.config_entries.ConfigEntries.async_reload"),
     ):
@@ -1272,8 +1271,7 @@ async def test_reconfigure_no_solver(
         entry = hass.config_entries.async_entries(DOMAIN)[0]
         assert entry.data.copy() == {
             **data,
-            "latitude": 44.019263,
-            "longitude": -92.457476,
+            **EXPECTED_STATION_COORDS,
         }
 
 
@@ -1426,8 +1424,7 @@ async def test_form_home_empty_solver(
         assert result["title"] == title
         assert result["data"] == {
             **data,
-            "latitude": 44.019263,
-            "longitude": -92.457476,
+            **EXPECTED_STATION_COORDS,
         }
 
 

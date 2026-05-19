@@ -526,6 +526,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_UOM: self._data.get(CONF_UOM, True),
                     CONF_GPS: self._data.get(CONF_GPS, True),
                     CONF_EV_CHARGING: ev_charging,
+                    CONF_FETCH_GAS: not ev_charging,
                 },
             )
         return await self._show_config_home2(user_input)
