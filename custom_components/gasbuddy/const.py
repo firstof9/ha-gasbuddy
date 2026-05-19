@@ -18,6 +18,7 @@ CONF_GPS = "gps"
 CONF_SOLVER = "solver"
 CONF_TIMEOUT = "timeout"
 CONF_EV_CHARGING = "ev_charging"
+CONF_FETCH_GAS = "fetch_gas"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000

@@ -19,6 +19,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
@@ -348,6 +349,7 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_UOM, default=_get_default(CONF_UOM)): cv.boolean,
         vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         vol.Optional(CONF_EV_CHARGING, default=_get_default(CONF_EV_CHARGING, False)): cv.boolean,
+        vol.Optional(CONF_FETCH_GAS, default=_get_default(CONF_FETCH_GAS, True)): cv.boolean,
     })
 
 
@@ -616,6 +618,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_UOM: self._data.get(CONF_UOM, True),
                     CONF_GPS: self._data.get(CONF_GPS, True),
                     CONF_EV_CHARGING: ev_charging,
+                    CONF_FETCH_GAS: not ev_charging,
                 },
             )
         return await self._show_config_station_list(user_input)
@@ -672,8 +675,10 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self._data["latitude"] = validate.get("latitude")
                     self._data["longitude"] = validate.get("longitude")
                     options[CONF_EV_CHARGING] = validate["type"] == "ev"
+                    options[CONF_FETCH_GAS] = validate["type"] != "ev"
                 else:
                     options[CONF_EV_CHARGING] = False
+                    options[CONF_FETCH_GAS] = True
 
                 self.hass.config_entries.async_update_entry(entry, data=self._data, options=options)
                 self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))

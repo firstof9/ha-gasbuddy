@@ -16,6 +16,7 @@ from custom_components.gasbuddy.config_flow import (
 )
 from custom_components.gasbuddy.const import (
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
@@ -1287,6 +1288,7 @@ async def test_reconfigure_no_solver(
             },
             {
                 CONF_EV_CHARGING: False,
+                CONF_FETCH_GAS: True,
                 CONF_GPS: True,
                 CONF_INTERVAL: 1600,
                 CONF_UOM: True,
