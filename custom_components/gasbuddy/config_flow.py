@@ -127,7 +127,9 @@ async def validate_station(
     return False
 
 
-async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
+async def _get_station_list(
+    hass: HomeAssistant, user_input, flow_id: str | None = None
+) -> dict[str, Any]:
     """Return list of utilities by lat/lon."""
     lat = None
     lon = None
@@ -198,8 +200,11 @@ async def _get_station_list(hass: HomeAssistant, user_input) -> dict[str, Any]:
                 stations_list[ev_id] = full_name
                 # Cache coordinates
                 hass.data.setdefault(DOMAIN, {})
-                hass.data[DOMAIN].setdefault("station_coordinates", {})
-                hass.data[DOMAIN]["station_coordinates"][str(ev_id)] = (
+                hass.data[DOMAIN].setdefault("station_coordinates_by_flow", {})
+                flow_cache = hass.data[DOMAIN]["station_coordinates_by_flow"].setdefault(
+                    flow_id, {}
+                )
+                flow_cache[str(ev_id)] = (
                     ev_station.get("latitude"),
                     ev_station.get("longitude"),
                 )
@@ -414,6 +419,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_UOM: self._data.get(CONF_UOM, True),
                         CONF_GPS: self._data.get(CONF_GPS, True),
                         CONF_EV_CHARGING: ev_charging,
+                        CONF_FETCH_GAS: not ev_charging,
                     },
                 )
         return await self._show_config_manual(user_input)
@@ -485,7 +491,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             cached_coords = (
                 self.hass.data
                 .get(DOMAIN, {})
-                .get("station_coordinates", {})
+                .get("station_coordinates_by_flow", {})
+                .get(self.flow_id, {})
                 .get(str(self._data[CONF_STATION_ID]))
             )
             lat, lon = cached_coords or (None, None)
@@ -528,7 +535,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         defaults: dict[Any, Any] = {}
 
         try:
-            station_list = await _get_station_list(self.hass, self._data)
+            station_list = await _get_station_list(self.hass, self._data, self.flow_id)
             self._station_list = station_list
         except SearchFailed:
             station_list = {"not_found": "Error searching for stations."}
@@ -584,7 +591,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             cached_coords = (
                 self.hass.data
                 .get(DOMAIN, {})
-                .get("station_coordinates", {})
+                .get("station_coordinates_by_flow", {})
+                .get(self.flow_id, {})
                 .get(str(self._data[CONF_STATION_ID]))
             )
             lat, lon = cached_coords or (None, None)
@@ -628,7 +636,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         defaults: dict[Any, Any] = {}
 
         try:
-            station_list = await _get_station_list(self.hass, self._data)
+            station_list = await _get_station_list(self.hass, self._data, self.flow_id)
             self._station_list = station_list
         except SearchFailed:
             station_list = {"not_found": "Error searching for stations."}

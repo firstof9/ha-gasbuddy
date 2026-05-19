@@ -1,6 +1,7 @@
 """Update coordinator for GasBuddy."""
 
 from datetime import UTC, datetime, timedelta
+import json
 import logging
 from typing import Any
 
@@ -28,7 +29,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _redact(data: Any) -> Any:
+def _redact(data: Any) -> str:
     """Redact sensitive data for logging."""
     sensitive_keys = {
         "latitude",
@@ -40,11 +41,21 @@ def _redact(data: Any) -> Any:
         "state",
         "zip",
     }
-    if isinstance(data, dict):
-        return {k: "**REDACTED**" if k in sensitive_keys else _redact(v) for k, v in data.items()}
-    if isinstance(data, list):
-        return [_redact(item) for item in data]
-    return data
+
+    def _redact_recursive(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {
+                k: "**REDACTED**" if k in sensitive_keys else _redact_recursive(v)
+                for k, v in obj.items()
+            }
+        if isinstance(obj, list):
+            return [_redact_recursive(item) for item in obj]
+        return obj
+
+    try:
+        return json.dumps(_redact_recursive(data), default=str)
+    except Exception:  # noqa: BLE001
+        return str(_redact_recursive(data))
 
 
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
