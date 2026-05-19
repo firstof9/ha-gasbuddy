@@ -277,7 +277,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
     ),
     "ev_access_code": GasBuddySensorEntityDescription(
         key="ev_access_code",
-        name="EV Access Code",
+        name="EV Access",
         icon="mdi:lock-open-outline",
         price=False,
         entity_registry_enabled_default=False,
