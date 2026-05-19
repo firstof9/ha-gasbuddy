@@ -300,11 +300,13 @@ async def test_services_ev_lookup_gps(hass, mock_gasbuddy):
     with (
         patch("custom_components.gasbuddy.services.GasBuddy.ev_stations_nearby") as mock_ev_api,
     ):
-        mock_ev_api.side_effect = lambda lat, lon, radius, limit: (
-            {"stations": [{"station_id": "123", "name": "Test EV Station"}]}
-            if lat == 33.459108
-            else Exception("Simulated service exception")
-        )
+
+        def ev_side_effect(lat, lon, radius=None, limit=None):
+            if lat == 33.459108:
+                return {"stations": [{"station_id": "123", "name": "Test EV Station"}]}
+            raise RuntimeError("Simulated service exception")
+
+        mock_ev_api.side_effect = ev_side_effect
 
         response = await hass.services.async_call(
             DOMAIN,
@@ -457,12 +459,15 @@ async def test_services_ev_lookup_optional_params(hass, mock_gasbuddy):
     )
     await hass.async_block_till_done()
 
-    with (
-        patch("custom_components.gasbuddy.services.GasBuddy.price_lookup_service") as mock_lookup,
-        patch("custom_components.gasbuddy.services.GasBuddy.ev_stations_nearby") as mock_ev,
-    ):
-        mock_lookup.return_value = {"results": [{"latitude": 33.45, "longitude": -112.50}]}
-        mock_ev.return_value = {"stations": [{"station_id": "999", "name": "Zip EV Station"}]}
+    with patch("custom_components.gasbuddy.services.GasBuddy") as mock_gb_class:
+        mock_lookup = AsyncMock(
+            return_value={"results": [{"latitude": 33.45, "longitude": -112.50}]}
+        )
+        mock_gb_class.return_value.price_lookup_service = mock_lookup
+        mock_ev = AsyncMock(
+            return_value={"stations": [{"station_id": "999", "name": "Zip EV Station"}]}
+        )
+        mock_gb_class.return_value.ev_stations_nearby = mock_ev
 
         # 1. Test GPS EV service with optional parameters
         gps_response = await hass.services.async_call(
@@ -494,6 +499,17 @@ async def test_services_ev_lookup_optional_params(hass, mock_gasbuddy):
             return_response=True,
         )
         assert zip_response["stations"] == [{"station_id": "999", "name": "Zip EV Station"}]
+
+        # Verify that the optional parameters were correctly forwarded to the API client methods
+        assert any(
+            call.kwargs.get("limit") == 10 and call.kwargs.get("radius") == 50
+            for call in mock_ev.call_args_list
+        )
+        # Verify that the custom solver URL was correctly passed to the GasBuddy constructor
+        assert any(
+            call.kwargs.get("solver_url") == "http://custom-solver.local"
+            for call in mock_gb_class.call_args_list
+        )
 
 
 async def test_validate_station_ev(hass):
