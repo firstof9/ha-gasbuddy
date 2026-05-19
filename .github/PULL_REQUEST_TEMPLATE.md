@@ -28,7 +28,6 @@
   split it into multiple PRs. This makes things easier and faster to code review.
 -->
 
-- [ ] Dependency upgrade
 - [ ] Bugfix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Deprecation (breaking change to happen in the future)
