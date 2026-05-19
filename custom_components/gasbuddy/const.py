@@ -248,6 +248,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV Station Status",
         icon="mdi:check-circle-outline",
         price=False,
+        entity_registry_enabled_default=False,
     ),
     "ev_network": GasBuddySensorEntityDescription(
         key="ev_network",
