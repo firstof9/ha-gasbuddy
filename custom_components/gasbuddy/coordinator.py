@@ -28,6 +28,25 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _redact(data: Any) -> Any:
+    """Redact sensitive data for logging."""
+    sensitive_keys = {
+        "latitude",
+        "longitude",
+        "ev_access_code",
+        "street_address",
+        "ev_station_address",
+        "city",
+        "state",
+        "zip",
+    }
+    if isinstance(data, dict):
+        return {k: "**REDACTED**" if k in sensitive_keys else _redact(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [_redact(item) for item in data]
+    return data
+
+
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
@@ -61,7 +80,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
         try:
             self._data = await self._api.price_lookup()
-            _LOGGER.debug("Gas station data: %s", self._data)
+            _LOGGER.debug("Gas station data: %s", _redact(self._data))
 
             config_lat = self._config.data.get("latitude")
             config_lon = self._config.data.get("longitude")
@@ -88,7 +107,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                         radius=100,
                         limit=100,
                     )
-                    _LOGGER.debug("EV station fallback search result: %s", ev_res)
+
+                    _LOGGER.debug("EV station fallback search result: %s", _redact(ev_res))
+
                     matching = next(
                         (
                             s
@@ -145,7 +166,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                     radius=5,
                     limit=10,
                 )
-                _LOGGER.debug("EV station search result: %s", ev_res)
+                _LOGGER.debug("EV station search result: %s", _redact(ev_res))
                 stations = (ev_res or {}).get("stations", [])
                 if stations:
                     matching = next(
@@ -188,7 +209,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning("Failed to fetch EV station data: %s", ev_ex)
 
         self._data["last_updated"] = datetime.now(UTC)
-        _LOGGER.debug("Final coordinator data: %s", self._data)
+        _LOGGER.debug("Final coordinator data: %s", _redact(self._data))
         return self._data
 
     async def clear_cache(self) -> None:
