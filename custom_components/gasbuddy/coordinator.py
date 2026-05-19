@@ -207,7 +207,19 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                         self._data["ev_pricing"] = matching.get("pricing")
                         self._data["ev_access_hours"] = matching.get("access_hours")
                         self._data["ev_access_code"] = matching.get("access_code")
-                        self._data["ev_cards_accepted"] = matching.get("cards_accepted")
+                        cards = matching.get("cards_accepted")
+                        if cards and isinstance(cards, str):
+                            card_map = {
+                                "A": "American Express",
+                                "D": "Discover",
+                                "Debit": "Debit Card",
+                                "M": "Mastercard",
+                                "V": "Visa",
+                            }
+                            mapped_cards = [card_map.get(c, c) for c in cards.split()]
+                            self._data["ev_cards_accepted"] = ", ".join(mapped_cards)
+                        else:
+                            self._data["ev_cards_accepted"] = cards
                         self._data["ev_date_last_confirmed"] = matching.get("date_last_confirmed")
 
                         self._data["ev_station_name"] = matching.get("name")

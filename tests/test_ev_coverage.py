@@ -195,7 +195,7 @@ async def test_coordinator_enrichment_success(hass):
                     "pricing": "Free for members",
                     "access_hours": "24/7",
                     "access_code": "None",
-                    "cards_accepted": "Visa",
+                    "cards_accepted": "A D Debit M V",
                     "date_last_confirmed": "2026-05-18",
                     "street_address": "1101 N Verrado Way",
                     "city": "Buckeye",
@@ -218,6 +218,7 @@ async def test_coordinator_enrichment_success(hass):
     assert data["ev_ccs_power"] == 150.0
     assert data["ev_status"] == "operational"
     assert data["ev_network"] == "Costco Network"
+    assert data["ev_cards_accepted"] == "American Express, Discover, Debit Card, Mastercard, Visa"
     assert data["ev_station_address"] == "1101 N Verrado Way, Buckeye, AZ"
     assert data["ev_distance_miles"] == 1.5
 
