@@ -19,7 +19,7 @@
             "manual": {
                 "description": "Por favor, insira o ID da estação",
                 "data": {
-                    "solver": "FlareSolverr URL",
+                    "solver": "FlareSolverr URL (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
                     "station_id": "ID da Estação"
                 }
@@ -34,7 +34,7 @@
             "home": {
                 "description": "Por favor, selecione uma estação",
                 "data": {
-                    "solver": "FlareSolverr URL",
+                    "solver": "FlareSolverr URL (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
                     "station_id": "Estação"
                 }
@@ -42,7 +42,7 @@
             "postal": {
                 "description": "Por favor, insira um código postal (CEP)",
                 "data": {
-                    "solver": "FlareSolverr URL",
+                    "solver": "FlareSolverr URL (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
                     "zipcode": "Código Postal (CEP)"
                 }
@@ -56,7 +56,7 @@
             "reconfigure": {
                 "description": "Please enter the Station ID",
                 "data": {
-                    "solver": "FlareSolverr URL (optional)",
+                    "solver": "FlareSolverr URL (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
                     "station_id": "Station ID",
                     "name": "Name"
@@ -70,7 +70,7 @@
                 "data": {
                     "interval": "Intervalo de consulta",
                     "uom": "Mostrar por litro/galão na unidade de medida",
-                    "gps": "Show stations on map (disable lat/long attributes)",
+                    "gps": "Mostrar estações no mapa (desativar atributos lat/long)",
                     "ev_charging": "Ativar sensores de carregamento de VE"
                 }
             }
