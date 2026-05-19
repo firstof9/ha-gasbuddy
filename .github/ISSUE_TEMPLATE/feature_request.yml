@@ -3,15 +3,20 @@ labels: ["feature"]
 title: "[Feature Request]: "
 description: Request a feature for GasBuddy.
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Please verify if the feature request has not already been submitted or discussed.
   - type: textarea
     validations:
       required: true
     attributes:
-      label: The feature
+      label: Describe the feature
       description: >-
-        Describe the feature you'd like added.
+        Describe the feature you would like added to the integration. What is the problem this feature will solve?
+        Please provide a clear and concise description of what you want to happen.
   - type: textarea
     attributes:
       label: Additional information
       description: >
-        If you have any additional information for us, use the field below.
+        If you have any additional information, mockups, or suggestions, use the field below.
