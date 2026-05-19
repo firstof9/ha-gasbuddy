@@ -34,7 +34,6 @@ def _redact(data: Any) -> str:
     sensitive_keys = {
         "latitude",
         "longitude",
-        "ev_access_code",
         "street_address",
         "ev_station_address",
         "city",
