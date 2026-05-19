@@ -65,11 +65,14 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             if ev_charging_enabled:
                 _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
                 try:
+                    # Use coordinates from config entry if available, otherwise home coordinates
+                    lat = self._config.data.get("latitude", self.hass.config.latitude)
+                    lon = self._config.data.get("longitude", self.hass.config.longitude)
                     ev_res = await self._api.ev_stations_nearby(
-                        lat=self.hass.config.latitude,
-                        lon=self.hass.config.longitude,
+                        lat=lat,
+                        lon=lon,
                         radius=100,
-                        limit=50,
+                        limit=100,
                     )
                     matching = next(
                         (
@@ -90,12 +93,23 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                             "unit_of_measure": "dollars_per_gallon",
                             "currency": "USD",
                         }
+                        # Update config entry if coordinates are new or changed
+                        if (
+                            self._config.data.get("latitude") != matching["latitude"]
+                            or self._config.data.get("longitude") != matching["longitude"]
+                        ):
+                            new_data = {
+                                **self._config.data,
+                                "latitude": matching["latitude"],
+                                "longitude": matching["longitude"],
+                            }
+                            self.hass.config_entries.async_update_entry(self._config, data=new_data)
                     else:
                         self._data = {
                             "station_id": self._config.data[CONF_STATION_ID],
                             "name": self._config.data.get(CONF_NAME, "EV Station"),
-                            "latitude": self.hass.config.latitude,
-                            "longitude": self.hass.config.longitude,
+                            "latitude": lat,
+                            "longitude": lon,
                             "unit_of_measure": "dollars_per_gallon",
                             "currency": "USD",
                         }

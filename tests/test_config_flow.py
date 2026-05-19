@@ -1,7 +1,9 @@
 """Test config flow."""
 
+import json
 from unittest.mock import patch
 
+from aioresponses import CallbackResult
 from py_gasbuddy.exceptions import APIError, MissingSearchData
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -37,6 +39,23 @@ GB_URL = "https://www.gasbuddy.com/home"
 SOLVER_URL = "http://solver.url"
 HOSTNAME_SOLVER_URL = "http://flaresolverr:8191/v1"
 NO_STATIONS_LIST = {"-": "No stations in search area."}
+
+
+def gb_graphql_callback(url, **kwargs):
+    """Return mock responses for the GasBuddy GraphQL API based on operationName."""
+    payload = kwargs.get("json") or json.loads(kwargs.get("data", "{}"))
+    op = payload.get("operationName")
+    if op == "LocationBySearchTerm":
+        return CallbackResult(status=200, body=load_fixture("location_results.json"))
+    if op == "GetStation":
+        return CallbackResult(status=200, body=load_fixture("station.json"))
+    if op == "EvStationsSearch":
+        return CallbackResult(
+            status=200,
+            payload={"data": {"evStationsNearby": {"stations": [], "total": 0, "limit": 20}}},
+        )
+    return CallbackResult(status=400)
+
 
 pytestmark = pytest.mark.asyncio
 
@@ -85,8 +104,7 @@ async def test_form_home(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
     mock_aioclient.post(
@@ -125,7 +143,11 @@ async def test_form_home(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            "latitude": 40.196589,
+            "longitude": -75.47145,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -175,8 +197,7 @@ async def test_form_home_hostname_solver(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
     mock_aioclient.post(
@@ -215,7 +236,11 @@ async def test_form_home_hostname_solver(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            "latitude": 40.196589,
+            "longitude": -75.47145,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -264,8 +289,7 @@ async def test_form_postal(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
     mock_aioclient.post(
@@ -306,7 +330,11 @@ async def test_form_postal(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            "latitude": 40.196589,
+            "longitude": -75.47145,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -383,7 +411,11 @@ async def test_form_manual(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            "latitude": 40.196589,
+            "longitude": -75.47145,
+        }
 
         await hass.async_block_till_done()
         assert len(mock_setup_entry.mock_calls) == 1
@@ -1347,8 +1379,7 @@ async def test_form_home_empty_solver(
     )
     mock_aioclient.post(
         BASE_URL,
-        status=200,
-        body=load_fixture("location_results.json"),
+        callback=gb_graphql_callback,
         repeat=True,
     )
 
@@ -1383,7 +1414,11 @@ async def test_form_home_empty_solver(
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["title"] == title
-        assert result["data"] == data
+        assert result["data"] == {
+            **data,
+            "latitude": 40.196589,
+            "longitude": -75.47145,
+        }
 
 
 @pytest.mark.parametrize(

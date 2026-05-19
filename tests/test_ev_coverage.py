@@ -533,7 +533,11 @@ async def test_validate_station_ev(hass):
             ]
         }
         result = await validate_station(hass, station="208656")
-        assert result == "ev"
+        assert result == {
+            "type": "ev",
+            "latitude": None,
+            "longitude": None,
+        }
 
 
 async def test_get_station_list_postal_coordinates_and_ev(hass):
@@ -593,7 +597,10 @@ async def test_config_flow_ev_charging_flag(hass):
 
     # 1. Test async_step_home2
     with (
-        patch("custom_components.gasbuddy.config_flow.validate_station", return_value="ev"),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value={"type": "ev", "latitude": 33.45, "longitude": -112.50},
+        ),
         patch("custom_components.gasbuddy.async_setup_entry", return_value=True),
     ):
         result = await flow.async_step_home2({
@@ -602,11 +609,17 @@ async def test_config_flow_ev_charging_flag(hass):
         })
         assert result["type"] == "create_entry"
         assert result["options"][CONF_EV_CHARGING] is True
+        assert flow._data["latitude"] == 33.45  # noqa: SLF001
+        assert flow._data["longitude"] == -112.50  # noqa: SLF001
 
     # 2. Test async_step_station_list
     flow._data = {CONF_POSTAL: "85326", CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
 
     with (
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            return_value={"type": "ev", "latitude": 33.45, "longitude": -112.50},
+        ),
         patch("custom_components.gasbuddy.async_setup_entry", return_value=True),
     ):
         result = await flow.async_step_station_list({
@@ -615,3 +628,5 @@ async def test_config_flow_ev_charging_flag(hass):
         })
         assert result["type"] == "create_entry"
         assert result["options"][CONF_EV_CHARGING] is True
+        assert flow._data["latitude"] == 33.45  # noqa: SLF001
+        assert flow._data["longitude"] == -112.50  # noqa: SLF001
