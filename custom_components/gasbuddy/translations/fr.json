@@ -20,6 +20,7 @@
                 "description": "Veuillez saisir l'ID de la station",
                 "data": {
                     "solver": "FlareSolverr URL",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "station_id": "Identifiant de la station"
                 }
             },
@@ -34,6 +35,7 @@
                 "description": "Veuillez sélectionner une station",
                 "data": {
                     "solver": "FlareSolverr URL",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "station_id": "Identifiant de la station"
                 }
             },
@@ -41,6 +43,7 @@
                 "description": "Veuillez entrer un code postal (code postal)",
                 "data": {
                     "solver": "FlareSolverr URL",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "zipcode": "Code postal (code postal)"
                 }
             },
@@ -54,6 +57,7 @@
                 "description": "Please enter the Station ID",
                 "data": {
                     "solver": "FlareSolverr URL (optional)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
                     "station_id": "Station ID",
                     "name": "Name"
                 }
@@ -66,7 +70,8 @@
                 "data": {
                     "interval": "Intervalle d'interrogation",
                     "uom": "Afficher par litre/gallon en unité de mesure",
-                    "gps": "Show stations on map (disable lat/long attributes)"
+                    "gps": "Show stations on map (disable lat/long attributes)",
+                    "ev_charging": "Activer les capteurs de recharge VE"
                 }
             }
         }
