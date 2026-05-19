@@ -84,13 +84,9 @@ body:
       label: Anything in the logs that might be useful for us?
       description: >-
         For example, error messages or stack traces.
-        Please enable debug logging for the integration if possible. To do so, add the following to your `configuration.yaml` and restart Home Assistant:
-        ```yaml
-        logger:
-          default: info
-          logs:
-            custom_components.gasbuddy: debug
-        ```
+        Please enable debug logging for the integration if possible. To do so, go to the integration card (Settings ⇒ Devices & services ⇒ GasBuddy), click the three dots on the GasBuddy integration card, and select "Enable debug logging". Once the issue has been reproduced, click "Disable debug logging" to download the logs.
+
+        [![Open your Home Assistant instance and show the integration page.](https://my.home-assistant.io/badges/integration.svg)](https://my.home-assistant.io/redirect/integration/?domain=gasbuddy)
       render: txt
   - type: textarea
     attributes:
