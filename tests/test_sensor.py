@@ -24,6 +24,7 @@ from custom_components.gasbuddy.sensor import GasBuddySensor
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
 
 from .const import CONFIG_DATA, CONFIG_DATA_NO_UOM, OPTIONS_NO_UOM
@@ -293,6 +294,8 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
         "ev_access_hours": "24/7",
         "latitude": 33.459108,
         "longitude": -112.502745,
+        "ev_date_last_confirmed": "2026-05-18",
+        "ev_access_code": "None",
     }
 
     with patch.dict(coordinator.data, ev_data):
@@ -318,6 +321,16 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
         assert attrs_web is not None
         assert attrs_web["network"] == "Costco"
         assert attrs_web["website"] == "https://costco.com"
+
+        # Test ev_date_last_confirmed sensor
+        sensor_date = GasBuddySensor(
+            SENSOR_TYPES["ev_date_last_confirmed"], coordinator, integration
+        )
+        assert sensor_date.native_value == as_utc(parse_datetime("2026-05-18"))
+
+        # Test ev_access_code sensor
+        sensor_access = GasBuddySensor(SENSOR_TYPES["ev_access_code"], coordinator, integration)
+        assert sensor_access.native_value == "none"
 
 
 async def test_sensors_ev_only(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):

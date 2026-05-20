@@ -276,6 +276,7 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV Access",
         icon="mdi:lock-open-outline",
         price=False,
+        translation_key="ev_access",
     ),
     "ev_cards_accepted": GasBuddySensorEntityDescription(
         key="ev_cards_accepted",
@@ -289,5 +290,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV Last Confirmed",
         icon="mdi:calendar-check",
         price=False,
+        device_class=SensorDeviceClass.TIMESTAMP,
     ),
 }

@@ -76,5 +76,16 @@
                 }
             }
         }
+    },
+    "entity": {
+        "sensor": {
+            "ev_access": {
+                "state": {
+                    "public": "Public",
+                    "private": "Privé",
+                    "none": "Aucun"
+                }
+            }
+        }
     }
 }

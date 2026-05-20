@@ -5,11 +5,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util.dt import as_utc, parse_datetime
 
 from .const import (
     ATTR_IMAGEURL,
@@ -89,7 +90,15 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             return None
 
         if not self._price:
-            return data.get(self._type)
+            val = data.get(self._type)
+            if self.entity_description.device_class == SensorDeviceClass.TIMESTAMP and isinstance(
+                val, str
+            ):
+                if parsed := parse_datetime(val):
+                    return as_utc(parsed)
+            if self.entity_description.translation_key == "ev_access" and isinstance(val, str):
+                return val.lower()
+            return val
 
         if self._cash:
             price = data[self._type].get("cash_price")
