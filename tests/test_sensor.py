@@ -288,6 +288,7 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
         "ev_station_address": "1101 N Verrado Way",
         "ev_distance_miles": 1.5,
         "ev_network": "Costco",
+        "ev_network_web": "https://costco.com",
         "ev_pricing": "Free",
         "ev_access_hours": "24/7",
         "latitude": 33.459108,
@@ -309,6 +310,14 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
         assert attrs["access_hours"] == "24/7"
         assert attrs[ATTR_LATITUDE] == 33.459108
         assert attrs[ATTR_LONGITUDE] == -112.502745
+        assert "website" not in attrs
+
+        # Test ev_network sensor which has the website attribute
+        sensor_web = GasBuddySensor(SENSOR_TYPES["ev_network"], coordinator, integration)
+        attrs_web = sensor_web.extra_state_attributes
+        assert attrs_web is not None
+        assert attrs_web["network"] == "Costco"
+        assert attrs_web["website"] == "https://costco.com"
 
 
 async def test_sensors_ev_only(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
