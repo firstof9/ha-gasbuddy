@@ -141,6 +141,8 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
                 attrs["distance_miles"] = data.get("ev_distance_miles")
             if data.get("ev_network") is not None:
                 attrs["network"] = data.get("ev_network")
+            if self._type == "ev_network" and data.get("ev_network_web") is not None:
+                attrs["website"] = data.get("ev_network_web")
             if data.get("ev_pricing") is not None:
                 attrs["pricing"] = data.get("ev_pricing")
             if data.get("ev_access_hours") is not None:

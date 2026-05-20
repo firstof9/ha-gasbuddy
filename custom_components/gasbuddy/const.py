@@ -188,7 +188,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV J1772 Connectors",
         icon="mdi:ev-station",
         price=False,
-        entity_registry_enabled_default=False,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "ev_j1772_power": GasBuddySensorEntityDescription(
@@ -203,7 +202,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV CCS Connectors",
         icon="mdi:ev-station",
         price=False,
-        entity_registry_enabled_default=False,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "ev_ccs_power": GasBuddySensorEntityDescription(
@@ -218,7 +216,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV CHAdeMO Connectors",
         icon="mdi:ev-station",
         price=False,
-        entity_registry_enabled_default=False,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "ev_chademo_power": GasBuddySensorEntityDescription(
@@ -233,7 +230,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV NACS Connectors",
         icon="mdi:ev-station",
         price=False,
-        entity_registry_enabled_default=False,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     "ev_nacs_power": GasBuddySensorEntityDescription(
@@ -280,7 +276,6 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV Access",
         icon="mdi:lock-open-outline",
         price=False,
-        entity_registry_enabled_default=False,
     ),
     "ev_cards_accepted": GasBuddySensorEntityDescription(
         key="ev_cards_accepted",
@@ -294,6 +289,5 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         name="EV Last Confirmed",
         icon="mdi:calendar-check",
         price=False,
-        entity_registry_enabled_default=False,
     ),
 }
