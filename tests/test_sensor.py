@@ -328,6 +328,10 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
         )
         assert sensor_date.native_value == as_utc(parse_datetime("2026-05-18"))
 
+        # Test invalid date string for TIMESTAMP sensor returns None
+        with patch.dict(coordinator.data, {"ev_date_last_confirmed": "invalid-date"}):
+            assert sensor_date.native_value is None
+
         # Test ev_access_code sensor
         sensor_access = GasBuddySensor(SENSOR_TYPES["ev_access_code"], coordinator, integration)
         assert sensor_access.native_value == "none"

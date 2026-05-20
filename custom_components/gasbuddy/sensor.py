@@ -96,6 +96,8 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             ):
                 if parsed := parse_datetime(val):
                     return as_utc(parsed)
+                _LOGGER.warning("Failed to parse timestamp for %s: %s", self._type, val)
+                return None
             if self.entity_description.translation_key == "ev_access" and isinstance(val, str):
                 return val.lower()
             return val
