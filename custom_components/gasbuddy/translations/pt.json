@@ -1,25 +1,26 @@
 {
     "config": {
         "abort": {
-            "reconfigure_successful": "Reconfigure Successful"
+            "reconfigure_successful": "Reconfiguração bem-sucedida"
         },
         "error": {
             "station_id": "ID de estação inválido",
-            "no_results": "No stations found in this area.",
-            "invalid_url": "Not a valid URL."
+            "no_results": "Nenhuma estação encontrada nesta área.",
+            "invalid_url": "URL inválida."
         },
         "step": {
             "user": {
                 "description": "Por favor, selecione manualmente o ID da estação ou pesquise por uma estação.",
                 "menu_options": {
                     "manual": "Inserir ID da estação manualmente",
-                    "search": "Pesquisar por uma estação próxima"
+                    "search": "Pesquisar por uma estação próxima",
+                    "cheapest": "Rastrear o combustível mais barato próximo"
                 }
             },
             "manual": {
                 "description": "Por favor, insira o ID da estação",
                 "data": {
-                    "solver": "FlareSolverr URL (opcional)",
+                    "solver": "URL do FlareSolverr (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
                     "station_id": "ID da Estação"
                 }
@@ -34,7 +35,7 @@
             "home": {
                 "description": "Por favor, selecione uma estação",
                 "data": {
-                    "solver": "FlareSolverr URL (opcional)",
+                    "solver": "URL do FlareSolverr (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
                     "station_id": "Estação"
                 }
@@ -42,7 +43,7 @@
             "postal": {
                 "description": "Por favor, insira um código postal (CEP)",
                 "data": {
-                    "solver": "FlareSolverr URL (opcional)",
+                    "solver": "URL do FlareSolverr (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
                     "zipcode": "Código Postal (CEP)"
                 }
@@ -53,13 +54,27 @@
                     "station_id": "Estação"
                 }
             },
-            "reconfigure": {
-                "description": "Please enter the Station ID",
+            "cheapest": {
+                "description": "Rastreie a posto de combustível mais barata próxima. Usa suas coordenadas de casa ou um código postal. A cada atualização, o coordenador reavalia e atualiza para a estação mais barata no momento.",
                 "data": {
-                    "solver": "FlareSolverr URL (opcional)",
+                    "name": "Nome",
+                    "zipcode": "Código Postal (opcional — deixe em branco para usar as coordenadas do HA)",
+                    "fuel_key": "Tipo de combustível",
+                    "price_type": "Tipo de preço",
+                    "solver": "URL do FlareSolverr (opcional)",
+                    "timeout": "Tempo limite do FlareSolverr (ms)"
+                }
+            },
+            "reconfigure": {
+                "description": "Por favor, insira o ID da estação",
+                "data": {
+                    "solver": "URL do FlareSolverr (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",
-                    "station_id": "Station ID",
-                    "name": "Name"
+                    "station_id": "ID da Estação",
+                    "name": "Nome",
+                    "zipcode": "Código Postal (opcional — deixe em branco para usar as coordenadas do HA)",
+                    "fuel_key": "Tipo de combustível",
+                    "price_type": "Tipo de preço"
                 }
             }
         }

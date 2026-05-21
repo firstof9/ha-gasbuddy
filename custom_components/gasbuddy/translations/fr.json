@@ -1,25 +1,26 @@
 {
     "config": {
         "abort": {
-            "reconfigure_successful": "Reconfigure Successful"
+            "reconfigure_successful": "Reconfiguration réussie"
         },
         "error": {
             "station_id": "ID de station invalide",
-            "no_results": "No stations found in this area.",
-            "invalid_url": "Not a valid URL."
+            "no_results": "Aucune station trouvée dans cette zone.",
+            "invalid_url": "URL non valide."
         },
         "step": {
             "user": {
                 "description": "Veuillez sélectionner soit l'ID de station manuel, soit rechercher une station.",
                 "menu_options": {
                     "manual": "Saisir manuellement l'ID de la station",
-                    "search": "Rechercher une station à proximité"
+                    "search": "Rechercher une station à proximité",
+                    "cheapest": "Suivre le carburant le moins cher à proximité"
                 }
             },
             "manual": {
                 "description": "Veuillez saisir l'ID de la station",
                 "data": {
-                    "solver": "FlareSolverr URL (optionnel)",
+                    "solver": "URL FlareSolverr (optionnel)",
                     "timeout": "Délai d'attente FlareSolverr (ms)",
                     "station_id": "Identifiant de la station"
                 }
@@ -28,38 +29,52 @@
                 "description": "Recherchez par votre position GPS configurée ou par code postal",
                 "menu_options": {
                     "home": "Utiliser les coordonnées configurées par Home Assistant",
-                    "postal": "Utiliser le code postal (code postal)"
+                    "postal": "Utiliser le code postal"
                 }
             },
             "home": {
                 "description": "Veuillez sélectionner une station",
                 "data": {
-                    "solver": "FlareSolverr URL (optionnel)",
+                    "solver": "URL FlareSolverr (optionnel)",
                     "timeout": "Délai d'attente FlareSolverr (ms)",
-                    "station_id": "Identifiant de la station"
+                    "station_id": "Station"
                 }
             },
             "postal": {
-                "description": "Veuillez entrer un code postal (code postal)",
+                "description": "Veuillez entrer un code postal",
                 "data": {
-                    "solver": "FlareSolverr URL (optionnel)",
+                    "solver": "URL FlareSolverr (optionnel)",
                     "timeout": "Délai d'attente FlareSolverr (ms)",
-                    "zipcode": "Code postal (code postal)"
+                    "zipcode": "Code postal"
                 }
             },
             "station_list": {
                 "description": "Veuillez sélectionner une station",
                 "data": {
-                    "station_id": "Identifiant de la station"
+                    "station_id": "Station"
+                }
+            },
+            "cheapest": {
+                "description": "Suivez la station-service la moins chère à proximité. Utilise vos coordonnées domicile ou un code postal. À chaque actualisation, le coordinateur réévalue et met à jour la station la moins chère du moment.",
+                "data": {
+                    "name": "Nom",
+                    "zipcode": "Code postal (optionnel — laisser vide pour utiliser les coordonnées HA)",
+                    "fuel_key": "Type de carburant",
+                    "price_type": "Type de prix",
+                    "solver": "URL FlareSolverr (optionnel)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)"
                 }
             },
             "reconfigure": {
-                "description": "Please enter the Station ID",
+                "description": "Veuillez entrer l'identifiant de la station",
                 "data": {
-                    "solver": "FlareSolverr URL (optionnel)",
+                    "solver": "URL FlareSolverr (optionnel)",
                     "timeout": "Délai d'attente FlareSolverr (ms)",
-                    "station_id": "Station ID",
-                    "name": "Name"
+                    "station_id": "Identifiant de la station",
+                    "name": "Nom",
+                    "zipcode": "Code postal (optionnel — laisser vide pour utiliser les coordonnées HA)",
+                    "fuel_key": "Type de carburant",
+                    "price_type": "Type de prix"
                 }
             }
         }

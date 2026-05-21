@@ -16,6 +16,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig, SelectSelectorMode
 
 from .const import (
     CONF_CHEAPEST,
@@ -40,6 +41,8 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_STATION_ID_RE = re.compile(r"^\d{1,20}$")
+_POSTAL_RE = re.compile(r"^\d{5}(-\d{4})?$|^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$")
 MENU_OPTIONS = ["manual", "search", "cheapest"]
 MENU_SEARCH = ["home", "postal"]
 
@@ -237,7 +240,7 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
 
     return vol.Schema({
         vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.All(
-            cv.string, vol.Strip, vol.Match(r"^\d{1,20}$")
+            cv.string, vol.Strip
         ),
         vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
             cv.string, vol.Strip, vol.Length(max=100)
@@ -309,9 +312,7 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
 
     return vol.Schema({
         vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.All(
-            vol.Coerce(str),
-            vol.Strip,
-            vol.Match(r"^\d{5}(-\d{4})?$|^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$"),
+            vol.Coerce(str), vol.Strip
         ),
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
@@ -362,11 +363,17 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_POSTAL, default=_get_default(CONF_POSTAL, "")): vol.All(
             vol.Coerce(str), vol.Strip
         ),
-        vol.Required(CONF_FUEL_KEY, default=_get_default(CONF_FUEL_KEY, "regular_gas")): vol.In(
-            FUEL_KEY_CHOICES
+        vol.Required(CONF_FUEL_KEY, default=_get_default(CONF_FUEL_KEY, "regular_gas")): SelectSelector(
+            SelectSelectorConfig(
+                options=[{"value": k, "label": v} for k, v in FUEL_KEY_CHOICES.items()],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
         ),
-        vol.Required(CONF_PRICE_TYPE, default=_get_default(CONF_PRICE_TYPE, "best")): vol.In(
-            PRICE_TYPE_CHOICES
+        vol.Required(CONF_PRICE_TYPE, default=_get_default(CONF_PRICE_TYPE, "best")): SelectSelector(
+            SelectSelectorConfig(
+                options=[{"value": k, "label": v} for k, v in PRICE_TYPE_CHOICES.items()],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
         ),
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
@@ -434,6 +441,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_manual(user_input)
+
+            station_id = str(user_input.get(CONF_STATION_ID, "")).strip()
+            if not _STATION_ID_RE.match(station_id):
+                self._errors[CONF_STATION_ID] = "station_id"
+                return await self._show_config_manual(user_input)
 
             try:
                 validate = await validate_station(
@@ -601,6 +613,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._data.update(user_input)
+            postal = str(user_input.get(CONF_POSTAL, "")).strip()
+            if not _POSTAL_RE.match(postal):
+                self._errors[CONF_POSTAL] = "no_results"
+                return await self._show_config_postal(user_input)
+
             if user_input.get(CONF_SOLVER):
                 url_valid = validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
@@ -755,6 +772,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._data.update(user_input)
+            station_id = str(user_input.get(CONF_STATION_ID, "")).strip()
+            if not _STATION_ID_RE.match(station_id):
+                self._errors[CONF_STATION_ID] = "station_id"
+                return await self._show_reconfig_form(user_input)
+
             if user_input[CONF_SOLVER] != "":
                 url_valid = validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
