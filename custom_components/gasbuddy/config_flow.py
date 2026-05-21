@@ -53,9 +53,9 @@ class SearchFailed(HomeAssistantError):
 
 
 def validate_url(url: str) -> bool:
-    """Validate user input URL."""
+    """Validate user input URL. Only http/https schemes are accepted."""
     pattern = re.compile(
-        r"^(?:http|ftp)s?://"
+        r"^https?://"
         r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"
         r"localhost|"
         r"[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?|"
@@ -151,7 +151,7 @@ async def _get_station_list(
 
     if user_input is not None and CONF_SOLVER in user_input and user_input[CONF_SOLVER]:
         solver = user_input[CONF_SOLVER]
-        _LOGGER.debug("Using solver URL: %s", solver)
+        _LOGGER.debug("Solver URL configured: %s", bool(solver))
 
     try:
         stations = await py_gasbuddy.GasBuddy(
@@ -163,7 +163,7 @@ async def _get_station_list(
         raise SearchFailed from ex
 
     stations_list = {}
-    _LOGGER.debug("search reply: %s", stations)
+    _LOGGER.debug("search reply: %s stations returned", len(stations.get("results", [])))
 
     for station in stations.get("results", []):
         full_name = f"{station['name']} @ {station['address']['line1']}"
@@ -203,12 +203,13 @@ async def _get_station_list(
                 ev_id = ev_station["station_id"]
                 full_name = f"{ev_station['name']} @ {ev_station.get('street_address') or ''} [EV]"
                 stations_list[ev_id] = full_name
-                # Cache coordinates
+                # Cache coordinates (bounded to 50 flow IDs)
                 hass.data.setdefault(DOMAIN, {})
-                hass.data[DOMAIN].setdefault("station_coordinates_by_flow", {})
-                flow_cache = hass.data[DOMAIN]["station_coordinates_by_flow"].setdefault(
-                    flow_id, {}
-                )
+                coord_cache = hass.data[DOMAIN].setdefault("station_coordinates_by_flow", {})
+                if len(coord_cache) >= 50:
+                    for old_key in list(coord_cache.keys())[:10]:
+                        coord_cache.pop(old_key, None)
+                flow_cache = coord_cache.setdefault(flow_id, {})
                 flow_cache[str(ev_id)] = (
                     ev_station.get("latitude"),
                     ev_station.get("longitude"),
@@ -236,17 +237,17 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
 
     return vol.Schema({
         vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.All(
-            cv.string, vol.Strip
+            cv.string, vol.Strip, vol.Match(r"^\d{1,20}$")
         ),
         vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
-            cv.string, vol.Strip
+            cv.string, vol.Strip, vol.Length(max=100)
         ),
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
         ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): cv.positive_int,
+        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
     })
 
 
@@ -269,7 +270,7 @@ def _get_schema_home(
         ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): cv.positive_int,
+        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
     })
 
 
@@ -290,7 +291,7 @@ def _get_schema_home2(
     return vol.Schema({
         vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(station_list),
         vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
-            cv.string, vol.Strip
+            cv.string, vol.Strip, vol.Length(max=100)
         ),
     })
 
@@ -308,14 +309,16 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
 
     return vol.Schema({
         vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.All(
-            vol.Coerce(str), vol.Strip
+            vol.Coerce(str),
+            vol.Strip,
+            vol.Match(r"^\d{5}(-\d{4})?$|^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$"),
         ),
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
         ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): cv.positive_int,
+        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
     })
 
 
@@ -336,7 +339,7 @@ def _get_schema_station_list(
     return vol.Schema({
         vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(station_list),
         vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
-            cv.string, vol.Strip
+            cv.string, vol.Strip, vol.Length(max=100)
         ),
     })
 
@@ -354,7 +357,7 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
 
     return vol.Schema({
         vol.Required(CONF_NAME, default=_get_default(CONF_NAME, "Cheapest Gas")): vol.All(
-            cv.string, vol.Strip
+            cv.string, vol.Strip, vol.Length(max=100)
         ),
         vol.Optional(CONF_POSTAL, default=_get_default(CONF_POSTAL, "")): vol.All(
             vol.Coerce(str), vol.Strip
@@ -370,7 +373,7 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
         ),
         vol.Optional(
             CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): cv.positive_int,
+        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
     })
 
 
@@ -556,6 +559,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 ev_charging = False
 
+            self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
+                self.flow_id, None
+            )
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
                 data=self._data,
@@ -657,6 +663,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 ev_charging = False
 
+            self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
+                self.flow_id, None
+            )
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
                 data=self._data,

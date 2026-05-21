@@ -172,6 +172,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             else:
                 raise UpdateFailed(f"Error retrieving data: {ex}") from ex
         except Exception as exception:
+            _LOGGER.warning("Unexpected error updating gasbuddy: %s", exception, exc_info=True)
             raise UpdateFailed from exception
 
         # Query EV station details if enabled
