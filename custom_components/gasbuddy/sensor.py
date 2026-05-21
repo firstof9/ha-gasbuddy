@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from typing import Any
 
@@ -22,6 +23,7 @@ from .const import (
     CONF_UOM,
     COORDINATOR,
     DOMAIN,
+    FUEL_KEY_CHOICES,
     SENSOR_TYPES,
     UNIT_OF_MEASURE,
 )
@@ -37,13 +39,43 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ev_charging = entry.options.get(CONF_EV_CHARGING, False)
     fetch_gas = entry.options.get(CONF_FETCH_GAS, True)
 
+    data = coordinator.data or {}
+    fuels_available: set[str] = set()
+    for fk in FUEL_KEY_CHOICES:
+        if fk in data:
+            fuels_available.add(fk)
+    if isinstance(data.get("fuels"), list):
+        fuels_available.update(data["fuels"])
+
     sensors = []
-    for sensor_type in SENSOR_TYPES:
+    for sensor_type, description in SENSOR_TYPES.items():
         if sensor_type.startswith("ev_") and not ev_charging:
             continue
-        if not sensor_type.startswith("ev_") and sensor_type != "last_updated" and not fetch_gas:
+        if (
+            not sensor_type.startswith("ev_")
+            and sensor_type not in {"last_updated", "open_status", "station_name"}
+            and not fetch_gas
+        ):
             continue
-        sensors.append(GasBuddySensor(SENSOR_TYPES[sensor_type], coordinator, entry))
+
+        enabled = description.entity_registry_enabled_default
+        fuel_key = description.key
+
+        if fuel_key in FUEL_KEY_CHOICES and data:
+            if description.deal:
+                enabled = fuel_key in fuels_available and bool(
+                    (data.get(fuel_key) or {}).get("deal_price")
+                )
+            elif description.cash:
+                enabled = (
+                    fuel_key in fuels_available
+                    and (data.get(fuel_key) or {}).get("cash_price") is not None
+                )
+            else:
+                enabled = fuel_key in fuels_available
+
+        mod_desc = dataclasses.replace(description, entity_registry_enabled_default=enabled)
+        sensors.append(GasBuddySensor(mod_desc, coordinator, entry))
 
     async_add_entities(sensors, False)
 
@@ -68,6 +100,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         self.coordinator = coordinator
         self._state = None
         self._cash = sensor_description.cash
+        self._deal = sensor_description.deal
         self._price = sensor_description.price
 
         self._attr_icon = sensor_description.icon
@@ -102,7 +135,9 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
                 return val.lower()
             return val
 
-        if self._cash:
+        if self._deal:
+            price = data[self._type].get("deal_price")
+        elif self._cash:
             price = data[self._type].get("cash_price")
         else:
             price = data[self._type].get("price")
@@ -143,7 +178,9 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         attrs: dict[str, Any] = {}
 
         if not self._price:
-            if not self._type.startswith("ev_"):
+            if not self._type.startswith("ev_") and self._type not in {"open_status", "name"}:
+                return None
+            if self._type in {"open_status", "name"}:
                 return None
             attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
             attrs["station_name"] = data.get("ev_station_name")
@@ -171,6 +208,22 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
 
         attrs["last_updated"] = data[self._type].get("last_updated")
         attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
+
+        if fp := data[self._type].get("formatted_price"):
+            attrs["formatted_price"] = fp
+        if dp := data[self._type].get("deal_price"):
+            attrs["deal_price"] = dp
+        if phone := data.get("phone"):
+            attrs["phone"] = phone
+        if rating := data.get("star_rating"):
+            attrs["star_rating"] = rating
+        if addr := data.get("address"):
+            attrs["address"] = (
+                f"{addr.get('line1', '')}, {addr.get('locality', '')}, {addr.get('region', '')}"
+            )
+        if amenities := data.get("amenities"):
+            attrs["amenities"] = ", ".join(a["name"] for a in amenities if a.get("name"))
+
         if self._config.options.get(CONF_GPS):
             attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
             attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
@@ -194,7 +247,10 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             return False
 
         if self._price:
-            if self._cash:
+            if self._deal:
+                if data[self._type].get("deal_price") is None:
+                    return False
+            elif self._cash:
                 if data[self._type].get("cash_price") is None:
                     return False
             elif data[self._type].get("price") is None:

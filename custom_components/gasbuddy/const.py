@@ -19,6 +19,9 @@ CONF_SOLVER = "solver"
 CONF_TIMEOUT = "timeout"
 CONF_EV_CHARGING = "ev_charging"
 CONF_FETCH_GAS = "fetch_gas"
+CONF_CHEAPEST = "cheapest"
+CONF_FUEL_KEY = "fuel_key"
+CONF_PRICE_TYPE = "price_type"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
@@ -49,6 +52,22 @@ SERVICE_CLEAR_CACHE = "clear_cache"
 UNIT_OF_MEASURE = {
     "dollars_per_gallon": "gallon",
     "cents_per_liter": "liter",
+}
+
+FUEL_KEY_CHOICES = {
+    "regular_gas": "Regular",
+    "midgrade_gas": "Midgrade",
+    "premium_gas": "Premium",
+    "diesel": "Diesel",
+    "e85": "E85",
+    "e15": "UNL88",
+}
+
+PRICE_TYPE_CHOICES = {
+    "best": "Best (deal → cash → credit)",
+    "credit": "Credit",
+    "cash": "Cash",
+    "deal": "Deal/GasBuddy Pay",
 }
 
 
@@ -159,6 +178,76 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
         state_class=SensorStateClass.MEASUREMENT,
+    ),
+    # Deal price sensors
+    "regular_gas_deal": GasBuddySensorEntityDescription(
+        key="regular_gas",
+        name="Regular Gas (Deal)",
+        deal=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "midgrade_gas_deal": GasBuddySensorEntityDescription(
+        key="midgrade_gas",
+        name="MidGrade Gas (Deal)",
+        deal=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "premium_gas_deal": GasBuddySensorEntityDescription(
+        key="premium_gas",
+        name="Premium Gas (Deal)",
+        deal=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "diesel_deal": GasBuddySensorEntityDescription(
+        key="diesel",
+        name="Diesel (Deal)",
+        deal=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "e85_deal": GasBuddySensorEntityDescription(
+        key="e85",
+        name="E85 (Deal)",
+        deal=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "e15_deal": GasBuddySensorEntityDescription(
+        key="e15",
+        name="UNL88 (Deal)",
+        deal=True,
+        icon="mdi:gas-station",
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    # Station info sensors
+    "open_status": GasBuddySensorEntityDescription(
+        key="open_status",
+        name="Station Status",
+        icon="mdi:door-open",
+        price=False,
+        entity_registry_enabled_default=False,
+    ),
+    "station_name": GasBuddySensorEntityDescription(
+        key="name",
+        name="Station Name",
+        icon="mdi:gas-station",
+        price=False,
+        entity_registry_enabled_default=False,
     ),
     # EV Charging Sensors
     "ev_level1": GasBuddySensorEntityDescription(

@@ -16,9 +16,13 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    CONF_CHEAPEST,
     CONF_EV_CHARGING,
+    CONF_FUEL_KEY,
     CONF_INTERVAL,
     CONF_NAME,
+    CONF_POSTAL,
+    CONF_PRICE_TYPE,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -69,7 +73,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._cache_file = f"{self.hass.config.config_dir}/.storage/gasbuddy_cache"
         self._api = GasBuddy(
             solver_url=config.data.get(CONF_SOLVER),
-            station_id=config.data[CONF_STATION_ID],
+            station_id=config.data.get(CONF_STATION_ID),
             cache_file=self._cache_file,
             timeout=config.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             session=async_get_clientsession(hass),
@@ -87,6 +91,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Update data via library."""
+        if self._config.data.get(CONF_CHEAPEST):
+            return await self._async_update_cheapest()
+
         ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
         try:
             self._data = await self._api.price_lookup()
@@ -233,6 +240,53 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._data["last_updated"] = datetime.now(UTC)
         _LOGGER.debug("Final coordinator data: %s", _redact(self._data))
         return self._data
+
+    async def _async_update_cheapest(self) -> dict:
+        """Find and return the cheapest nearby station for the configured fuel and price type."""
+        fuel_key = self._config.data.get(CONF_FUEL_KEY, "regular_gas")
+        price_type = self._config.data.get(CONF_PRICE_TYPE, "best")
+
+        postal = self._config.data.get(CONF_POSTAL)
+        lat: float | None = None
+        lon: float | None = None
+        if not postal:
+            lat = self._config.data.get("latitude") or self.hass.config.latitude
+            lon = self._config.data.get("longitude") or self.hass.config.longitude
+
+        try:
+            result = await self._api.price_lookup_service(
+                lat=lat,
+                lon=lon,
+                zipcode=postal,
+                limit=20,
+            )
+        except (APIError, LibraryError, CSRFTokenMissing) as ex:
+            raise UpdateFailed(f"Cheapest gas lookup failed: {ex}") from ex
+
+        stations = [s for s in (result.get("results") or []) if s.get(fuel_key)]
+        if not stations:
+            raise UpdateFailed("No stations with prices found for selected fuel")
+
+        def _sort_key(s: dict) -> float:
+            node = s.get(fuel_key) or {}
+            if price_type == "best":
+                candidates = [node.get("deal_price"), node.get("cash_price"), node.get("price")]
+                vals = [p for p in candidates if p is not None]
+                return min(vals) if vals else float("inf")
+            if price_type == "deal":
+                return (
+                    node.get("deal_price")
+                    or node.get("cash_price")
+                    or node.get("price")
+                    or float("inf")
+                )
+            field = "cash_price" if price_type == "cash" else "price"
+            return node.get(field) or float("inf")
+
+        cheapest = min(stations, key=_sort_key)
+        cheapest["last_updated"] = datetime.now(UTC)
+        _LOGGER.debug("Cheapest gas station: %s", _redact(cheapest))
+        return cheapest
 
     async def clear_cache(self) -> None:
         """Clear cache file."""

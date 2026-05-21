@@ -15,12 +15,15 @@ from custom_components.gasbuddy.config_flow import (
     validate_station,
 )
 from custom_components.gasbuddy.const import (
+    CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_FETCH_GAS,
+    CONF_FUEL_KEY,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
+    CONF_PRICE_TYPE,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -1908,3 +1911,102 @@ async def test_station_list_non_dict_validation(hass):
         )
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["options"][CONF_EV_CHARGING] is False
+
+
+async def test_cheapest_flow_gps(hass):
+    """Test cheapest gas tracker flow using home coordinates (no postal)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ) as mock_setup_entry:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "cheapest"}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "cheapest"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: "Cheapest Gas",
+                CONF_POSTAL: "",
+                CONF_FUEL_KEY: "regular_gas",
+                CONF_PRICE_TYPE: "best",
+                CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["title"] == "Cheapest Gas"
+        assert result["data"][CONF_CHEAPEST] is True
+        assert result["data"][CONF_FUEL_KEY] == "regular_gas"
+        assert result["data"][CONF_PRICE_TYPE] == "best"
+        assert CONF_POSTAL not in result["data"]
+        assert result["data"][CONF_SOLVER] is None
+        assert result["options"][CONF_EV_CHARGING] is False
+        assert result["options"][CONF_FETCH_GAS] is True
+
+        await hass.async_block_till_done()
+        assert len(mock_setup_entry.mock_calls) == 1
+
+
+async def test_cheapest_flow_postal(hass):
+    """Test cheapest gas tracker flow using postal code."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "cheapest"}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: "Cheapest Gas Near Me",
+                CONF_POSTAL: "13201",
+                CONF_FUEL_KEY: "premium_gas",
+                CONF_PRICE_TYPE: "cash",
+                CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_CHEAPEST] is True
+        assert result["data"][CONF_FUEL_KEY] == "premium_gas"
+        assert result["data"][CONF_PRICE_TYPE] == "cash"
+        assert result["data"][CONF_POSTAL] == "13201"
+
+
+async def test_cheapest_flow_invalid_solver(hass):
+    """Test cheapest flow rejects invalid solver URL."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "cheapest"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "cheapest"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_NAME: "Cheapest Gas",
+            CONF_POSTAL: "",
+            CONF_FUEL_KEY: "regular_gas",
+            CONF_PRICE_TYPE: "best",
+            CONF_SOLVER: "not-a-valid-url",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "cheapest"
+    assert result["errors"] == {CONF_SOLVER: "invalid_url"}
