@@ -814,7 +814,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     options[CONF_EV_CHARGING] = False
                     options[CONF_FETCH_GAS] = True
 
-                self.hass.config_entries.async_update_entry(entry, data=self._data, options=options)
+                self.hass.config_entries.async_update_entry(
+                    entry, title=self._data[CONF_NAME], data=self._data, options=options
+                )
                 self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
