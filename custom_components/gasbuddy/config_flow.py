@@ -487,14 +487,17 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
 
-            # Get cached coordinates if available
-            cached_coords = (
+            # Get cached coordinates if available, then drop this flow's
+            # entry — it's not needed past this step and would otherwise
+            # accumulate forever in hass.data across repeated config-flow
+            # attempts.
+            flow_cache = (
                 self.hass.data
                 .get(DOMAIN, {})
                 .get("station_coordinates_by_flow", {})
-                .get(self.flow_id, {})
-                .get(str(self._data[CONF_STATION_ID]))
+                .pop(self.flow_id, {})
             )
+            cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
             lat, lon = cached_coords or (None, None)
 
             try:
@@ -588,14 +591,17 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._data.pop(CONF_POSTAL)
             self._data.update(user_input)
 
-            # Get cached coordinates if available
-            cached_coords = (
+            # Get cached coordinates if available, then drop this flow's
+            # entry — it's not needed past this step and would otherwise
+            # accumulate forever in hass.data across repeated config-flow
+            # attempts.
+            flow_cache = (
                 self.hass.data
                 .get(DOMAIN, {})
                 .get("station_coordinates_by_flow", {})
-                .get(self.flow_id, {})
-                .get(str(self._data[CONF_STATION_ID]))
+                .pop(self.flow_id, {})
             )
+            cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
             lat, lon = cached_coords or (None, None)
 
             try:
