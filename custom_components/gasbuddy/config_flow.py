@@ -47,7 +47,7 @@ class SearchFailed(HomeAssistantError):
     """Error to indicate the search failed."""
 
 
-async def validate_url(url: str) -> bool:
+def validate_url(url: str) -> bool:
     """Validate user input URL."""
     pattern = re.compile(
         r"^(?:http|ftp)s?://"
@@ -388,7 +388,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_GPS, True)
             user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
             if user_input.get(CONF_SOLVER):
-                url_valid = await validate_url(user_input[CONF_SOLVER])
+                url_valid = validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
@@ -458,7 +458,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
             self._data.update(user_input)
             if user_input.get(CONF_SOLVER):
-                url_valid = await validate_url(user_input[CONF_SOLVER])
+                url_valid = validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
@@ -558,7 +558,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._data.update(user_input)
             if user_input.get(CONF_SOLVER):
-                url_valid = await validate_url(user_input[CONF_SOLVER])
+                url_valid = validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
@@ -661,7 +661,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._data.update(user_input)
             if user_input[CONF_SOLVER] != "":
-                url_valid = await validate_url(user_input[CONF_SOLVER])
+                url_valid = validate_url(user_input[CONF_SOLVER])
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
