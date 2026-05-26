@@ -649,4 +649,5 @@ commands = [["mypy", "custom_components{/}gasbuddy"]]
 deps = ["-rrequirements_test.txt"]
 
 [tool.codespell]
-ignore-words-list = "hass,invalide,mesure,Lokal,doubleclick,GoIn,going"
+ignore-words-list = "hass,doubleclick,Lokal,GoIn,going"
+skip = "./.*,*.csv,*.ambr,*/translations/*"
