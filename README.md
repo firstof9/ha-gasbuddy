@@ -15,6 +15,8 @@ _Integration to track fuel prices from [GasBuddy][GasBuddy]._
 
 Looking for a custom Lovelace card? Check out the [GasBuddy Card][gasbuddy-card].
 
+![GasBuddy Card][gasbuddy-card-screenshot]
+
 **This integration will set up the following platforms.**
 
 Platform | Description
@@ -96,6 +98,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 [GasBuddy]: https://gasbuddy.com/
 [gasbuddy-card]: https://github.com/firstof9/gasbuddy-card
+[gasbuddy-card-screenshot]: https://github.com/firstof9/gasbuddy-card/raw/main/screenshots/gas_station.png
 [ha-gasbuddy]: https://github.com/firstof9/ha-gasbuddy
 [buymecoffee]: https://www.buymeacoffee.com/firstof9
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
