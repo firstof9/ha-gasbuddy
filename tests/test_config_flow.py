@@ -2010,3 +2010,222 @@ async def test_cheapest_flow_invalid_solver(hass):
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "cheapest"
     assert result["errors"] == {CONF_SOLVER: "invalid_url"}
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_manual_invalid_station_id_format(hass):
+    r"""Manual flow rejects station IDs that don't match ^\d{1,20}$ (lines 451-452)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "manual"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {CONF_NAME: DEFAULT_NAME, CONF_STATION_ID: "abc-not-numeric"},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "manual"
+    assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+@pytest.mark.asyncio
+async def test_postal_invalid_format(hass):
+    """Postal flow rejects postal codes that don't match the postal regex (lines 622-623)."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "postal"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_POSTAL: "NOTVALID"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "postal"
+    assert result["errors"] == {CONF_POSTAL: "no_results"}
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_invalid_station_id_format(hass, integration):
+    """Reconfigure rejects non-numeric station IDs (lines 781-782)."""
+    entry = integration
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+    assert reconfigure_result["type"] is FlowResultType.FORM
+
+    result = await hass.config_entries.flow.async_configure(
+        reconfigure_result["flow_id"],
+        {CONF_NAME: DEFAULT_NAME, CONF_STATION_ID: "abc-invalid", CONF_SOLVER: ""},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_STATION_ID: "station_id"}
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_cheapest_show_form(hass):
+    """Reconfigure for a cheapest entry shows the cheapest form (lines 775, 856)."""
+    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Cheapest Gas",
+        data=CONFIG_DATA_CHEAPEST,
+        options=OPTIONS_CHEAPEST,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+    assert reconfigure_result["type"] is FlowResultType.FORM
+    assert reconfigure_result["step_id"] == "reconfigure"
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_cheapest_success(hass):
+    """Reconfigure cheapest entry with valid data succeeds (lines 823-850)."""
+    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Cheapest Gas",
+        data=CONFIG_DATA_CHEAPEST,
+        options=OPTIONS_CHEAPEST,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+
+    with patch("homeassistant.config_entries.ConfigEntries.async_reload"):
+        result = await hass.config_entries.flow.async_configure(
+            reconfigure_result["flow_id"],
+            {
+                CONF_NAME: "Updated Cheapest",
+                CONF_POSTAL: "90210",
+                CONF_FUEL_KEY: "premium_gas",
+                CONF_PRICE_TYPE: "cash",
+                CONF_SOLVER: "",
+            },
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data[CONF_NAME] == "Updated Cheapest"
+    assert entry.data[CONF_POSTAL] == "90210"
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_cheapest_invalid_solver(hass):
+    """Reconfigure cheapest entry rejects invalid solver URL (lines 828-829)."""
+    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Cheapest Gas",
+        data=CONFIG_DATA_CHEAPEST,
+        options=OPTIONS_CHEAPEST,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        reconfigure_result["flow_id"],
+        {
+            CONF_NAME: "Cheapest Gas",
+            CONF_POSTAL: "",
+            CONF_FUEL_KEY: "regular_gas",
+            CONF_PRICE_TYPE: "best",
+            CONF_SOLVER: "not-a-valid-url",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_SOLVER: "invalid_url"}
+
+
+@pytest.mark.asyncio
+async def test_station_list_cache_eviction(hass):
+    """Station coord cache evicts oldest entries when >= 50 flow IDs exist (lines 213-214)."""
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN]["station_coordinates_by_flow"] = {f"flow_{i}": {} for i in range(50)}
+
+    ev_station = {
+        "station_id": "ev001",
+        "name": "Test EV",
+        "street_address": "1 Main St",
+        "latitude": 33.5,
+        "longitude": -112.5,
+    }
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.location_search",
+            return_value={"results": []},
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.ev_stations_nearby",
+            return_value={"stations": [ev_station]},
+        ),
+    ):
+        await _get_station_list(hass, {"lat": 33.5, "lon": -112.5}, "new_flow_id")
+
+    cache = hass.data[DOMAIN]["station_coordinates_by_flow"]
+    assert len(cache) <= 41  # 50 - 10 evicted + 1 new
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_cheapest_clears_postal(hass):
+    """Reconfigure cheapest entry removes postal when submitted blank (line 843)."""
+    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
+
+    config_with_postal = {**CONFIG_DATA_CHEAPEST, CONF_POSTAL: "12345"}
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Cheapest Gas",
+        data=config_with_postal,
+        options=OPTIONS_CHEAPEST,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+
+    with patch("homeassistant.config_entries.ConfigEntries.async_reload"):
+        result = await hass.config_entries.flow.async_configure(
+            reconfigure_result["flow_id"],
+            {
+                CONF_NAME: "Cheapest Gas",
+                CONF_POSTAL: "",
+                CONF_FUEL_KEY: "regular_gas",
+                CONF_PRICE_TYPE: "best",
+                CONF_SOLVER: "",
+            },
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert CONF_POSTAL not in entry.data

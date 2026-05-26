@@ -27,7 +27,14 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
 
-from .const import CONFIG_DATA, CONFIG_DATA_NO_UOM, OPTIONS_NO_UOM
+from .const import (
+    CONFIG_DATA,
+    CONFIG_DATA_CHEAPEST,
+    CONFIG_DATA_NO_UOM,
+    COORDINATOR_DATA,
+    OPTIONS_CHEAPEST,
+    OPTIONS_NO_UOM,
+)
 
 ATTR_ENTITY_PICTURE = "entity_picture"
 
@@ -468,3 +475,161 @@ async def test_extra_attrs_richer(hass, mock_gasbuddy, integration):
     assert attrs.get("star_rating") == 4.2
     assert attrs.get("address") == "1101 N Verrado Way, Buckeye, AZ"
     assert attrs.get("amenities") == "ATM, Restrooms"
+
+
+# ---------------------------------------------------------------------------
+# Coordinator cheapest-mode tests (coordinator.py lines 95, 247-290)
+# ---------------------------------------------------------------------------
+
+_CHEAPEST_STATIONS = [
+    {
+        "station_id": "111",
+        "name": "Expensive",
+        "regular_gas": {"price": 4.00, "cash_price": 3.90, "deal_price": 3.80},
+    },
+    {
+        "station_id": "222",
+        "name": "Cheap",
+        "regular_gas": {"price": 3.20, "cash_price": 3.10, "deal_price": 3.00},
+    },
+]
+
+
+async def test_coordinator_cheapest_gps(hass):
+    """Cheapest mode picks lowest station via GPS (best price type)."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=2
+    )
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": _CHEAPEST_STATIONS},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["station_id"] == "222"
+    assert "last_updated" in data
+
+
+async def test_coordinator_cheapest_postal(hass):
+    """Cheapest mode uses postal code when configured."""
+    from custom_components.gasbuddy.const import CONF_POSTAL  # noqa: PLC0415
+
+    config = {**CONFIG_DATA_CHEAPEST, CONF_POSTAL: "12345"}
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    stations = [
+        {
+            "station_id": "333",
+            "name": "Postal",
+            "regular_gas": {"price": 3.10, "cash_price": None, "deal_price": None},
+        }
+    ]
+    with patch.object(coordinator._api, "price_lookup_service", return_value={"results": stations}):  # noqa: SLF001
+        data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["station_id"] == "333"
+
+
+async def test_coordinator_cheapest_no_stations(hass):
+    """Cheapest mode raises UpdateFailed when no station carries the fuel."""
+    from homeassistant.helpers.update_coordinator import UpdateFailed  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=2
+    )
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with (
+        patch.object(coordinator._api, "price_lookup_service", return_value={"results": []}),  # noqa: SLF001
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator._async_update_data()  # noqa: SLF001
+
+
+async def test_coordinator_cheapest_api_error(hass):
+    """Cheapest mode wraps API errors as UpdateFailed."""
+    from py_gasbuddy.exceptions import APIError  # noqa: PLC0415
+
+    from homeassistant.helpers.update_coordinator import UpdateFailed  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=2
+    )
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with (
+        patch.object(coordinator._api, "price_lookup_service", side_effect=APIError("boom")),  # noqa: SLF001
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator._async_update_data()  # noqa: SLF001
+
+
+async def test_coordinator_cheapest_sort_deal(hass):
+    """Cheapest mode sort by deal price."""
+    from custom_components.gasbuddy.const import CONF_PRICE_TYPE  # noqa: PLC0415
+
+    config = {**CONFIG_DATA_CHEAPEST, CONF_PRICE_TYPE: "deal"}
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": _CHEAPEST_STATIONS},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "222"
+
+
+async def test_coordinator_cheapest_sort_cash(hass):
+    """Cheapest mode sort by cash price."""
+    from custom_components.gasbuddy.const import CONF_PRICE_TYPE  # noqa: PLC0415
+
+    config = {**CONFIG_DATA_CHEAPEST, CONF_PRICE_TYPE: "cash"}
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": _CHEAPEST_STATIONS},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "222"
+
+
+async def test_coordinator_cheapest_sort_credit(hass):
+    """Cheapest mode sort by credit price (fallback else branch)."""
+    from custom_components.gasbuddy.const import CONF_PRICE_TYPE  # noqa: PLC0415
+
+    config = {**CONFIG_DATA_CHEAPEST, CONF_PRICE_TYPE: "credit"}
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": _CHEAPEST_STATIONS},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "222"
+
+
+async def test_fuels_list_enables_sensors(hass, entity_registry: er.EntityRegistry):
+    """Fuels list in coordinator data enables sensors for carried fuels (sensor.py line 48)."""
+    data_with_fuels = {**COORDINATOR_DATA, "fuels": ["regular_gas", "diesel"]}
+    with patch(
+        "custom_components.gasbuddy.GasBuddyUpdateCoordinator._async_update_data",
+        return_value=data_with_fuels,
+    ):
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="gas_station",
+            data=CONFIG_DATA,
+            options={CONF_UOM: True, "gps": True, CONF_EV_CHARGING: False, CONF_FETCH_GAS: True},
+            version=2,
+        )
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    diesel = entity_registry.async_get("sensor.gas_station_diesel")
+    assert diesel is not None
+    assert diesel.disabled_by is None
