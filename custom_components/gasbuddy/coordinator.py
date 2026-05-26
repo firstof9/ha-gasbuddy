@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_SOLVER,
@@ -91,84 +92,109 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Update data via library."""
         ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
-        try:
-            self._data = await self._api.price_lookup()
-            _LOGGER.debug("Gas station data: %s", _redact(self._data))
+        fetch_gas = self._config.options.get(CONF_FETCH_GAS, True)
 
-            config_lat = self._config.data.get("latitude")
-            config_lon = self._config.data.get("longitude")
-            if config_lat is not None and config_lon is not None:
-                gas_lat = self._data.get("latitude")
-                gas_lon = self._data.get("longitude")
-                if gas_lat is not None and gas_lon is not None:
-                    if abs(gas_lat - config_lat) > 1.0 or abs(gas_lon - config_lon) > 1.0:
-                        raise APIError("Station ID collision detected")  # noqa: TRY301
-        except (APIError, LibraryError, CSRFTokenMissing) as ex:
-            if ev_charging_enabled:
-                _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
-                try:
-                    # Use coordinates from config entry if available, otherwise home coordinates
-                    lat = self._config.data.get("latitude")
-                    lon = self._config.data.get("longitude")
-                    if lat is None:
-                        lat = self.hass.config.latitude
-                    if lon is None:
-                        lon = self.hass.config.longitude
-                    ev_res = await self._api.ev_stations_nearby(
-                        lat=lat,
-                        lon=lon,
-                        radius=100,
-                        limit=100,
-                    )
+        if not fetch_gas:
+            # User has disabled gas-price polling on this station — most
+            # commonly an EV-only station. Skip price_lookup entirely
+            # (it would APIError every cycle) and bootstrap self._data
+            # so the EV enrichment block below can populate sensors.
+            if not ev_charging_enabled:
+                raise UpdateFailed(
+                    "Both gas price polling and EV charging are disabled — "
+                    "nothing to fetch."
+                )
+            lat = self._config.data.get("latitude") or self.hass.config.latitude
+            lon = self._config.data.get("longitude") or self.hass.config.longitude
+            self._data = {
+                "station_id": self._config.data[CONF_STATION_ID],
+                "name": self._config.data.get(CONF_NAME, "EV Station"),
+                "latitude": lat,
+                "longitude": lon,
+            }
+            _LOGGER.debug(
+                "fetch_gas disabled — bootstrapping EV-only data: %s",
+                _redact(self._data),
+            )
+        else:
+            try:
+                self._data = await self._api.price_lookup()
+                _LOGGER.debug("Gas station data: %s", _redact(self._data))
 
-                    _LOGGER.debug("EV station fallback search result: %s", _redact(ev_res))
+                config_lat = self._config.data.get("latitude")
+                config_lon = self._config.data.get("longitude")
+                if config_lat is not None and config_lon is not None:
+                    gas_lat = self._data.get("latitude")
+                    gas_lon = self._data.get("longitude")
+                    if gas_lat is not None and gas_lon is not None:
+                        if abs(gas_lat - config_lat) > 1.0 or abs(gas_lon - config_lon) > 1.0:
+                            raise APIError("Station ID collision detected")  # noqa: TRY301
+            except (APIError, LibraryError, CSRFTokenMissing) as ex:
+                if ev_charging_enabled:
+                    _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
+                    try:
+                        # Use coordinates from config entry if available, otherwise home coordinates
+                        lat = self._config.data.get("latitude")
+                        lon = self._config.data.get("longitude")
+                        if lat is None:
+                            lat = self.hass.config.latitude
+                        if lon is None:
+                            lon = self.hass.config.longitude
+                        ev_res = await self._api.ev_stations_nearby(
+                            lat=lat,
+                            lon=lon,
+                            radius=100,
+                            limit=100,
+                        )
 
-                    matching = next(
-                        (
-                            s
-                            for s in (ev_res or {}).get("stations", [])
-                            if s.get("station_id") is not None
-                            and str(s["station_id"]).strip()
-                            == str(self._config.data[CONF_STATION_ID]).strip()
-                        ),
-                        None,
-                    )
-                    if matching:
-                        self._data = {
-                            "station_id": matching["station_id"],
-                            "name": matching["name"],
-                            "latitude": matching["latitude"],
-                            "longitude": matching["longitude"],
-                            "unit_of_measure": "dollars_per_gallon",
-                            "currency": "USD",
-                        }
-                        # Update config entry if coordinates are new or changed
-                        if (
-                            self._config.data.get("latitude") != matching["latitude"]
-                            or self._config.data.get("longitude") != matching["longitude"]
-                        ):
-                            new_data = {
-                                **self._config.data,
+                        _LOGGER.debug("EV station fallback search result: %s", _redact(ev_res))
+
+                        matching = next(
+                            (
+                                s
+                                for s in (ev_res or {}).get("stations", [])
+                                if s.get("station_id") is not None
+                                and str(s["station_id"]).strip()
+                                == str(self._config.data[CONF_STATION_ID]).strip()
+                            ),
+                            None,
+                        )
+                        if matching:
+                            self._data = {
+                                "station_id": matching["station_id"],
+                                "name": matching["name"],
                                 "latitude": matching["latitude"],
                                 "longitude": matching["longitude"],
+                                "unit_of_measure": "dollars_per_gallon",
+                                "currency": "USD",
                             }
-                            self.hass.config_entries.async_update_entry(self._config, data=new_data)
-                    else:
-                        self._data = {
-                            "station_id": self._config.data[CONF_STATION_ID],
-                            "name": self._config.data.get(CONF_NAME, "EV Station"),
-                            "latitude": lat,
-                            "longitude": lon,
-                            "unit_of_measure": "dollars_per_gallon",
-                            "currency": "USD",
-                        }
-                except Exception as fallback_ex:  # noqa: BLE001
-                    _LOGGER.error("EV fallback failed: %s", fallback_ex)
+                            # Update config entry if coordinates are new or changed
+                            if (
+                                self._config.data.get("latitude") != matching["latitude"]
+                                or self._config.data.get("longitude") != matching["longitude"]
+                            ):
+                                new_data = {
+                                    **self._config.data,
+                                    "latitude": matching["latitude"],
+                                    "longitude": matching["longitude"],
+                                }
+                                self.hass.config_entries.async_update_entry(self._config, data=new_data)
+                        else:
+                            self._data = {
+                                "station_id": self._config.data[CONF_STATION_ID],
+                                "name": self._config.data.get(CONF_NAME, "EV Station"),
+                                "latitude": lat,
+                                "longitude": lon,
+                                "unit_of_measure": "dollars_per_gallon",
+                                "currency": "USD",
+                            }
+                    except Exception as fallback_ex:  # noqa: BLE001
+                        _LOGGER.error("EV fallback failed: %s", fallback_ex)
+                        raise UpdateFailed(f"Error retrieving data: {ex}") from ex
+                else:
                     raise UpdateFailed(f"Error retrieving data: {ex}") from ex
-            else:
-                raise UpdateFailed(f"Error retrieving data: {ex}") from ex
-        except Exception as exception:
-            raise UpdateFailed from exception
+            except Exception as exception:
+                raise UpdateFailed from exception
 
         # Query EV station details if enabled
         if ev_charging_enabled and "latitude" in self._data and "longitude" in self._data:
