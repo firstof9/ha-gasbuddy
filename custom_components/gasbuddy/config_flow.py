@@ -441,7 +441,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
             else:
                 self._data.update(user_input)
                 if isinstance(validate, dict):
@@ -551,7 +553,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
                 return await self._show_config_home2(user_input)
             if isinstance(validate, dict):
                 self._data["latitude"] = validate.get("latitude")
@@ -655,7 +659,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
                 return await self._show_config_station_list(user_input)
             if isinstance(validate, dict):
                 self._data["latitude"] = validate.get("latitude")
@@ -724,7 +730,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
 
             if len(self._errors) == 0:
                 options = dict(entry.options)

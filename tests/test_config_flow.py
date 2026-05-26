@@ -1957,3 +1957,146 @@ async def test_station_list_non_dict_validation(hass):
         )
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["options"][CONF_EV_CHARGING] is False
+
+
+async def test_reconfigure_cloudflare_blocked(hass, integration):
+    """Reconfigure flow surfaces the cloudflare error on a CSRF block."""
+    entry = integration
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        side_effect=CloudflareBlocked,
+    ):
+        reconfigure_result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        assert reconfigure_result["type"] is FlowResultType.FORM
+
+        result = await hass.config_entries.flow.async_configure(
+            reconfigure_result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "123",
+                CONF_SOLVER: "",
+            },
+        )
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["errors"] == {CONF_STATION_ID: "cloudflare"}
+
+
+async def test_form_manual_cloudflare_blocked(hass):
+    """Manual flow surfaces the cloudflare error on a CSRF block."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        side_effect=CloudflareBlocked,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "manual"}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "123",
+                CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "manual"
+        assert result["errors"] == {CONF_STATION_ID: "cloudflare"}
+
+
+async def test_home2_cloudflare_blocked(hass):
+    """home2 flow surfaces the cloudflare error on a CSRF block."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "home"}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value={"32394": "Holiday @ 400 4th St SE"},
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            side_effect=CloudflareBlocked,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_SOLVER: SOLVER_URL}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "home2"
+        assert result["errors"] == {CONF_STATION_ID: "cloudflare"}
+
+
+async def test_station_list_cloudflare_blocked(hass):
+    """station_list flow surfaces the cloudflare error on a CSRF block."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "search"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "postal"}
+    )
+
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow._get_station_list",
+            return_value={"32394": "Holiday @ 400 4th St SE"},
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow.validate_station",
+            side_effect=CloudflareBlocked,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_POSTAL: "55904",
+                CONF_SOLVER: SOLVER_URL,
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: DEFAULT_NAME,
+                CONF_STATION_ID: "32394",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "station_list"
+        assert result["errors"] == {CONF_STATION_ID: "cloudflare"}
