@@ -40,6 +40,7 @@ def _cache_path(hass: HomeAssistant) -> str:
     """Return the shared CSRF-token cache file path."""
     return f"{hass.config.config_dir}/{CACHE_FILE_NAME}"
 
+
 _LOGGER = logging.getLogger(__name__)
 MENU_OPTIONS = ["manual", "search"]
 MENU_SEARCH = ["home", "postal"]
