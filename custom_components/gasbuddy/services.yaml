@@ -79,5 +79,5 @@ clear_cache:
   name: Clear Cache
   description: Clear library cache file.
   target:
-    entity:
+    device:
       integration: gasbuddy
