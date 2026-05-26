@@ -286,8 +286,6 @@ class GasBuddyServices:
             _LOGGER.debug("Config ID: %s", config_id)
             entry = self.hass.data.get(DOMAIN, {}).get(config_id)
             if entry is None:
-                raise ValueError(
-                    f"Device {device_id} references unknown config entry {config_id}"
-                )
+                raise ValueError(f"Device {device_id} references unknown config entry {config_id}")
             manager = entry[COORDINATOR]
             await manager.clear_cache()
