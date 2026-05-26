@@ -72,6 +72,7 @@ STATION_LIST = {
 COORDINATOR_DATA = {
     "station_id": "208656",
     "name": "Costco",
+    "pay_status": True,
     "image_url": "https://images.gasbuddy.io/b/122.png",
     "unit_of_measure": "dollars_per_gallon",
     "currency": "USD",
@@ -147,6 +148,7 @@ OPTIONS_CHEAPEST = {
 COORDINATOR_DATA_CHEAPEST = {
     "station_id": "187725",
     "name": "Shell",
+    "pay_status": True,
     "image_url": None,
     "unit_of_measure": "dollars_per_gallon",
     "currency": "USD",

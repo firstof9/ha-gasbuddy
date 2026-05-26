@@ -248,9 +248,9 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
         ),
-        vol.Optional(
-            CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
+        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
+            cv.positive_int, vol.Range(min=1000, max=300000)
+        ),
     })
 
 
@@ -271,9 +271,9 @@ def _get_schema_home(
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
         ),
-        vol.Optional(
-            CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
+        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
+            cv.positive_int, vol.Range(min=1000, max=300000)
+        ),
     })
 
 
@@ -317,9 +317,9 @@ def _get_schema_postal(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
         ),
-        vol.Optional(
-            CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
+        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
+            cv.positive_int, vol.Range(min=1000, max=300000)
+        ),
     })
 
 
@@ -363,13 +363,17 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_POSTAL, default=_get_default(CONF_POSTAL, "")): vol.All(
             vol.Coerce(str), vol.Strip
         ),
-        vol.Required(CONF_FUEL_KEY, default=_get_default(CONF_FUEL_KEY, "regular_gas")): SelectSelector(
+        vol.Required(
+            CONF_FUEL_KEY, default=_get_default(CONF_FUEL_KEY, "regular_gas")
+        ): SelectSelector(
             SelectSelectorConfig(
                 options=[{"value": k, "label": v} for k, v in FUEL_KEY_CHOICES.items()],
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Required(CONF_PRICE_TYPE, default=_get_default(CONF_PRICE_TYPE, "best")): SelectSelector(
+        vol.Required(
+            CONF_PRICE_TYPE, default=_get_default(CONF_PRICE_TYPE, "best")
+        ): SelectSelector(
             SelectSelectorConfig(
                 options=[{"value": k, "label": v} for k, v in PRICE_TYPE_CHOICES.items()],
                 mode=SelectSelectorMode.DROPDOWN,
@@ -378,9 +382,9 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
             cv.string, vol.Strip
         ),
-        vol.Optional(
-            CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        ): vol.All(cv.positive_int, vol.Range(min=1000, max=300000)),
+        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
+            cv.positive_int, vol.Range(min=1000, max=300000)
+        ),
     })
 
 
