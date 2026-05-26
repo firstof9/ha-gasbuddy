@@ -13,6 +13,10 @@
 
 _Integration to track fuel prices from [GasBuddy][GasBuddy]._
 
+Looking for a custom Lovelace card? Check out the [GasBuddy Card][gasbuddy-card].
+
+![GasBuddy Card][gasbuddy-card-screenshot]
+
 **This integration will set up the following platforms.**
 
 Platform | Description
@@ -29,7 +33,7 @@ Platform | Description
 3. Select the category type `integration`
 4. Then once it's there (still in HACS) click the INSTALL button
 5. Restart Home Assistant
-6. Once restarted, in the HA UI go to `Configuration` (the ⚙️ in the lower left) -> `Devices and Services` click `+ Add Integration` and search for `GasBuddy`
+6. Once restarted, in the HA UI go to `Settings` (the ⚙️ on the sidebar) -> `Devices & Services`, click `+ Add Integration` and search for `GasBuddy`
 
 ## Manual (non-HACS)
 <details>
@@ -45,14 +49,14 @@ You probably do not want to do this! Use the HACS method above unless you know w
 4. Download _all_ the files from the `custom_components/gasbuddy/` directory (folder) in this repository.
 5. Place the files you downloaded in the new directory (folder) you created.
 6. Restart Home Assistant
-7. Once restarted, in the HA UI go to `Configuration` (the ⚙️ in the lower left) -> `Devices and Services` click `+ Add Integration` and search for `GasBuddy`
+7. Once restarted, in the HA UI go to `Settings` (the ⚙️ on the sidebar) -> `Devices & Services`, click `+ Add Integration` and search for `GasBuddy`
 </details>
 
 ## Remedying Connection/timeout issues with FlareSolverr (Optional)
 
 Since May 2025, GasBuddy implemented Cloudflare which may lead to blocking of requests to GasBuddy, and cause timeout and log errors. This would lead to the occasional missed data update to obtain the latest gas prices, along with log errors.
 
-To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed via [FlareSolverr standalone installation](https://github.com/FlareSolverr/FlareSolverr) or as an [FlareSolverr Home Assistant add-on](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can re-configure your existing GasBuddy entries by clicking the 3 dots of EACH gas station entry, and entering your FlareSolverr URL, ie. `http://ip:port/v1`
+To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed via [FlareSolverr standalone installation](https://github.com/FlareSolverr/FlareSolverr) or as a [FlareSolverr Home Assistant add-on](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can re-configure your existing GasBuddy entries by clicking the 3 dots of each gas station entry and entering your FlareSolverr URL, i.e., `http://ip:port/v1`
 
 <img width="673" height="498" alt="image" src="https://github.com/user-attachments/assets/dbb7f99f-9f4d-4b2b-83c9-8419ba106a97" />
 
@@ -78,11 +82,11 @@ The following services are available:
 
 Service | Description | Arguments
 :--- | :--- | :---
-`lookup_gps` | Lookup prices using GPS coordinates from a list of entities (e.g., `device_tracker` or `person`). | `entity_id` (Required), `limit` (Optional, 1-99), `solver` (Optional)
-`lookup_zip` | Lookup prices via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional, 1-99), `solver` (Optional)
-`ev_lookup_gps` | Lookup nearby EV stations using GPS coordinates from a list of entities. | `entity_id` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
-`ev_lookup_zip` | Lookup nearby EV stations via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
-`clear_cache` | Clear the cache for specific device(s). | `device_id` (Required)
+`gasbuddy.lookup_gps` | Lookup prices using GPS coordinates from a list of entities (e.g., `device_tracker` or `person`). | `entity_id` (Required), `limit` (Optional, 1-99), `solver` (Optional)
+`gasbuddy.lookup_zip` | Lookup prices via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional, 1-99), `solver` (Optional)
+`gasbuddy.ev_lookup_gps` | Lookup nearby EV stations using GPS coordinates from a list of entities. | `entity_id` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
+`gasbuddy.ev_lookup_zip` | Lookup nearby EV stations via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
+`gasbuddy.clear_cache` | Clear the cache for specific device(s). | `device_id` (Required)
 
 ## Contributions are welcome!
 
@@ -93,6 +97,8 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 
 [GasBuddy]: https://gasbuddy.com/
+[gasbuddy-card]: https://github.com/firstof9/gasbuddy-card
+[gasbuddy-card-screenshot]: https://github.com/firstof9/gasbuddy-card/raw/main/screenshots/gas_station.png
 [ha-gasbuddy]: https://github.com/firstof9/ha-gasbuddy
 [buymecoffee]: https://www.buymeacoffee.com/firstof9
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
