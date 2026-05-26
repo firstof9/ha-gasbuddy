@@ -727,7 +727,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             solver = (user_input.get(CONF_SOLVER) or "").strip() or None
             if solver:
-                url_valid = await validate_url(solver)
+                url_valid = validate_url(solver)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_config_cheapest(user_input)
@@ -826,7 +826,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             solver = (user_input.get(CONF_SOLVER) or "").strip() or None
             if solver:
-                url_valid = await validate_url(solver)
+                url_valid = validate_url(solver)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
                     return await self._show_reconfig_cheapest_form(user_input)
