@@ -266,7 +266,28 @@ class GasBuddyServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            # Prefer identifiers (correct field); fall back to the legacy
+            # `connections` entry for devices registered by older versions.
+            config_id: str | None = None
+            for domain, value in device_entry.identifiers:
+                if domain == DOMAIN:
+                    config_id = value
+                    break
+            if config_id is None:
+                for domain, value in device_entry.connections:
+                    if domain == DOMAIN:
+                        config_id = value
+                        break
+            if config_id is None:
+                raise ValueError(
+                    f"Device {device_id} is not registered against the {DOMAIN} integration"
+                )
+
             _LOGGER.debug("Config ID: %s", config_id)
-            manager = self.hass.data[DOMAIN][config_id][COORDINATOR]
+            entry = self.hass.data.get(DOMAIN, {}).get(config_id)
+            if entry is None:
+                raise ValueError(
+                    f"Device {device_id} references unknown config entry {config_id}"
+                )
+            manager = entry[COORDINATOR]
             await manager.clear_cache()

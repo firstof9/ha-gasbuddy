@@ -80,6 +80,13 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         return DeviceInfo(
             manufacturer="GasBuddy",
             name=self._config.data[CONF_NAME],
+            # `identifiers` is the correct field for application-defined
+            # device keys; `connections` is reserved for hardware
+            # connection tuples (mac/bluetooth/etc.). The `connections`
+            # entry below is kept for one release so existing
+            # installations keep matching their already-registered
+            # device entry; it can be removed once users have migrated.
+            identifiers={(DOMAIN, self._unique_id)},
             connections={(DOMAIN, self._unique_id)},
         )
 
