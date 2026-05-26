@@ -18,6 +18,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CACHE_FILE_NAME,
     CONF_EV_CHARGING,
     CONF_FETCH_GAS,
     CONF_GPS,
@@ -33,6 +34,11 @@ from .const import (
     DEFAULT_TIMEOUT,
     DOMAIN,
 )
+
+
+def _cache_path(hass: HomeAssistant) -> str:
+    """Return the shared CSRF-token cache file path."""
+    return f"{hass.config.config_dir}/{CACHE_FILE_NAME}"
 
 _LOGGER = logging.getLogger(__name__)
 MENU_OPTIONS = ["manual", "search"]
@@ -75,6 +81,7 @@ async def validate_station(
         check = await py_gasbuddy.GasBuddy(
             solver_url=solver,
             station_id=station,
+            cache_file=_cache_path(hass),
             session=async_get_clientsession(hass),
         ).price_lookup()
         if "errors" not in check:
@@ -98,6 +105,7 @@ async def validate_station(
     try:
         ev_gb = py_gasbuddy.GasBuddy(
             solver_url=solver,
+            cache_file=_cache_path(hass),
             session=async_get_clientsession(hass),
         )
         val_lat = lat if lat is not None else hass.config.latitude
@@ -151,6 +159,7 @@ async def _get_station_list(
     try:
         stations = await py_gasbuddy.GasBuddy(
             solver_url=solver,
+            cache_file=_cache_path(hass),
             session=async_get_clientsession(hass),
         ).location_search(lat=lat, lon=lon, zipcode=postal)
     except MissingSearchData as ex:
@@ -172,6 +181,7 @@ async def _get_station_list(
         try:
             res = await py_gasbuddy.GasBuddy(
                 solver_url=solver,
+                cache_file=_cache_path(hass),
                 session=async_get_clientsession(hass),
             ).price_lookup_service(zipcode=postal)
             if res.get("results"):
@@ -186,6 +196,7 @@ async def _get_station_list(
         try:
             ev_gb = py_gasbuddy.GasBuddy(
                 solver_url=solver,
+                cache_file=_cache_path(hass),
                 session=async_get_clientsession(hass),
             )
             ev_res = await ev_gb.ev_stations_nearby(

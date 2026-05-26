@@ -24,6 +24,7 @@ from .const import (
     ATTR_POSTAL_CODE,
     ATTR_RADIUS,
     ATTR_SOLVER,
+    CACHE_FILE_NAME,
     COORDINATOR,
     DOMAIN,
     SERVICE_CLEAR_CACHE,
@@ -34,6 +35,11 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _cache_path(hass: HomeAssistant) -> str:
+    """Return the shared CSRF-token cache file path."""
+    return f"{hass.config.config_dir}/{CACHE_FILE_NAME}"
 
 
 class GasBuddyServices:
@@ -130,7 +136,11 @@ class GasBuddyServices:
             solver = service.data[ATTR_SOLVER]
 
         results = {}
-        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        api = GasBuddy(
+            solver_url=solver,
+            cache_file=_cache_path(self.hass),
+            session=async_get_clientsession(self.hass),
+        )
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
@@ -162,6 +172,7 @@ class GasBuddyServices:
         try:
             results = await GasBuddy(
                 solver_url=solver,
+                cache_file=_cache_path(self.hass),
                 session=async_get_clientsession(self.hass),
             ).price_lookup_service(zipcode=zipcode, limit=limit)
         except (APIError, LibraryError, CSRFTokenMissing) as ex:
@@ -186,7 +197,11 @@ class GasBuddyServices:
             solver = service.data[ATTR_SOLVER]
 
         results = {}
-        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        api = GasBuddy(
+            solver_url=solver,
+            cache_file=_cache_path(self.hass),
+            session=async_get_clientsession(self.hass),
+        )
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
@@ -228,7 +243,11 @@ class GasBuddyServices:
             solver = service.data[ATTR_SOLVER]
 
         results = {}
-        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        api = GasBuddy(
+            solver_url=solver,
+            cache_file=_cache_path(self.hass),
+            session=async_get_clientsession(self.hass),
+        )
         try:
             res = await api.price_lookup_service(zipcode=zipcode)
             lat = None
