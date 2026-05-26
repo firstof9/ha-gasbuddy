@@ -64,7 +64,7 @@ FUEL_KEY_CHOICES = {
 }
 
 PRICE_TYPE_CHOICES = {
-    "best": "Best (deal → cash → credit)",
+    "best": "Best (lowest available price)",
     "credit": "Credit",
     "cash": "Cash",
     "deal": "Deal/GasBuddy Pay",
