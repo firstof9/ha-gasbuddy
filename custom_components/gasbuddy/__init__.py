@@ -6,7 +6,6 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
@@ -64,11 +63,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     config_entry.add_update_listener(update_listener)
     coordinator = GasBuddyUpdateCoordinator(hass, config_entry)
 
-    # Fetch initial data so we have data when entities subscribe
-    await coordinator.async_refresh()
-
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
+    # Fetch initial data so we have data when entities subscribe.
+    # async_config_entry_first_refresh raises ConfigEntryNotReady itself
+    # when the first refresh fails, so HA can schedule a retry instead of
+    # leaving setup stalled in a half-loaded state.
+    await coordinator.async_config_entry_first_refresh()
 
     services = GasBuddyServices(hass, config_entry)
     hass.data[DOMAIN][config_entry.entry_id] = {COORDINATOR: coordinator, SERVICES: services}
