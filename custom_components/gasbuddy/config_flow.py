@@ -52,19 +52,24 @@ class CloudflareBlocked(HomeAssistantError):
 
 
 def _csrf_blocked_via_state(gb: py_gasbuddy.GasBuddy) -> bool:
-    """Return True if a just-failed call left the client without a CSRF token.
+    """Return True if the just-failed call hit a CSRF/Cloudflare block.
 
-    py_gasbuddy 0.6.0 catches ``CSRFTokenMissing`` inside its own
-    ``process_request`` and re-raises a content-less ``LibraryError``
-    upstream — so the caller can't distinguish "Cloudflare blocked
-    the token fetch" from "GasBuddy returned an error for this
-    station ID" by inspecting the exception. Instead, inspect the
-    client's post-call state: ``_tag`` stays empty exactly when the
-    CSRF round-trip never succeeded. Private attribute, but stable
-    across the recent py_gasbuddy releases — once the library exposes
-    a structured signal (see follow-up issue) we should switch.
+    py_gasbuddy catches the underlying error inside its own
+    ``process_request`` and surfaces a content-less ``LibraryError``,
+    so the caller can't tell "Cloudflare blocked the token fetch" from
+    "GasBuddy returned an error for this station ID" by inspecting the
+    exception. Instead, inspect the client's post-call state. The
+    ``_cf_last`` sentinel is ``None`` before any request, ``True`` after
+    a request that returned parseable JSON, and ``False`` only when the
+    last round-trip got a non-JSON body or a 403/non-200 status, which
+    is the Cloudflare-block signature. We deliberately match ``is False``
+    (not falsy) so the ``None`` initial state, the one a mocked or
+    never-dispatched client reports, is not mistaken for a block.
+    Private attribute, but stable across recent py_gasbuddy releases;
+    once the library exposes a structured signal (see follow-up issue)
+    we should switch.
     """
-    return getattr(gb, "_tag", None) == ""
+    return getattr(gb, "_cf_last", None) is False
 
 
 def validate_url(url: str) -> bool:

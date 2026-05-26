@@ -1,6 +1,7 @@
 """Test config flow."""
 
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from aioresponses import CallbackResult
@@ -9,8 +10,10 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.config_flow import (
+    CloudflareBlocked,
     InvalidStation,
     SearchFailed,
+    _csrf_blocked_via_state,  # noqa: PLC2701
     _get_station_list,  # noqa: PLC2701
     validate_station,
 )
@@ -1550,6 +1553,40 @@ async def test_validate_station_api_error(hass):
             side_effect=APIError("test error"),
         ),
         pytest.raises(InvalidStation),
+    ):
+        await validate_station(hass, 123, None)
+
+
+@pytest.mark.parametrize(
+    ("cf_last", "blocked"),
+    [
+        (False, True),  # last round-trip failed the CSRF/Cloudflare check
+        (None, False),  # never dispatched (e.g. mocked client) is not a block
+        (True, False),  # last round-trip returned parseable JSON
+    ],
+)
+async def test_csrf_blocked_via_state_signal(cf_last, blocked):
+    """Only ``_cf_last is False`` counts as a block; ``None`` must not."""
+    assert _csrf_blocked_via_state(SimpleNamespace(_cf_last=cf_last)) is blocked
+
+
+async def test_csrf_blocked_via_state_missing_attr():
+    """A client without ``_cf_last`` is treated as not blocked."""
+    assert _csrf_blocked_via_state(SimpleNamespace()) is False
+
+
+async def test_validate_station_cloudflare_blocked(hass):
+    """Test validate_station raises CloudflareBlocked when the CSRF probe trips."""
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup",
+            side_effect=APIError("blocked"),
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
+            return_value=True,
+        ),
+        pytest.raises(CloudflareBlocked),
     ):
         await validate_station(hass, 123, None)
 
