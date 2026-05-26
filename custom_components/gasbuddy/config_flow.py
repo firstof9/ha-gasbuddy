@@ -789,6 +789,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
+                    return await self._show_reconfig_form(user_input)
             else:
                 user_input[CONF_SOLVER] = None
 

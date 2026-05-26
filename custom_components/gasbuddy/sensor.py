@@ -65,7 +65,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
             if description.deal:
                 enabled = (
                     fuel_key in fuels_available
-                    and bool(data.get("pay_status"))
                     and (data.get(fuel_key) or {}).get("deal_price") is not None
                 )
             elif description.cash:
@@ -213,7 +212,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
 
         if fp := data[self._type].get("formatted_price"):
             attrs["formatted_price"] = fp
-        if data.get("pay_status") and (dp := data[self._type].get("deal_price")) is not None:
+        if (dp := data[self._type].get("deal_price")) is not None:
             attrs["deal_price"] = dp
         if phone := data.get("phone"):
             attrs["phone"] = phone
@@ -250,7 +249,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
 
         if self._price:
             if self._deal:
-                if not data.get("pay_status") or data[self._type].get("deal_price") is None:
+                if data[self._type].get("deal_price") is None:
                     return False
             elif self._cash:
                 if data[self._type].get("cash_price") is None:

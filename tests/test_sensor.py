@@ -484,18 +484,18 @@ async def test_extra_attrs_richer(hass, mock_gasbuddy, integration):
     assert attrs.get("amenities") == "ATM, Restrooms"
 
 
-async def test_deal_sensor_disabled_when_pay_status_false(
+async def test_deal_sensor_enabled_without_pay_status(
     hass, mock_gasbuddy, entity_registry: er.EntityRegistry
 ):
-    """Deal sensors stay disabled when pay_status is False even if deal_price is set."""
-    data_no_pay = {
+    """Deal sensors enable when deal_price is present even without pay_status (cheapest mode)."""
+    data_cheapest_like = {
         **COORDINATOR_DATA,
-        "pay_status": False,
         "regular_gas": {**COORDINATOR_DATA["regular_gas"], "deal_price": 2.50},
     }
+    data_cheapest_like.pop("pay_status", None)
     with patch(
         "custom_components.gasbuddy.GasBuddyUpdateCoordinator._async_update_data",
-        return_value=data_no_pay,
+        return_value=data_cheapest_like,
     ):
         entry = MockConfigEntry(
             domain=DOMAIN,
@@ -510,17 +510,17 @@ async def test_deal_sensor_disabled_when_pay_status_false(
 
     deal_entry = entity_registry.async_get("sensor.gas_station_regular_gas_deal")
     assert deal_entry is not None
-    assert deal_entry.disabled
+    assert not deal_entry.disabled
 
 
-async def test_extra_attrs_deal_price_gated_on_pay_status(hass, mock_gasbuddy, integration):
-    """deal_price attribute is omitted from price sensors when pay_status is False."""
+async def test_extra_attrs_deal_price_present_without_pay_status(hass, mock_gasbuddy, integration):
+    """deal_price attribute appears when deal_price is set, even without pay_status (cheapest mode)."""
     import copy  # noqa: PLC0415
 
     coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
     original_data = coordinator.data
     patched_data = copy.deepcopy(original_data)
-    patched_data["pay_status"] = False
+    patched_data.pop("pay_status", None)
     coordinator.data = patched_data
 
     sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration)
@@ -529,7 +529,8 @@ async def test_extra_attrs_deal_price_gated_on_pay_status(hass, mock_gasbuddy, i
     coordinator.data = original_data  # restore
 
     assert attrs is not None
-    assert "deal_price" not in attrs
+    assert "deal_price" in attrs
+    assert attrs["deal_price"] == patched_data["regular_gas"]["deal_price"]
 
 
 # ---------------------------------------------------------------------------

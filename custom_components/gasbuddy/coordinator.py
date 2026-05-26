@@ -45,6 +45,7 @@ def _redact(data: Any) -> str:
         "city",
         "state",
         "zip",
+        "station_id",
     }
 
     def _redact_recursive(obj: Any) -> Any:
