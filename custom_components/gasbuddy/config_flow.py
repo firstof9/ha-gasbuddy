@@ -7,12 +7,7 @@ import re
 from typing import Any
 
 import py_gasbuddy
-from py_gasbuddy.exceptions import (
-    APIError,
-    CSRFTokenMissing,
-    LibraryError,
-    MissingSearchData,
-)
+from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError, MissingSearchData
 import voluptuous as vol
 
 from homeassistant import config_entries
