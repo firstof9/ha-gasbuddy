@@ -61,7 +61,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if updated_config != config_entry.options:
         hass.config_entries.async_update_entry(config_entry, options=updated_config)
 
-    config_entry.add_update_listener(update_listener)
+    config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
     coordinator = GasBuddyUpdateCoordinator(hass, config_entry)
 
     # Fetch initial data so we have data when entities subscribe
