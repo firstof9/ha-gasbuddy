@@ -742,6 +742,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             }
             postal = (user_input.get(CONF_POSTAL) or "").strip()
             if postal:
+                if not _POSTAL_RE.match(postal):
+                    self._errors[CONF_POSTAL] = "no_results"
+                    return await self._show_config_cheapest(user_input)
                 data[CONF_POSTAL] = postal
 
             return self.async_create_entry(
@@ -838,6 +841,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             }
             postal = (user_input.get(CONF_POSTAL) or "").strip()
             if postal:
+                if not _POSTAL_RE.match(postal):
+                    self._errors[CONF_POSTAL] = "no_results"
+                    return await self._show_reconfig_cheapest_form(user_input)
                 new_data[CONF_POSTAL] = postal
             else:
                 new_data.pop(CONF_POSTAL, None)

@@ -2191,7 +2191,7 @@ async def test_station_list_cache_eviction(hass):
         await _get_station_list(hass, {"lat": 33.5, "lon": -112.5}, "new_flow_id")
 
     cache = hass.data[DOMAIN]["station_coordinates_by_flow"]
-    assert len(cache) <= 41  # 50 - 10 evicted + 1 new
+    assert len(cache) == 41  # 50 - 10 evicted + 1 new
 
 
 @pytest.mark.asyncio
@@ -2229,3 +2229,62 @@ async def test_reconfigure_cheapest_clears_postal(hass):
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     assert CONF_POSTAL not in entry.data
+
+
+@pytest.mark.asyncio
+async def test_cheapest_flow_invalid_postal(hass):
+    """Cheapest flow rejects a postal code that fails _POSTAL_RE validation."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "cheapest"}
+    )
+    assert result["step_id"] == "cheapest"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_NAME: "Cheapest Gas",
+            CONF_POSTAL: "NOTVALID",
+            CONF_FUEL_KEY: "regular_gas",
+            CONF_PRICE_TYPE: "best",
+            CONF_SOLVER: "",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "cheapest"
+    assert CONF_POSTAL in result["errors"]
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_cheapest_invalid_postal(hass):
+    """Reconfigure cheapest entry rejects invalid postal code."""
+    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Cheapest Gas",
+        data=CONFIG_DATA_CHEAPEST,
+        options=OPTIONS_CHEAPEST,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        reconfigure_result["flow_id"],
+        {
+            CONF_NAME: "Cheapest Gas",
+            CONF_POSTAL: "NOTVALID",
+            CONF_FUEL_KEY: "regular_gas",
+            CONF_PRICE_TYPE: "best",
+            CONF_SOLVER: "",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert CONF_POSTAL in result["errors"]

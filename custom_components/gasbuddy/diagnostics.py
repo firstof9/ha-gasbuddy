@@ -23,6 +23,12 @@ REDACT_KEYS = {
     "zip",
     "phone",
     "address",
+    "station_id",
+    "id",
+    "station_code",
+    "station_identifier",
+    "station_number",
+    "uid",
 }
 
 

@@ -55,7 +55,7 @@
                 }
             },
             "cheapest": {
-                "description": "Rastreie a posto de combustível mais barata próxima. Usa suas coordenadas de casa ou um código postal. A cada atualização, o coordenador reavalia e atualiza para a estação mais barata no momento.",
+                "description": "Rastreie o posto de combustível mais barato próximo. Usa suas coordenadas de casa ou um código postal. A cada atualização, o coordenador reavalia e atualiza para a estação mais barata no momento.",
                 "data": {
                     "name": "Nome",
                     "zipcode": "Código Postal (opcional — deixe em branco para usar as coordenadas do HA)",

@@ -3,6 +3,8 @@
 from datetime import UTC, datetime, timedelta
 import json
 import logging
+import math
+import operator
 from typing import Any
 
 from py_gasbuddy import GasBuddy
@@ -284,7 +286,13 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             field = "cash_price" if price_type == "cash" else "price"
             return node.get(field) or float("inf")
 
-        cheapest = min(stations, key=_sort_key)
+        keyed = [(s, _sort_key(s)) for s in stations]
+        finite = [(s, k) for s, k in keyed if math.isfinite(k)]
+        if not finite:
+            raise UpdateFailed(
+                "No stations with a valid price found for selected fuel and price type"
+            )
+        cheapest = min(finite, key=operator.itemgetter(1))[0]
         cheapest["last_updated"] = datetime.now(UTC)
         _LOGGER.debug("Cheapest gas station: %s", _redact(cheapest))
         return cheapest
