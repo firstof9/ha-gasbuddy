@@ -15,6 +15,7 @@ from custom_components.gasbuddy.config_flow import (
     SearchFailed,
     _csrf_blocked_via_state,  # noqa: PLC2701
     _get_station_list,  # noqa: PLC2701
+    _lon_delta,  # noqa: PLC2701
     validate_station,
 )
 from custom_components.gasbuddy.const import (
@@ -2470,3 +2471,17 @@ async def test_station_list_cloudflare_blocked(hass):
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "station_list"
         assert result["errors"] == {CONF_STATION_ID: "cloudflare"}
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "expected"),
+    [
+        (10.0, 11.0, 1.0),  # ordinary delta
+        (-92.0, -92.0, 0.0),  # identical
+        (179.9, -179.9, 0.2),  # across the antimeridian, short way
+        (-179.9, 179.9, 0.2),  # same, opposite order
+    ],
+)
+async def test_lon_delta(a, b, expected):
+    """Longitude delta takes the short way around the antimeridian."""
+    assert _lon_delta(a, b) == pytest.approx(expected)

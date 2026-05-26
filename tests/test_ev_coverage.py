@@ -27,7 +27,10 @@ from custom_components.gasbuddy.const import (
     DEFAULT_TIMEOUT,
     DOMAIN,
 )
-from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator
+from custom_components.gasbuddy.coordinator import (
+    GasBuddyUpdateCoordinator,
+    _lon_delta,  # noqa: PLC2701
+)
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
@@ -854,3 +857,16 @@ async def test_coordinator_fallback_omits_unit_when_unknown(hass):
 
     assert "unit_of_measure" not in data
     assert "currency" not in data
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "expected"),
+    [
+        (10.0, 11.0, 1.0),
+        (179.9, -179.9, 0.2),
+        (-179.9, 179.9, 0.2),
+    ],
+)
+async def test_coordinator_lon_delta(a, b, expected):
+    """Coordinator longitude delta wraps across the antimeridian."""
+    assert _lon_delta(a, b) == pytest.approx(expected)
