@@ -253,8 +253,10 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         lat: float | None = None
         lon: float | None = None
         if not postal:
-            lat = self._config.data.get("latitude") or self.hass.config.latitude
-            lon = self._config.data.get("longitude") or self.hass.config.longitude
+            config_lat = self._config.data.get("latitude")
+            lat = config_lat if config_lat is not None else self.hass.config.latitude
+            config_lon = self._config.data.get("longitude")
+            lon = config_lon if config_lon is not None else self.hass.config.longitude
 
         try:
             result = await self._api.price_lookup_service(
@@ -277,14 +279,11 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 vals = [p for p in candidates if p is not None]
                 return min(vals) if vals else float("inf")
             if price_type == "deal":
-                return (
-                    node.get("deal_price")
-                    or node.get("cash_price")
-                    or node.get("price")
-                    or float("inf")
-                )
+                dp = node.get("deal_price")
+                return dp if dp is not None else float("inf")
             field = "cash_price" if price_type == "cash" else "price"
-            return node.get(field) or float("inf")
+            v = node.get(field)
+            return v if v is not None else float("inf")
 
         keyed = [(s, _sort_key(s)) for s in stations]
         finite = [(s, k) for s, k in keyed if math.isfinite(k)]

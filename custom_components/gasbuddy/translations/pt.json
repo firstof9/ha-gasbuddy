@@ -66,7 +66,7 @@
                 }
             },
             "reconfigure": {
-                "description": "Por favor, insira o ID da estação",
+                "description": "Por favor, preencha os detalhes de configuração desta entrada",
                 "data": {
                     "solver": "URL do FlareSolverr (opcional)",
                     "timeout": "Tempo limite do FlareSolverr (ms)",

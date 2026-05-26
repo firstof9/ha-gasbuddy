@@ -144,7 +144,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         else:
             price = data[self._type].get("price")
 
-        if not price:
+        if price is None:
             return None
 
         if data.get("unit_of_measure") == "cents_per_liter":

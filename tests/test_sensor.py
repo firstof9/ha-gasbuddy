@@ -273,14 +273,21 @@ async def test_sensor_coverage_edge_cases(hass, mock_gasbuddy, integration):
     """Test sensor edge cases for 100% coverage."""
     coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
 
-    # Test Line 91: price is 0 (falsy but not None)
-    # available will return True, but native_value returns None
+    # Test: price is 0 — valid price, sensor is available and returns 0
     with patch.dict(
         coordinator.data,
         {"regular_gas": {"price": 0, "last_updated": "2023-12-10T17:48:46.584Z"}},
     ):
         sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration)
         assert sensor.available is True
+        assert sensor.native_value == 0
+
+    # Test: price is None — native_value returns None (sensor.py line 148)
+    with patch.dict(
+        coordinator.data,
+        {"regular_gas": {"price": None, "last_updated": "2023-12-10T17:48:46.584Z"}},
+    ):
+        sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration)
         assert sensor.native_value is None
 
     # Test Line 115: currency and uom missing when CONF_UOM is True
