@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from aioresponses import CallbackResult
-from py_gasbuddy.exceptions import APIError, MissingSearchData
+from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, MissingSearchData
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -1585,6 +1585,18 @@ async def test_validate_station_cloudflare_blocked(hass):
         patch(
             "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
             return_value=True,
+        ),
+        pytest.raises(CloudflareBlocked),
+    ):
+        await validate_station(hass, 123, None)
+
+
+async def test_validate_station_csrf_token_missing(hass):
+    """A propagated CSRFTokenMissing maps straight to CloudflareBlocked."""
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup",
+            side_effect=CSRFTokenMissing,
         ),
         pytest.raises(CloudflareBlocked),
     ):
