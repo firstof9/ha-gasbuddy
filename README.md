@@ -70,7 +70,7 @@ You can configure the following options by clicking **Configure** on the integra
 *   **Polling interval**: Polling frequency in seconds.
 *   **Show per liter/gallon in unit of measure**: Standardizes price representation.
 *   **Show stations on map**: Enables rendering of stations on the Map panel.
-*   **Enable EV charging sensors**: Toggles dedicated EV charging sensors (`sensor.gas_station_ev_stations_nearby`, `sensor.gas_station_closest_ev_station`, `sensor.gas_station_closest_ev_distance`) which fetch and display nearby EV station coordinates, addresses, connector counts, connection types, charging power (kW), and speed details.
+*   **Enable EV charging sensors**: Toggles dedicated EV charging sensors that report connector counts and charging power per connector type. Entity IDs depend on the station name you configure; the sensor keys created include `ev_level1`, `ev_level2`, `ev_dc_fast`, `ev_j1772` (+ `_power`), `ev_ccs` (+ `_power`), `ev_chademo` (+ `_power`), `ev_nacs` (+ `_power`), and `ev_status`.
 
 ## Services
 
