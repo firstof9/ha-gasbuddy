@@ -7,7 +7,12 @@ import re
 from typing import Any
 
 import py_gasbuddy
-from py_gasbuddy.exceptions import APIError, LibraryError, MissingSearchData
+from py_gasbuddy.exceptions import (
+    APIError,
+    CSRFTokenMissing,
+    LibraryError,
+    MissingSearchData,
+)
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -47,6 +52,26 @@ class SearchFailed(HomeAssistantError):
     """Error to indicate the search failed."""
 
 
+class CloudflareBlocked(HomeAssistantError):
+    """Error to indicate the CSRF/Cloudflare check is blocking requests."""
+
+
+def _csrf_blocked_via_state(gb: py_gasbuddy.GasBuddy) -> bool:
+    """Return True if a just-failed call left the client without a CSRF token.
+
+    py_gasbuddy 0.6.0 catches ``CSRFTokenMissing`` inside its own
+    ``process_request`` and re-raises a content-less ``LibraryError``
+    upstream — so the caller can't distinguish "Cloudflare blocked
+    the token fetch" from "GasBuddy returned an error for this
+    station ID" by inspecting the exception. Instead, inspect the
+    client's post-call state: ``_tag`` stays empty exactly when the
+    CSRF round-trip never succeeded. Private attribute, but stable
+    across the recent py_gasbuddy releases — once the library exposes
+    a structured signal (see follow-up issue) we should switch.
+    """
+    return getattr(gb, "_tag", None) == ""
+
+
 def validate_url(url: str) -> bool:
     """Validate user input URL."""
     pattern = re.compile(
@@ -71,12 +96,13 @@ async def validate_station(
 ) -> dict[str, Any] | bool:
     """Validate station ID."""
     price_error = None
+    gb = py_gasbuddy.GasBuddy(
+        solver_url=solver,
+        station_id=station,
+        session=async_get_clientsession(hass),
+    )
     try:
-        check = await py_gasbuddy.GasBuddy(
-            solver_url=solver,
-            station_id=station,
-            session=async_get_clientsession(hass),
-        ).price_lookup()
+        check = await gb.price_lookup()
         if "errors" not in check:
             gas_lat = check.get("latitude")
             gas_lon = check.get("longitude")
@@ -91,7 +117,17 @@ async def validate_station(
                 "latitude": gas_lat,
                 "longitude": gas_lon,
             }
+    except CSRFTokenMissing as ex:
+        # Forward-compat: a future py_gasbuddy release may propagate
+        # this exception instead of swallowing it.
+        raise CloudflareBlocked from ex
     except (APIError, LibraryError) as ex:
+        # The EV path below would hit the same wall, so surface a
+        # distinct error class when the cause was specifically the
+        # CSRF/Cloudflare block — masking it as "Invalid station ID"
+        # leaves users with no actionable diagnosis (#232).
+        if _csrf_blocked_via_state(gb):
+            raise CloudflareBlocked from ex
         _LOGGER.warning("Error validating station via price_lookup: %s. Trying EV check...", ex)
         price_error = ex
 
@@ -398,6 +434,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = await validate_station(
                     self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
@@ -505,6 +544,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     lat=lat,
                     lon=lon,
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
@@ -606,6 +648,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     lat=lat,
                     lon=lon,
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
@@ -672,6 +717,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = await validate_station(
                     self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
