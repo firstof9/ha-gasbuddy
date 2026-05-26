@@ -37,6 +37,12 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _lon_delta(a: float, b: float) -> float:
+    """Shortest longitude delta in degrees (handles antimeridian wrap)."""
+    raw = abs(a - b)
+    return min(raw, 360.0 - raw)
+
+
 def _redact(data: Any) -> str:
     """Redact sensitive data for logging."""
     sensitive_keys = {
@@ -133,14 +139,13 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             try:
                 self._data = await self._api.price_lookup()
                 _LOGGER.debug("Gas station data: %s", _redact(self._data))
-
                 config_lat = self._config.data.get("latitude")
                 config_lon = self._config.data.get("longitude")
                 if config_lat is not None and config_lon is not None:
                     gas_lat = self._data.get("latitude")
                     gas_lon = self._data.get("longitude")
                     if gas_lat is not None and gas_lon is not None:
-                        if abs(gas_lat - config_lat) > 1.0 or abs(gas_lon - config_lon) > 1.0:
+                        if abs(gas_lat - config_lat) > 1.0 or _lon_delta(gas_lon, config_lon) > 1.0:
                             raise APIError("Station ID collision detected")  # noqa: TRY301
             except (APIError, LibraryError, CSRFTokenMissing) as ex:
                 if ev_charging_enabled:
