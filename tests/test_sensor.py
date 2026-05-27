@@ -65,9 +65,9 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state
     assert state.state == "2.95"
     assert state.attributes["unit_of_measurement"] == "USD/gallon"
-    assert state.attributes[ATTR_LATITUDE] == 33.459108
-    assert state.attributes[ATTR_LONGITUDE] == -112.502745
-    assert state.attributes[ATTR_ENTITY_PICTURE] == "https://images.gasbuddy.io/b/122.png"
+    assert state.attributes[ATTR_LATITUDE] == 41.8781
+    assert state.attributes[ATTR_LONGITUDE] == -87.6298
+    assert state.attributes[ATTR_ENTITY_PICTURE] == "https://images.gasbuddy.io/b/test.png"
 
     # midgrade_gas not in station data → disabled by dynamic enabled_default → no state
     assert hass.states.get("sensor.gas_station_midgrade_gas") is None
@@ -126,8 +126,8 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
     assert state
     assert state.state == "2.95"
     assert state.attributes["unit_of_measurement"] == "USD"
-    assert state.attributes[ATTR_LATITUDE] == 33.459108
-    assert state.attributes[ATTR_LONGITUDE] == -112.502745
+    assert state.attributes[ATTR_LATITUDE] == 41.8781
+    assert state.attributes[ATTR_LONGITUDE] == -87.6298
 
     # midgrade_gas not in station data → disabled by dynamic enabled_default → no state
     assert hass.states.get("sensor.gas_station_midgrade_gas") is None
@@ -181,8 +181,8 @@ async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRe
     assert state
     assert state.state == "1.439"
     assert state.attributes["unit_of_measurement"] == "CAD/liter"
-    assert state.attributes[ATTR_LATITUDE] == 33.459108
-    assert state.attributes[ATTR_LONGITUDE] == -112.502745
+    assert state.attributes[ATTR_LATITUDE] == 41.8781
+    assert state.attributes[ATTR_LONGITUDE] == -87.6298
     assert ATTR_ENTITY_PICTURE not in state.attributes
 
     state = hass.states.get("sensor.gas_station_midgrade_gas")
@@ -254,7 +254,7 @@ async def test_coordinator_success(hass, mock_aioclient):
 
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={**CONFIG_DATA, CONF_STATION_ID: "208656", CONF_TIMEOUT: DEFAULT_TIMEOUT},
+        data={**CONFIG_DATA, CONF_STATION_ID: "999001", CONF_TIMEOUT: DEFAULT_TIMEOUT},
     )
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
 
@@ -307,19 +307,19 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
     coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
 
     ev_data = {
-        "station_id": "208656",
+        "station_id": "999001",
         "ev_level1": 0,
         "ev_level2": 2,
         "ev_dc_fast": 4,
-        "ev_station_name": "Costco EV Station",
-        "ev_station_address": "1101 N Verrado Way",
+        "ev_station_name": "Test EV Station",
+        "ev_station_address": "100 Test Blvd",
         "ev_distance_miles": 1.5,
-        "ev_network": "Costco",
-        "ev_network_web": "https://costco.com",
+        "ev_network": "TestNetwork",
+        "ev_network_web": "https://testnetwork.example.com",
         "ev_pricing": "Free",
         "ev_access_hours": "24/7",
-        "latitude": 33.459108,
-        "longitude": -112.502745,
+        "latitude": 41.8781,
+        "longitude": -87.6298,
         "ev_date_last_confirmed": "2026-05-18",
         "ev_access_code": "None",
     }
@@ -330,23 +330,23 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
 
         attrs = sensor.extra_state_attributes
         assert attrs is not None
-        assert attrs[CONF_STATION_ID] == "208656"
-        assert attrs["station_name"] == "Costco EV Station"
-        assert attrs["station_address"] == "1101 N Verrado Way"
+        assert attrs[CONF_STATION_ID] == "999001"
+        assert attrs["station_name"] == "Test EV Station"
+        assert attrs["station_address"] == "100 Test Blvd"
         assert attrs["distance_miles"] == 1.5
-        assert attrs["network"] == "Costco"
+        assert attrs["network"] == "TestNetwork"
         assert attrs["pricing"] == "Free"
         assert attrs["access_hours"] == "24/7"
-        assert attrs[ATTR_LATITUDE] == 33.459108
-        assert attrs[ATTR_LONGITUDE] == -112.502745
+        assert attrs[ATTR_LATITUDE] == 41.8781
+        assert attrs[ATTR_LONGITUDE] == -87.6298
         assert "website" not in attrs
 
         # Test ev_network sensor which has the website attribute
         sensor_web = GasBuddySensor(SENSOR_TYPES["ev_network"], coordinator, integration)
         attrs_web = sensor_web.extra_state_attributes
         assert attrs_web is not None
-        assert attrs_web["network"] == "Costco"
-        assert attrs_web["website"] == "https://costco.com"
+        assert attrs_web["network"] == "TestNetwork"
+        assert attrs_web["website"] == "https://testnetwork.example.com"
 
         # Test ev_date_last_confirmed sensor
         sensor_date = GasBuddySensor(
@@ -464,7 +464,7 @@ async def test_station_name_sensor(hass, mock_gasbuddy, integration):
     coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
 
     sensor = GasBuddySensor(SENSOR_TYPES["station_name"], coordinator, integration)
-    assert sensor.native_value == "Costco"
+    assert sensor.native_value == "Test Gas Station"
     assert sensor.extra_state_attributes is None
 
 
@@ -480,7 +480,7 @@ async def test_extra_attrs_richer(hass, mock_gasbuddy, integration):
     assert attrs.get("deal_price") == 2.78
     assert attrs.get("phone") == "555-555-5555"
     assert attrs.get("star_rating") == 4.2
-    assert attrs.get("address") == "1101 N Verrado Way, Buckeye, AZ"
+    assert attrs.get("address") == "100 Test Blvd, Springfield, IL"
     assert attrs.get("amenities") == "ATM, Restrooms"
 
 
