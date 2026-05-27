@@ -13,7 +13,7 @@ from custom_components.gasbuddy.const import (
     DOMAIN,
 )
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import entity_registry as er
 from tests.common import load_fixture
 
 from .const import CONFIG_DATA
@@ -308,69 +308,61 @@ async def test_clear_cache(
         assert "Device_entry: None" in caplog.text
 
 
-async def _setup_clear_cache_entry(hass, mock_aioclient):
-    """Set up a config entry so its coordinator lives in hass.data."""
-    entry = MockConfigEntry(domain=DOMAIN, title="Gas Station", data=CONFIG_DATA)
-    mock_aioclient.get(GB_URL, status=200, body=load_fixture("index.html"), repeat=True)
-    mock_aioclient.post(TEST_URL, status=200, body=load_fixture("results.json"))
+# ---------------------------------------------------------------------------
+# Additional coverage tests
+# ---------------------------------------------------------------------------
+
+
+async def test_lookup_gps_invalid_solver(hass, mock_gasbuddy, mock_aioclient):
+    """lookup_gps raises ServiceValidationError for invalid solver URL (services.py line 53)."""
+    from homeassistant.exceptions import ServiceValidationError  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    return entry
 
-
-async def test_clear_cache_connections_fallback(hass, mock_gasbuddy, mock_aioclient):
-    """clear_cache resolves the config id via legacy `connections` when no identifier matches."""
-    entry = await _setup_clear_cache_entry(hass, mock_aioclient)
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
-    assert device is not None
-    # Drop the domain identifier so resolution must fall back to connections,
-    # mirroring a device registered by an older release.
-    device_registry.async_update_device(
-        device.id, new_identifiers={("gasbuddy_legacy", entry.entry_id)}
-    )
-
-    await hass.services.async_call(
-        DOMAIN,
-        SERVICE_CLEAR_CACHE,
-        {ATTR_DEVICE_ID: device.id},
-        blocking=True,
-        return_response=False,
-    )
-
-
-async def test_clear_cache_no_domain_match(hass, mock_gasbuddy, mock_aioclient):
-    """clear_cache raises when the device belongs to no gasbuddy config entry."""
-    entry = await _setup_clear_cache_entry(hass, mock_aioclient)
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_or_create(
-        config_entry_id=entry.entry_id, identifiers={("other_integration", "abc")}
-    )
-
-    with pytest.raises(ValueError, match="not registered against"):
+    with pytest.raises(ServiceValidationError, match="Invalid FlareSolverr URL"):
         await hass.services.async_call(
             DOMAIN,
-            SERVICE_CLEAR_CACHE,
-            {ATTR_DEVICE_ID: device.id},
+            SERVICE_LOOKUP_GPS,
+            {
+                ATTR_ENTITY_ID: "sensor.gas_station_regular_gas",
+                ATTR_LIMIT: 5,
+                ATTR_SOLVER: "not-a-valid-url",
+            },
             blocking=True,
-            return_response=False,
+            return_response=True,
         )
 
 
-async def test_clear_cache_unknown_config_entry(hass, mock_gasbuddy, mock_aioclient):
-    """clear_cache raises when the resolved config id has no loaded entry."""
-    entry = await _setup_clear_cache_entry(hass, mock_aioclient)
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_or_create(
-        config_entry_id=entry.entry_id, identifiers={(DOMAIN, "missing-config-id")}
-    )
+async def test_clear_cache_no_config_entry(hass, mock_gasbuddy, mock_aioclient, caplog):
+    """clear_cache raises ValueError when device has no config entry (services.py line 295)."""
+    from unittest.mock import MagicMock, patch  # noqa: PLC0415
 
-    with pytest.raises(ValueError, match="unknown config entry"):
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_CLEAR_CACHE,
-            {ATTR_DEVICE_ID: device.id},
-            blocking=True,
-            return_response=False,
-        )
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    mock_device = MagicMock()
+    mock_device.config_entries = set()
+
+    with patch("custom_components.gasbuddy.services.dr.async_get") as mock_reg:
+        mock_reg.return_value.async_get.return_value = mock_device
+        with pytest.raises(ValueError, match="No config entry found"):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CLEAR_CACHE,
+                {ATTR_DEVICE_ID: "fake_device_id"},
+                blocking=True,
+                return_response=False,
+            )

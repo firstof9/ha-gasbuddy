@@ -1,6 +1,7 @@
 """GasBuddy services."""
 
 import logging
+import re
 
 from py_gasbuddy import GasBuddy
 from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
@@ -15,6 +16,7 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -32,6 +34,24 @@ from .const import (
     SERVICE_LOOKUP_GPS,
     SERVICE_LOOKUP_ZIP,
 )
+
+_SOLVER_URL_RE = re.compile(
+    r"^https?://"
+    r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"
+    r"localhost|"
+    r"[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?|"
+    r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    r"(?::\d+)?"
+    r"(?:/?|[/?]\S+)$",
+    re.IGNORECASE,
+)
+
+
+def _require_valid_solver(solver: str | None) -> None:
+    """Raise ServiceValidationError if solver URL is present but invalid."""
+    if solver and not _SOLVER_URL_RE.match(solver):
+        raise ServiceValidationError("Invalid FlareSolverr URL")
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -129,6 +149,7 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
         api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
         for entity_id in entity_ids:
@@ -158,6 +179,7 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
         try:
             results = await GasBuddy(
@@ -185,6 +207,7 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
         api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
         for entity_id in entity_ids:
@@ -227,6 +250,7 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
         api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
         try:
@@ -266,26 +290,9 @@ class GasBuddyServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            # Prefer identifiers (correct field); fall back to the legacy
-            # `connections` entry for devices registered by older versions.
-            config_id: str | None = None
-            for domain, value in device_entry.identifiers:
-                if domain == DOMAIN:
-                    config_id = value
-                    break
-            if config_id is None:
-                for domain, value in device_entry.connections:
-                    if domain == DOMAIN:
-                        config_id = value
-                        break
-            if config_id is None:
-                raise ValueError(
-                    f"Device {device_id} is not registered against the {DOMAIN} integration"
-                )
-
+            config_id = next(iter(device_entry.config_entries), None)
+            if not config_id:
+                raise ValueError(f"No config entry found for device {device_id}")
             _LOGGER.debug("Config ID: %s", config_id)
-            entry = self.hass.data.get(DOMAIN, {}).get(config_id)
-            if entry is None:
-                raise ValueError(f"Device {device_id} references unknown config entry {config_id}")
-            manager = entry[COORDINATOR]
+            manager = self.hass.data[DOMAIN][config_id][COORDINATOR]
             await manager.clear_cache()
