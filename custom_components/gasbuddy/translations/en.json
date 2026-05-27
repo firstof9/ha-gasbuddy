@@ -14,7 +14,8 @@
                 "description": "Please select either manual station ID or search for a station.",
                 "menu_options": {
                     "manual": "Enter Station ID Manually",
-                    "search": "Search for a station nearby"
+                    "search": "Search for a station nearby",
+                    "cheapest": "Track cheapest nearby gas"
                 }
             },
             "manual": {
@@ -54,13 +55,27 @@
                     "station_id": "Station"
                 }
             },
+            "cheapest": {
+                "description": "Track the cheapest nearby gas station. Uses your home coordinates or a postal code. On every refresh the coordinator re-checks and updates to the current cheapest station.",
+                "data": {
+                    "name": "Name",
+                    "zipcode": "Postal Code (optional — leave blank to use HA home coordinates)",
+                    "fuel_key": "Fuel type",
+                    "price_type": "Price type",
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)"
+                }
+            },
             "reconfigure": {
                 "description": "Please enter the Station ID",
                 "data": {
                     "solver": "FlareSolverr URL (optional)",
                     "timeout": "FlareSolverr timeout (ms)",
                     "station_id": "Station ID",
-                    "name": "Name"
+                    "name": "Name",
+                    "zipcode": "Postal Code (optional — leave blank to use HA home coordinates)",
+                    "fuel_key": "Fuel type",
+                    "price_type": "Price type"
                 }
             }
         }

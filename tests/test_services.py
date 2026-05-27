@@ -306,3 +306,63 @@ async def test_clear_cache(
                 return_response=False,
             )
         assert "Device_entry: None" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage tests
+# ---------------------------------------------------------------------------
+
+
+async def test_lookup_gps_invalid_solver(hass, mock_gasbuddy, mock_aioclient):
+    """lookup_gps raises ServiceValidationError for invalid solver URL (services.py line 53)."""
+    from homeassistant.exceptions import ServiceValidationError  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with pytest.raises(ServiceValidationError, match="Invalid FlareSolverr URL"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LOOKUP_GPS,
+            {
+                ATTR_ENTITY_ID: "sensor.gas_station_regular_gas",
+                ATTR_LIMIT: 5,
+                ATTR_SOLVER: "not-a-valid-url",
+            },
+            blocking=True,
+            return_response=True,
+        )
+
+
+async def test_clear_cache_no_config_entry(hass, mock_gasbuddy, mock_aioclient, caplog):
+    """clear_cache raises ValueError when device has no config entry (services.py line 295)."""
+    from unittest.mock import MagicMock, patch  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    mock_device = MagicMock()
+    mock_device.config_entries = set()
+
+    with patch("custom_components.gasbuddy.services.dr.async_get") as mock_reg:
+        mock_reg.return_value.async_get.return_value = mock_device
+        with pytest.raises(ValueError, match="No config entry found"):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CLEAR_CACHE,
+                {ATTR_DEVICE_ID: "fake_device_id"},
+                blocking=True,
+                return_response=False,
+            )
