@@ -1572,6 +1572,23 @@ async def test_get_station_list_missing_data_error(hass):
         await _get_station_list(hass, {})
 
 
+async def test_get_station_list_skips_null_station_id(hass):
+    """Stations with station_id=None are silently skipped."""
+    fake_results = {
+        "results": [
+            {"station_id": None, "name": "Bad Station", "address": {"line1": "1 Nowhere"}},
+            {"station_id": "999001", "name": "Good Station", "address": {"line1": "100 Test Blvd"}},
+        ]
+    }
+    with patch(
+        "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.location_search",
+        return_value=fake_results,
+    ):
+        result = await _get_station_list(hass, {})
+    assert "999001" in result
+    assert None not in result
+
+
 async def test_form_manual_renders(hass):
     """Test manual flow renders the form."""
     result = await hass.config_entries.flow.async_init(
