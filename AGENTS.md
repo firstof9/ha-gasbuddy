@@ -28,20 +28,22 @@ custom_components/gasbuddy/
 
 - **Python**: target is 3.14 (`target-version = "py314"` in `pyproject.toml`).
   CI runs against Python 3.14.2.
-- **Linting**: ruff via pre-commit, pinned to **v0.15.12** (see `.pre-commit-config.yaml`).
-  Install that exact version locally; newer ruff (0.15.14+) emits
-  `PLW0717` warnings that aren't real failures and aren't gated by CI.
+- **Linting**: ruff via pre-commit, pinned to **v0.15.14** (see `.pre-commit-config.yaml`).
+  Install that exact version locally. `pyproject.toml` ignores `PLW0717`,
+  a rule selector that only exists in ruff 0.15.14+; an older ruff (e.g.
+  0.15.12) fails to even parse the config with `Unknown rule selector:
+  PLW0717`.
 - **Formatting**: ruff format with `target-version = "py314"`. This means
   PEP 758 parenthesis-free `except`: ruff will rewrite
   `except (TypeError, ValueError):` to `except TypeError, ValueError:`.
   That's valid Python 3.14 — don't fight it.
 - **Tests**: `pytest` + `pytest-homeassistant-custom-component`. The
-  full suite is ~67 tests, runs in 13–22 seconds.
+  full suite is ~99 tests, runs in 15–25 seconds.
 
 ```bash
 uv venv --python 3.14
 uv pip install -r requirements_test.txt
-uv pip install 'ruff==0.15.12'
+uv pip install 'ruff==0.15.14'
 .venv/bin/python -m pytest -q --no-header
 .venv/bin/ruff check custom_components/
 .venv/bin/ruff format --check custom_components/
@@ -107,10 +109,10 @@ to `except CloudflareBlocked`.
 
 ### `_clear_cache` service
 
-Resolves the config entry via the device registry: prefer
-`device_entry.identifiers` (post `DeviceInfo.identifiers` migration);
-fall back to the legacy `connections` entry for devices registered by
-older versions; raise a clear `ValueError` if neither matches.
+Resolves the config entry from the device registry via
+`next(iter(device_entry.config_entries), None)`, then looks the
+coordinator up in `hass.data[DOMAIN]`. Raises a clear `ValueError` if
+the device isn't found or maps to no gasbuddy config entry.
 
 ### Test-mocking convention
 
@@ -125,7 +127,7 @@ the existing call shape or update the tests.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ruff check` says `PLW0717: Try clause contains too many statements` | Local ruff is newer than the pre-commit pin (0.15.12) | Install ruff 0.15.12 explicitly |
+| `ruff` says `Unknown rule selector: PLW0717` and won't run | Local ruff is older than the pre-commit pin (0.15.14); `PLW0717` doesn't exist in it | Install ruff 0.15.14 explicitly |
 | Pre-commit complains about `except (X, Y):` formatting | Project targets py314 + PEP 758 | Let ruff format rewrite to `except X, Y:` |
 | `test_validate_station_*` fails with `AttributeError` after a refactor | Test mocks `GasBuddy.method` directly | Don't bypass the mocked method; or update the test mock |
 | HA setup stalls for ~minutes | `add_update_listener` not wrapped in `async_on_unload` | Wrap it; the listener accumulates across reloads |

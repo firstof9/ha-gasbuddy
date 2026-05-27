@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 import py_gasbuddy
-from py_gasbuddy.exceptions import APIError, LibraryError, MissingSearchData
+from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError, MissingSearchData
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -62,6 +62,31 @@ class SearchFailed(HomeAssistantError):
     """Error to indicate the search failed."""
 
 
+class CloudflareBlocked(HomeAssistantError):
+    """Error to indicate the CSRF/Cloudflare check is blocking requests."""
+
+
+def _csrf_blocked_via_state(gb: py_gasbuddy.GasBuddy) -> bool:
+    """Return True if the just-failed call hit a CSRF/Cloudflare block.
+
+    py_gasbuddy catches the underlying error inside its own
+    ``process_request`` and surfaces a content-less ``LibraryError``,
+    so the caller can't tell "Cloudflare blocked the token fetch" from
+    "GasBuddy returned an error for this station ID" by inspecting the
+    exception. Instead, inspect the client's post-call state. The
+    ``_cf_last`` sentinel is ``None`` before any request, ``True`` after
+    a request that returned parseable JSON, and ``False`` only when the
+    last round-trip got a non-JSON body or a 403/non-200 status, which
+    is the Cloudflare-block signature. We deliberately match ``is False``
+    (not falsy) so the ``None`` initial state, the one a mocked or
+    never-dispatched client reports, is not mistaken for a block.
+    Private attribute, but stable across recent py_gasbuddy releases;
+    once the library exposes a structured signal (see follow-up issue)
+    we should switch.
+    """
+    return getattr(gb, "_cf_last", None) is False
+
+
 def validate_url(url: str) -> bool:
     """Validate user input URL. Only http/https schemes are accepted."""
     pattern = re.compile(
@@ -86,13 +111,14 @@ async def validate_station(
 ) -> dict[str, Any] | bool:
     """Validate station ID."""
     price_error = None
+    gb = py_gasbuddy.GasBuddy(
+        solver_url=solver,
+        station_id=station,
+        cache_file=_cache_path(hass),
+        session=async_get_clientsession(hass),
+    )
     try:
-        check = await py_gasbuddy.GasBuddy(
-            solver_url=solver,
-            station_id=station,
-            cache_file=_cache_path(hass),
-            session=async_get_clientsession(hass),
-        ).price_lookup()
+        check = await gb.price_lookup()
         if "errors" not in check:
             gas_lat = check.get("latitude")
             gas_lon = check.get("longitude")
@@ -107,7 +133,17 @@ async def validate_station(
                 "latitude": gas_lat,
                 "longitude": gas_lon,
             }
+    except CSRFTokenMissing as ex:
+        # Forward-compat: a future py_gasbuddy release may propagate
+        # this exception instead of swallowing it.
+        raise CloudflareBlocked from ex
     except (APIError, LibraryError) as ex:
+        # The EV path below would hit the same wall, so surface a
+        # distinct error class when the cause was specifically the
+        # CSRF/Cloudflare block — masking it as "Invalid station ID"
+        # leaves users with no actionable diagnosis (#232).
+        if _csrf_blocked_via_state(gb):
+            raise CloudflareBlocked from ex
         _LOGGER.warning("Error validating station via price_lookup: %s. Trying EV check...", ex)
         price_error = ex
 
@@ -467,11 +503,16 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = await validate_station(
                     self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
             else:
                 self._data.update(user_input)
                 if isinstance(validate, dict):
@@ -480,6 +521,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     ev_charging = validate["type"] == "ev"
                 else:
                     ev_charging = False
+                await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=self._data[CONF_NAME],
                     data=self._data,
@@ -556,14 +599,17 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
 
-            # Get cached coordinates if available
-            cached_coords = (
+            # Get cached coordinates if available, then drop this flow's
+            # entry — it's not needed past this step and would otherwise
+            # accumulate forever in hass.data across repeated config-flow
+            # attempts.
+            flow_cache = (
                 self.hass.data
                 .get(DOMAIN, {})
                 .get("station_coordinates_by_flow", {})
-                .get(self.flow_id, {})
-                .get(str(self._data[CONF_STATION_ID]))
+                .pop(self.flow_id, {})
             )
+            cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
             lat, lon = cached_coords or (None, None)
 
             try:
@@ -574,11 +620,16 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     lat=lat,
                     lon=lon,
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
                 return await self._show_config_home2(user_input)
             if isinstance(validate, dict):
                 self._data["latitude"] = validate.get("latitude")
@@ -590,6 +641,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
                 self.flow_id, None
             )
+            await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
                 data=self._data,
@@ -662,17 +715,24 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_INTERVAL, 3600)
             user_input.setdefault(CONF_UOM, True)
             user_input.setdefault(CONF_GPS, True)
-            self._data.pop(CONF_POSTAL)
+            # Pop is idempotent — if the user lands here a second time
+            # (e.g. after picking an invalid station and being shown the
+            # form again), CONF_POSTAL is already gone and an
+            # unconditional .pop() would KeyError.
+            self._data.pop(CONF_POSTAL, None)
             self._data.update(user_input)
 
-            # Get cached coordinates if available
-            cached_coords = (
+            # Get cached coordinates if available, then drop this flow's
+            # entry — it's not needed past this step and would otherwise
+            # accumulate forever in hass.data across repeated config-flow
+            # attempts.
+            flow_cache = (
                 self.hass.data
                 .get(DOMAIN, {})
                 .get("station_coordinates_by_flow", {})
-                .get(self.flow_id, {})
-                .get(str(self._data[CONF_STATION_ID]))
+                .pop(self.flow_id, {})
             )
+            cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
             lat, lon = cached_coords or (None, None)
 
             try:
@@ -683,11 +743,16 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     lat=lat,
                     lon=lon,
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
                 return await self._show_config_station_list(user_input)
             if isinstance(validate, dict):
                 self._data["latitude"] = validate.get("latitude")
@@ -699,6 +764,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
                 self.flow_id, None
             )
+            await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
                 data=self._data,
@@ -809,11 +876,16 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = await validate_station(
                     self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
                 )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
             except InvalidStation:
                 validate = False
 
             if not validate:
-                self._errors[CONF_STATION_ID] = "station_id"
+                # Keep a more specific error (e.g. "cloudflare") if a handler
+                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
 
             if len(self._errors) == 0:
                 options = dict(entry.options)
@@ -826,10 +898,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     options[CONF_EV_CHARGING] = False
                     options[CONF_FETCH_GAS] = True
 
+                # async_update_entry already triggers a reload via the
+                # update_listener registered in async_setup_entry; the
+                # previous `async_create_task(async_reload(...))` here
+                # was a second, untracked reload that raced the listener.
                 self.hass.config_entries.async_update_entry(
                     entry, title=self._data[CONF_NAME], data=self._data, options=options
                 )
-                self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
 
@@ -863,10 +938,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 new_data.pop(CONF_POSTAL, None)
 
+            # async_update_entry already reloads via the update_listener;
+            # a second explicit reload here would race it (see above).
             self.hass.config_entries.async_update_entry(
                 entry, title=new_data[CONF_NAME], data=new_data
             )
-            self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
             _LOGGER.debug("%s cheapest entry reconfigured.", DOMAIN)
             return self.async_abort(reason="reconfigure_successful")
 

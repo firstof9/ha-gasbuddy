@@ -108,7 +108,9 @@ async def async_migrate_entry(hass, config_entry) -> bool:
         if CONF_TIMEOUT not in updated_config:
             updated_config[CONF_TIMEOUT] = 60000
 
-    if updated_config != config_entry.data:
+    # Persist the bumped version even when no data keys changed; otherwise
+    # the entry stays on the old version and HA re-runs migration every start.
+    if updated_config != config_entry.data or config_entry.version != new_version:
         hass.config_entries.async_update_entry(
             config_entry, data=updated_config, version=new_version
         )
