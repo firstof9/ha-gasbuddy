@@ -27,6 +27,11 @@ DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
 CONFIG_VER = 7
 
+# CSRF token cache, shared across the coordinator, config flow, and services
+# so they all benefit from a single fetched token (and don't each hammer the
+# CSRF endpoint on installs where Cloudflare is rate-limiting).
+CACHE_FILE_NAME = ".storage/gasbuddy_cache"
+
 # hass.data attributes
 ATTR_DEVICE_ID = "device_id"
 ATTR_IMAGEURL = "image_url"

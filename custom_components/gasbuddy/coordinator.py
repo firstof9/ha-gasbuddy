@@ -18,6 +18,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    CACHE_FILE_NAME,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_FETCH_GAS,
@@ -77,7 +78,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.interval = self._get_interval()
         self._data: dict[Any, Any] = {}
-        self._cache_file = f"{self.hass.config.config_dir}/.storage/gasbuddy_cache"
+        self._cache_file = f"{self.hass.config.config_dir}/{CACHE_FILE_NAME}"
         self._api = GasBuddy(
             solver_url=config.data.get(CONF_SOLVER),
             station_id=config.data.get(CONF_STATION_ID),
