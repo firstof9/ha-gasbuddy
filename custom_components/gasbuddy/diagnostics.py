@@ -32,12 +32,15 @@ REDACT_KEYS = {
 }
 
 
-async def async_get_config_entry_diagnostics(  # pylint: disable-next=unused-argument
+async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, config_entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     diag: dict[str, Any] = {}
     diag["config"] = config_entry.as_dict()
+    coordinator = hass.data.get(DOMAIN, {}).get(config_entry.entry_id, {}).get(COORDINATOR)
+    if coordinator is not None:
+        diag["coordinator_data"] = coordinator.data or {}
     return async_redact_data(diag, REDACT_KEYS)
 
 

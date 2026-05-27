@@ -169,6 +169,16 @@ async def test_sanity_defaults_add_fetch_gas(hass, mock_gasbuddy):
     assert entry.options.get(CONF_FETCH_GAS) is True
 
 
+async def test_config_diagnostics_includes_coordinator(hass, integration):
+    """Config-level diagnostics should include coordinator data alongside config."""
+    from custom_components.gasbuddy.diagnostics import async_get_config_entry_diagnostics  # noqa: PLC0415
+
+    result = await async_get_config_entry_diagnostics(hass, integration)
+    assert "config" in result
+    assert "coordinator_data" in result
+    assert "last_updated" in result["coordinator_data"]
+
+
 async def test_service_unregistration_on_unload(hass, mock_gasbuddy):
     """Test services are unregistered on unload."""
     entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
