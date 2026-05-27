@@ -15,6 +15,7 @@ from custom_components.gasbuddy.const import (
     DEFAULT_TIMEOUT,
     DOMAIN,
     SENSOR_TYPES,
+    SERVICE_LOOKUP_GPS,
 )
 from custom_components.gasbuddy.coordinator import (
     GasBuddyUpdateCoordinator,
@@ -22,7 +23,7 @@ from custom_components.gasbuddy.coordinator import (
 )
 from custom_components.gasbuddy.sensor import GasBuddySensor
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
-from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
@@ -715,3 +716,20 @@ async def test_coordinator_cheapest_no_valid_prices(hass):
         pytest.raises(UpdateFailed),
     ):
         await coordinator._async_update_data()  # noqa: SLF001
+
+
+async def test_price_lookup_gps_no_coordinates(hass, integration, caplog):
+    """GPS price lookup skips entities without lat/lon and logs a warning."""
+    # Register a state with no GPS attributes
+    hass.states.async_set("sensor.no_gps_entity", "on", {})
+
+    result = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_LOOKUP_GPS,
+        {ATTR_ENTITY_ID: ["sensor.no_gps_entity"]},
+        blocking=True,
+        return_response=True,
+    )
+
+    assert result.get("sensor.no_gps_entity") == {}
+    assert any("lacks latitude/longitude" in rec.message for rec in caplog.records)

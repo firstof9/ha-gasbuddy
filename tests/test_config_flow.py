@@ -2055,7 +2055,7 @@ async def test_postal_invalid_format(hass):
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "postal"
-    assert result["errors"] == {CONF_POSTAL: "no_results"}
+    assert result["errors"] == {CONF_POSTAL: "invalid_postal"}
 
 
 @pytest.mark.asyncio
@@ -2257,7 +2257,7 @@ async def test_cheapest_flow_invalid_postal(hass):
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "cheapest"
-    assert CONF_POSTAL in result["errors"]
+    assert result["errors"].get(CONF_POSTAL) == "invalid_postal"
 
 
 @pytest.mark.asyncio
