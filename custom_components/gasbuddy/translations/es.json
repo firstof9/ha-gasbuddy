@@ -1,0 +1,107 @@
+{
+    "config": {
+        "abort": {
+            "reconfigure_successful": "Reconfiguración exitosa"
+        },
+        "error": {
+            "station_id": "ID de estación inválido",
+            "no_results": "No se encontraron estaciones en esta área.",
+            "invalid_url": "URL no válida.",
+            "cloudflare": "No se pudo obtener un token CSRF de GasBuddy (Cloudflare está bloqueando las solicitudes). Configure una URL de FlareSolverr en el campo opcional e inténtelo de nuevo."
+        },
+        "step": {
+            "user": {
+                "description": "Por favor, seleccione un ID de estación manualmente o busque una estación.",
+                "menu_options": {
+                    "manual": "Ingresar ID de estación manualmente",
+                    "search": "Buscar una estación cercana",
+                    "cheapest": "Rastrear el combustible más barato cercano"
+                }
+            },
+            "manual": {
+                "description": "Por favor, ingrese el ID de la estación",
+                "data": {
+                    "solver": "URL de FlareSolverr (opcional)",
+                    "timeout": "Tiempo de espera de FlareSolverr (ms)",
+                    "station_id": "ID de Estación"
+                }
+            },
+            "search": {
+                "description": "Buscar por su ubicación GPS configurada o por código postal",
+                "menu_options": {
+                    "home": "Usar coordenadas configuradas en Home Assistant",
+                    "postal": "Usar código postal"
+                }
+            },
+            "home": {
+                "description": "Por favor, seleccione una estación",
+                "data": {
+                    "solver": "URL de FlareSolverr (opcional)",
+                    "timeout": "Tiempo de espera de FlareSolverr (ms)",
+                    "station_id": "Estación"
+                }
+            },
+            "postal": {
+                "description": "Por favor, ingrese un código postal",
+                "data": {
+                    "solver": "URL de FlareSolverr (opcional)",
+                    "timeout": "Tiempo de espera de FlareSolverr (ms)",
+                    "zipcode": "Código Postal"
+                }
+            },
+            "station_list": {
+                "description": "Por favor, seleccione una estación",
+                "data": {
+                    "station_id": "Estación"
+                }
+            },
+            "cheapest": {
+                "description": "Rastree la estación de servicio más barata cercana. Usa las coordenadas de su hogar o un código postal. En cada actualización, el coordinador vuelve a evaluar y actualiza a la estación más barata en ese momento.",
+                "data": {
+                    "name": "Nombre",
+                    "zipcode": "Código Postal (opcional — dejar en blanco para usar las coordenadas de HA)",
+                    "fuel_key": "Tipo de combustible",
+                    "price_type": "Tipo de precio",
+                    "solver": "URL de FlareSolverr (opcional)",
+                    "timeout": "Tiempo de espera de FlareSolverr (ms)"
+                }
+            },
+            "reconfigure": {
+                "description": "Por favor, ingrese el ID de la estación",
+                "data": {
+                    "solver": "URL de FlareSolverr (opcional)",
+                    "timeout": "Tiempo de espera de FlareSolverr (ms)",
+                    "station_id": "ID de Estación",
+                    "name": "Nombre",
+                    "zipcode": "Código Postal (opcional — dejar en blanco para usar las coordenadas de HA)",
+                    "fuel_key": "Tipo de combustible",
+                    "price_type": "Tipo de precio"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "interval": "Intervalo de actualización",
+                    "uom": "Mostrar por litro/galón en unidad de medida",
+                    "gps": "Mostrar estaciones en el mapa (deshabilitar atributos lat/long)",
+                    "ev_charging": "Habilitar sensores de carga de VE",
+                    "fetch_gas": "Obtener precios de combustible"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "ev_access": {
+                "state": {
+                    "public": "Público",
+                    "private": "Privado",
+                    "none": "Ninguno"
+                }
+            }
+        }
+    }
+}

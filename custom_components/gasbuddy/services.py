@@ -1,6 +1,7 @@
 """GasBuddy services."""
 
 import logging
+import re
 
 from py_gasbuddy import GasBuddy
 from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
@@ -15,6 +16,7 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -24,6 +26,7 @@ from .const import (
     ATTR_POSTAL_CODE,
     ATTR_RADIUS,
     ATTR_SOLVER,
+    CACHE_FILE_NAME,
     COORDINATOR,
     DOMAIN,
     SERVICE_CLEAR_CACHE,
@@ -33,7 +36,30 @@ from .const import (
     SERVICE_LOOKUP_ZIP,
 )
 
+_SOLVER_URL_RE = re.compile(
+    r"^https?://"
+    r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"
+    r"localhost|"
+    r"[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?|"
+    r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    r"(?::\d+)?"
+    r"(?:/?|[/?]\S+)$",
+    re.IGNORECASE,
+)
+
+
+def _require_valid_solver(solver: str | None) -> None:
+    """Raise ServiceValidationError if solver URL is present but invalid."""
+    if solver and not _SOLVER_URL_RE.match(solver):
+        raise ServiceValidationError("Invalid FlareSolverr URL")
+
+
 _LOGGER = logging.getLogger(__name__)
+
+
+def _cache_path(hass: HomeAssistant) -> str:
+    """Return the shared CSRF-token cache file path."""
+    return f"{hass.config.config_dir}/{CACHE_FILE_NAME}"
 
 
 class GasBuddyServices:
@@ -129,17 +155,29 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
-        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        api = GasBuddy(
+            solver_url=solver,
+            cache_file=_cache_path(self.hass),
+            session=async_get_clientsession(self.hass),
+        )
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
-                if entity:
+                if (
+                    entity
+                    and ATTR_LATITUDE in entity.attributes
+                    and ATTR_LONGITUDE in entity.attributes
+                ):
                     lat = entity.attributes[ATTR_LATITUDE]
                     lon = entity.attributes[ATTR_LONGITUDE]
                     results[entity_id] = await api.price_lookup_service(
                         lat=lat, lon=lon, limit=limit
                     )
+                else:
+                    _LOGGER.warning("Entity %s lacks latitude/longitude coordinates", entity_id)
+                    results[entity_id] = {}
             except (APIError, LibraryError, CSRFTokenMissing) as ex:
                 _LOGGER.error("Error checking prices: %s", ex)
 
@@ -158,10 +196,12 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
         try:
             results = await GasBuddy(
                 solver_url=solver,
+                cache_file=_cache_path(self.hass),
                 session=async_get_clientsession(self.hass),
             ).price_lookup_service(zipcode=zipcode, limit=limit)
         except (APIError, LibraryError, CSRFTokenMissing) as ex:
@@ -185,8 +225,13 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
-        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        api = GasBuddy(
+            solver_url=solver,
+            cache_file=_cache_path(self.hass),
+            session=async_get_clientsession(self.hass),
+        )
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
@@ -227,8 +272,13 @@ class GasBuddyServices:
         if ATTR_SOLVER in service.data:
             solver = service.data[ATTR_SOLVER]
 
+        _require_valid_solver(solver)
         results = {}
-        api = GasBuddy(solver_url=solver, session=async_get_clientsession(self.hass))
+        api = GasBuddy(
+            solver_url=solver,
+            cache_file=_cache_path(self.hass),
+            session=async_get_clientsession(self.hass),
+        )
         try:
             res = await api.price_lookup_service(zipcode=zipcode)
             lat = None
@@ -266,7 +316,9 @@ class GasBuddyServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.config_entries), None)
+            if not config_id:
+                raise ValueError(f"No config entry found for device {device_id}")
             _LOGGER.debug("Config ID: %s", config_id)
             manager = self.hass.data[DOMAIN][config_id][COORDINATOR]
             await manager.clear_cache()

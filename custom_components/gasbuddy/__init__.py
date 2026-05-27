@@ -11,6 +11,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_SOLVER,
@@ -56,6 +57,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         updated_config[CONF_INTERVAL] = 3600
     if CONF_EV_CHARGING not in config_entry.options:
         updated_config[CONF_EV_CHARGING] = False
+    if CONF_FETCH_GAS not in config_entry.options:
+        updated_config[CONF_FETCH_GAS] = True
 
     if updated_config != config_entry.options:
         hass.config_entries.async_update_entry(config_entry, options=updated_config)
@@ -108,7 +111,9 @@ async def async_migrate_entry(hass, config_entry) -> bool:
         if CONF_TIMEOUT not in updated_config:
             updated_config[CONF_TIMEOUT] = 60000
 
-    if updated_config != config_entry.data:
+    # Persist the bumped version even when no data keys changed; otherwise
+    # the entry stays on the old version and HA re-runs migration every start.
+    if updated_config != config_entry.data or config_entry.version != new_version:
         hass.config_entries.async_update_entry(
             config_entry, data=updated_config, version=new_version
         )

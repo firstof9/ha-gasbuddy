@@ -15,6 +15,7 @@ from custom_components.gasbuddy.config_flow import (
 from custom_components.gasbuddy.const import (
     ATTR_POSTAL_CODE,
     CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
@@ -139,6 +140,63 @@ async def test_coordinator_fallback_ev_exception(hass):
     mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
     mock_api.ev_stations_nearby = AsyncMock(side_effect=Exception("EV lookup failed"))
     coordinator._api = mock_api  # noqa: SLF001
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()  # noqa: SLF001
+
+
+async def test_coordinator_skips_price_lookup_when_fetch_gas_disabled(hass):
+    """fetch_gas=False bypasses price_lookup and falls through to EV enrichment."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+            "latitude": 33.45,
+            "longitude": -112.50,
+        },
+        options={CONF_EV_CHARGING: True, CONF_FETCH_GAS: False},
+    )
+    entry.add_to_hass(hass)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(side_effect=AssertionError("must not be called"))
+    mock_api.ev_stations_nearby = AsyncMock(
+        return_value={
+            "stations": [
+                {
+                    "station_id": "208656",
+                    "name": "Costco EV",
+                    "level2_count": 2,
+                    "dc_fast_count": 4,
+                }
+            ]
+        }
+    )
+    coordinator._api = mock_api  # noqa: SLF001
+
+    data = await coordinator._async_update_data()  # noqa: SLF001
+    assert not mock_api.price_lookup.called
+    assert mock_api.ev_stations_nearby.called
+    assert data["station_id"] == "208656"
+    assert data["ev_level2"] == 2
+
+
+async def test_coordinator_raises_when_both_options_disabled(hass):
+    """fetch_gas=False AND ev_charging=False → UpdateFailed."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "Nothing",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={CONF_EV_CHARGING: False, CONF_FETCH_GAS: False},
+    )
+    entry.add_to_hass(hass)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
 
     with pytest.raises(UpdateFailed):
         await coordinator._async_update_data()  # noqa: SLF001
@@ -593,6 +651,10 @@ async def test_config_flow_ev_charging_flag(hass):
     """Test ConfigFlow sets ev_charging to True when station ends with [EV]."""
     flow = GasBuddyFlowHandler()
     flow.hass = hass
+    # async_set_unique_id mutates self.context; when constructing the flow
+    # directly (not via the flow manager) the default context is a
+    # read-only mappingproxy, so replace it with a real dict.
+    flow.context = {}
     flow._station_list = {"208656": "Costco [EV]"}  # noqa: SLF001
     flow._data = {CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
 

@@ -6,7 +6,15 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy import async_remove_config_entry_device
-from custom_components.gasbuddy.const import CONF_GPS, CONF_SOLVER, CONF_UOM, CONFIG_VER, DOMAIN
+from custom_components.gasbuddy.const import (
+    CONF_FETCH_GAS,
+    CONF_GPS,
+    CONF_SOLVER,
+    CONF_UOM,
+    CONFIG_VER,
+    DOMAIN,
+)
+from custom_components.gasbuddy.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from tests.common import load_fixture
 from tests.const import CONFIG_DATA, CONFIG_DATA_V1
@@ -26,13 +34,13 @@ async def test_setup_and_unload_entry(hass, mock_gasbuddy):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
     assert await hass.config_entries.async_unload(entries[0].entry_id)
     await hass.async_block_till_done()
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
     assert len(hass.states.async_entity_ids(DOMAIN)) == 0
 
     assert await hass.config_entries.async_remove(entries[0].entry_id)
@@ -48,13 +56,13 @@ async def test_setup_and_unload_entry_v1(hass, mock_gasbuddy):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
     assert await hass.config_entries.async_unload(entries[0].entry_id)
     await hass.async_block_till_done()
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
     assert len(hass.states.async_entity_ids(DOMAIN)) == 0
 
     assert await hass.config_entries.async_remove(entries[0].entry_id)
@@ -112,6 +120,22 @@ async def test_migrate_entry(hass, mock_gasbuddy):
     assert entry.data[CONF_SOLVER] is None
 
 
+async def test_migrate_entry_advances_version_without_data_change(hass, mock_gasbuddy):
+    """Migration must advance the version even when no data keys need adding.
+
+    CONFIG_DATA already contains every key the migration steps would add, so
+    the data dict is unchanged. The entry version still has to move to
+    CONFIG_VER, otherwise HA re-runs the migration on every startup.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.version == CONFIG_VER
+
+
 async def test_remove_config_entry_device(hass, integration):
     """Test async_remove_config_entry_device."""
 
@@ -129,6 +153,29 @@ async def test_options_reload(hass, mock_gasbuddy):
         hass.config_entries.async_update_entry(entry, options={**entry.options, "interval": 1200})
         await hass.async_block_till_done()
         assert mock_reload.called
+
+
+async def test_sanity_defaults_add_fetch_gas(hass, mock_gasbuddy):
+    """async_setup_entry should populate CONF_FETCH_GAS when missing from options."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station",
+        data=CONFIG_DATA,
+        options={},  # intentionally empty — simulates old entry missing CONF_FETCH_GAS
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.options.get(CONF_FETCH_GAS) is True
+
+
+async def test_config_diagnostics_includes_coordinator(hass, integration):
+    """Config-level diagnostics should include coordinator data alongside config."""
+    result = await async_get_config_entry_diagnostics(hass, integration)
+    assert "config" in result
+    assert "coordinator_data" in result
+    assert "last_updated" in result["coordinator_data"]
 
 
 async def test_service_unregistration_on_unload(hass, mock_gasbuddy):
