@@ -94,15 +94,14 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
         fetch_gas = self._config.options.get(CONF_FETCH_GAS, True)
 
-        if not fetch_gas:
+        if not fetch_gas:  # noqa: PLR1702
             # User has disabled gas-price polling on this station — most
             # commonly an EV-only station. Skip price_lookup entirely
             # (it would APIError every cycle) and bootstrap self._data
             # so the EV enrichment block below can populate sensors.
             if not ev_charging_enabled:
                 raise UpdateFailed(
-                    "Both gas price polling and EV charging are disabled — "
-                    "nothing to fetch."
+                    "Both gas price polling and EV charging are disabled — nothing to fetch."
                 )
             lat = self._config.data.get("latitude") or self.hass.config.latitude
             lon = self._config.data.get("longitude") or self.hass.config.longitude
@@ -178,7 +177,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                                     "latitude": matching["latitude"],
                                     "longitude": matching["longitude"],
                                 }
-                                self.hass.config_entries.async_update_entry(self._config, data=new_data)
+                                self.hass.config_entries.async_update_entry(
+                                    self._config, data=new_data
+                                )
                         else:
                             self._data = {
                                 "station_id": self._config.data[CONF_STATION_ID],
