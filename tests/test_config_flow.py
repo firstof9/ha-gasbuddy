@@ -85,11 +85,8 @@ pytestmark = pytest.mark.asyncio
             "user",
             DEFAULT_NAME,
             {
-                CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "32394",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
                 CONF_SOLVER: SOLVER_URL,
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -177,11 +174,8 @@ async def test_form_home(
             "user",
             DEFAULT_NAME,
             {
-                CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "32394",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
                 CONF_SOLVER: HOSTNAME_SOLVER_URL,
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -271,9 +265,6 @@ async def test_form_home_hostname_solver(
             {
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "32394",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
-                CONF_GPS: True,
                 CONF_SOLVER: SOLVER_URL,
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -362,9 +353,6 @@ async def test_form_postal(
             {
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
-                CONF_GPS: True,
                 CONF_SOLVER: SOLVER_URL,
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -800,11 +788,8 @@ async def test_form_manual_invalid_url(
             "reconfigure",
             DEFAULT_NAME,
             {
-                CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
                 CONF_SOLVER: SOLVER_URL,
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -1056,11 +1041,8 @@ async def test_reconfigure_invalid_station(
             "reconfigure",
             DEFAULT_NAME,
             {
-                CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
                 CONF_SOLVER: SOLVER_URL,
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -1201,12 +1183,9 @@ async def test_form_options_error(
             "reconfigure",
             DEFAULT_NAME,
             {
-                CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
-                CONF_SOLVER: "",
+                CONF_SOLVER: None,
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
         ),
@@ -1362,11 +1341,8 @@ async def test_form_options(
             "user",
             DEFAULT_NAME,
             {
-                CONF_GPS: True,
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "32394",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
                 CONF_SOLVER: "",
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -1448,9 +1424,6 @@ async def test_form_home_empty_solver(
             {
                 CONF_NAME: DEFAULT_NAME,
                 CONF_STATION_ID: "208656",
-                CONF_INTERVAL: 3600,
-                CONF_UOM: True,
-                CONF_GPS: True,
                 CONF_SOLVER: "",
                 CONF_TIMEOUT: DEFAULT_TIMEOUT,
             },
@@ -1570,6 +1543,23 @@ async def test_get_station_list_missing_data_error(hass):
         pytest.raises(SearchFailed),
     ):
         await _get_station_list(hass, {})
+
+
+async def test_get_station_list_skips_null_station_id(hass):
+    """Stations with station_id=None are silently skipped."""
+    fake_results = {
+        "results": [
+            {"station_id": None, "name": "Bad Station", "address": {"line1": "1 Nowhere"}},
+            {"station_id": "999001", "name": "Good Station", "address": {"line1": "100 Test Blvd"}},
+        ]
+    }
+    with patch(
+        "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.location_search",
+        return_value=fake_results,
+    ):
+        result = await _get_station_list(hass, {})
+    assert "999001" in result
+    assert None not in result
 
 
 async def test_form_manual_renders(hass):
@@ -2055,7 +2045,7 @@ async def test_postal_invalid_format(hass):
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "postal"
-    assert result["errors"] == {CONF_POSTAL: "no_results"}
+    assert result["errors"] == {CONF_POSTAL: "invalid_postal"}
 
 
 @pytest.mark.asyncio
@@ -2257,7 +2247,7 @@ async def test_cheapest_flow_invalid_postal(hass):
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "cheapest"
-    assert CONF_POSTAL in result["errors"]
+    assert result["errors"].get(CONF_POSTAL) == "invalid_postal"
 
 
 @pytest.mark.asyncio

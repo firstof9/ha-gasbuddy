@@ -1,0 +1,14 @@
+# Enforce LF line endings for all text files in this repo.
+# ruff-format is configured with line-ending=lf (pyproject.toml), so
+# letting Git silently convert to CRLF on Windows checkouts causes
+# pre-commit to reformat the files on every run.
+* text=auto eol=lf
+
+# Binaries — no line-ending translation
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary

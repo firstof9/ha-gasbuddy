@@ -172,7 +172,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
 
         if self._config.options.get(CONF_UOM):
             if uom is not None and currency is not None:
-                return f"{currency}/{UNIT_OF_MEASURE[uom]}"
+                return f"{currency}/{UNIT_OF_MEASURE.get(uom, uom)}"
         elif currency is not None:
             return currency
         return None

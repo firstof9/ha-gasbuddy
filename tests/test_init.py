@@ -6,7 +6,15 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy import async_remove_config_entry_device
-from custom_components.gasbuddy.const import CONF_GPS, CONF_SOLVER, CONF_UOM, CONFIG_VER, DOMAIN
+from custom_components.gasbuddy.const import (
+    CONF_FETCH_GAS,
+    CONF_GPS,
+    CONF_SOLVER,
+    CONF_UOM,
+    CONFIG_VER,
+    DOMAIN,
+)
+from custom_components.gasbuddy.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from tests.common import load_fixture
 from tests.const import CONFIG_DATA, CONFIG_DATA_V1
@@ -145,6 +153,29 @@ async def test_options_reload(hass, mock_gasbuddy):
         hass.config_entries.async_update_entry(entry, options={**entry.options, "interval": 1200})
         await hass.async_block_till_done()
         assert mock_reload.called
+
+
+async def test_sanity_defaults_add_fetch_gas(hass, mock_gasbuddy):
+    """async_setup_entry should populate CONF_FETCH_GAS when missing from options."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station",
+        data=CONFIG_DATA,
+        options={},  # intentionally empty — simulates old entry missing CONF_FETCH_GAS
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.options.get(CONF_FETCH_GAS) is True
+
+
+async def test_config_diagnostics_includes_coordinator(hass, integration):
+    """Config-level diagnostics should include coordinator data alongside config."""
+    result = await async_get_config_entry_diagnostics(hass, integration)
+    assert "config" in result
+    assert "coordinator_data" in result
+    assert "last_updated" in result["coordinator_data"]
 
 
 async def test_service_unregistration_on_unload(hass, mock_gasbuddy):

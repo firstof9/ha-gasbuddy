@@ -9,7 +9,7 @@ from homeassistant.components.sensor import SensorEntityDescription
 
 @dataclass(frozen=True, kw_only=True)
 class GasBuddySensorEntityDescription(SensorEntityDescription):
-    """Class describing OpenEVSE select entities."""
+    """Class describing GasBuddy sensor entities."""
 
     cash: bool | None = None
     deal: bool | None = None
