@@ -653,7 +653,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_INTERVAL, 3600)
             user_input.setdefault(CONF_UOM, True)
             user_input.setdefault(CONF_GPS, True)
-            self._data.pop(CONF_POSTAL)
+            # Pop is idempotent — if the user lands here a second time
+            # (e.g. after picking an invalid station and being shown the
+            # form again), CONF_POSTAL is already gone and an
+            # unconditional .pop() would KeyError.
+            self._data.pop(CONF_POSTAL, None)
             self._data.update(user_input)
 
             # Get cached coordinates if available, then drop this flow's
