@@ -78,6 +78,11 @@ ev_lookup_zip:
 clear_cache:
   name: Clear Cache
   description: Clear library cache file.
-  target:
-    entity:
-      integration: gasbuddy
+  fields:
+    device_id:
+      name: Device
+      description: GasBuddy device whose cache file should be cleared.
+      required: true
+      selector:
+        device:
+          integration: gasbuddy
