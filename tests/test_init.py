@@ -112,6 +112,22 @@ async def test_migrate_entry(hass, mock_gasbuddy):
     assert entry.data[CONF_SOLVER] is None
 
 
+async def test_migrate_entry_advances_version_without_data_change(hass, mock_gasbuddy):
+    """Migration must advance the version even when no data keys need adding.
+
+    CONFIG_DATA already contains every key the migration steps would add, so
+    the data dict is unchanged. The entry version still has to move to
+    CONFIG_VER, otherwise HA re-runs the migration on every startup.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, title="gas_station", data=CONFIG_DATA, version=2)
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.version == CONFIG_VER
+
+
 async def test_remove_config_entry_device(hass, integration):
     """Test async_remove_config_entry_device."""
 
