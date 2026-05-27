@@ -3,6 +3,8 @@
 from datetime import UTC, datetime, timedelta
 import json
 import logging
+import math
+import operator
 from typing import Any
 
 from py_gasbuddy import GasBuddy
@@ -17,9 +19,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     CACHE_FILE_NAME,
+    CONF_CHEAPEST,
     CONF_EV_CHARGING,
+    CONF_FUEL_KEY,
     CONF_INTERVAL,
     CONF_NAME,
+    CONF_POSTAL,
+    CONF_PRICE_TYPE,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -40,6 +46,7 @@ def _redact(data: Any) -> str:
         "city",
         "state",
         "zip",
+        "station_id",
     }
 
     def _redact_recursive(obj: Any) -> Any:
@@ -54,7 +61,10 @@ def _redact(data: Any) -> str:
 
     try:
         return json.dumps(_redact_recursive(data), default=str)
-    except Exception:  # noqa: BLE001
+    except TypeError, ValueError:
+        # json.dumps raises TypeError for non-serialisable objects and
+        # ValueError for circular references / NaN with allow_nan=False.
+        # Anything else is a real bug and should propagate.
         return str(_redact_recursive(data))
 
 
@@ -70,7 +80,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._cache_file = f"{self.hass.config.config_dir}/{CACHE_FILE_NAME}"
         self._api = GasBuddy(
             solver_url=config.data.get(CONF_SOLVER),
-            station_id=config.data[CONF_STATION_ID],
+            station_id=config.data.get(CONF_STATION_ID),
             cache_file=self._cache_file,
             timeout=config.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             session=async_get_clientsession(hass),
@@ -88,6 +98,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Update data via library."""
+        if self._config.data.get(CONF_CHEAPEST):
+            return await self._async_update_cheapest()
+
         ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
         try:
             self._data = await self._api.price_lookup()
@@ -166,6 +179,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             else:
                 raise UpdateFailed(f"Error retrieving data: {ex}") from ex
         except Exception as exception:
+            _LOGGER.warning("Unexpected error updating gasbuddy: %s", exception, exc_info=True)
             raise UpdateFailed from exception
 
         # Query EV station details if enabled
@@ -234,6 +248,58 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._data["last_updated"] = datetime.now(UTC)
         _LOGGER.debug("Final coordinator data: %s", _redact(self._data))
         return self._data
+
+    async def _async_update_cheapest(self) -> dict:
+        """Find and return the cheapest nearby station for the configured fuel and price type."""
+        fuel_key = self._config.data.get(CONF_FUEL_KEY, "regular_gas")
+        price_type = self._config.data.get(CONF_PRICE_TYPE, "best")
+
+        postal = self._config.data.get(CONF_POSTAL)
+        lat: float | None = None
+        lon: float | None = None
+        if not postal:
+            config_lat = self._config.data.get("latitude")
+            lat = config_lat if config_lat is not None else self.hass.config.latitude
+            config_lon = self._config.data.get("longitude")
+            lon = config_lon if config_lon is not None else self.hass.config.longitude
+
+        try:
+            result = await self._api.price_lookup_service(
+                lat=lat,
+                lon=lon,
+                zipcode=postal,
+                limit=20,
+            )
+        except (APIError, LibraryError, CSRFTokenMissing) as ex:
+            raise UpdateFailed(f"Cheapest gas lookup failed: {ex}") from ex
+
+        stations = [s for s in (result.get("results") or []) if s.get(fuel_key)]
+        if not stations:
+            raise UpdateFailed("No stations with prices found for selected fuel")
+
+        def _sort_key(s: dict) -> float:
+            node = s.get(fuel_key) or {}
+            if price_type == "best":
+                candidates = [node.get("deal_price"), node.get("cash_price"), node.get("price")]
+                vals = [p for p in candidates if p is not None]
+                return min(vals) if vals else float("inf")
+            if price_type == "deal":
+                dp = node.get("deal_price")
+                return dp if dp is not None else float("inf")
+            field = "cash_price" if price_type == "cash" else "price"
+            v = node.get(field)
+            return v if v is not None else float("inf")
+
+        keyed = [(s, _sort_key(s)) for s in stations]
+        finite = [(s, k) for s, k in keyed if math.isfinite(k)]
+        if not finite:
+            raise UpdateFailed(
+                "No stations with a valid price found for selected fuel and price type"
+            )
+        cheapest = min(finite, key=operator.itemgetter(1))[0]
+        cheapest["last_updated"] = datetime.now(UTC)
+        _LOGGER.debug("Cheapest gas station: %s", _redact(cheapest))
+        return cheapest
 
     async def clear_cache(self) -> None:
         """Clear cache file."""

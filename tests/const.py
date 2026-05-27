@@ -3,9 +3,14 @@
 from datetime import UTC, datetime
 
 from custom_components.gasbuddy.const import (
+    CONF_CHEAPEST,
+    CONF_EV_CHARGING,
+    CONF_FETCH_GAS,
+    CONF_FUEL_KEY,
     CONF_GPS,
     CONF_INTERVAL,
     CONF_NAME,
+    CONF_PRICE_TYPE,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -66,34 +71,97 @@ STATION_LIST = {
 
 COORDINATOR_DATA = {
     "station_id": "208656",
+    "name": "Costco",
+    "pay_status": True,
     "image_url": "https://images.gasbuddy.io/b/122.png",
     "unit_of_measure": "dollars_per_gallon",
     "currency": "USD",
     "gps": True,
     "latitude": 33.459108,
     "longitude": -112.502745,
+    "open_status": "open",
+    "phone": "555-555-5555",
+    "star_rating": 4.2,
+    "address": {
+        "line1": "1101 N Verrado Way",
+        "locality": "Buckeye",
+        "region": "AZ",
+        "postalCode": "85396",
+        "country": "US",
+    },
+    "amenities": [
+        {"amenityId": 1, "name": "ATM"},
+        {"amenityId": 2, "name": "Restrooms"},
+    ],
     "regular_gas": {
         "credit": "Buddy_5bbkqrb1",
         "price": 2.95,
+        "cash_price": None,
+        "formatted_price": "$2.95",
+        "deal_price": 2.78,
         "last_updated": "2023-12-10T17:48:46.584Z",
     },
     "premium_gas": {
         "credit": "Owner",
         "price": None,
         "cash_price": 3.35,
+        "formatted_price": None,
+        "deal_price": None,
         "last_updated": "2023-12-10T17:31:01.856Z",
     },
     "e85": {
         "credit": "Owner",
         "price": 2.83,
         "cash_price": None,
+        "formatted_price": "$2.83",
+        "deal_price": None,
         "last_updated": "2024-09-27T18:12:09.837Z",
     },
     "e15": {
         "credit": "Owner",
         "price": 3.33,
         "cash_price": 3.13,
+        "formatted_price": "$3.33",
+        "deal_price": None,
         "last_updated": "2024-09-27T18:12:09.837Z",
+    },
+    "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=UTC),
+}
+
+CONFIG_DATA_CHEAPEST = {
+    CONF_NAME: "Cheapest Gas",
+    CONF_CHEAPEST: True,
+    CONF_FUEL_KEY: "regular_gas",
+    CONF_PRICE_TYPE: "best",
+    CONF_SOLVER: None,
+    CONF_TIMEOUT: DEFAULT_TIMEOUT,
+}
+
+OPTIONS_CHEAPEST = {
+    CONF_INTERVAL: 3600,
+    CONF_UOM: True,
+    CONF_GPS: False,
+    CONF_EV_CHARGING: False,
+    CONF_FETCH_GAS: True,
+}
+
+COORDINATOR_DATA_CHEAPEST = {
+    "station_id": "187725",
+    "name": "Shell",
+    "pay_status": True,
+    "image_url": None,
+    "unit_of_measure": "dollars_per_gallon",
+    "currency": "USD",
+    "latitude": 33.460000,
+    "longitude": -112.500000,
+    "distance": 0.5,
+    "regular_gas": {
+        "credit": "user99",
+        "price": 2.89,
+        "cash_price": 2.79,
+        "formatted_price": "$2.89",
+        "deal_price": 2.72,
+        "last_updated": "2025-01-09T16:00:00.000Z",
     },
     "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=UTC),
 }
