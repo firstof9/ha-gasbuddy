@@ -490,6 +490,7 @@ ignore = [
   "PLR0912", # Too many branches ({branches} > {max_branches})
   "PLR0913", # Too many arguments to function call ({c_args} > {max_args})
   "PLR0915", # Too many statements ({statements} > {max_statements})
+  "PLW0717", # Try clause contains too many statements
   "PLR0917", # Too many positional arguments ({args} > {max_args})
   "PLR2004", # Magic value used in comparison, consider replacing {value} with a constant variable
   "PLW1641", # __eq__ without __hash__

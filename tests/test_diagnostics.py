@@ -34,7 +34,7 @@ async def test_diagnostics(
 
     # Test Config Entry Diagnostics
     config_diagnostics = await async_get_config_entry_diagnostics(hass, entry)
-    assert config_diagnostics["config"]["data"]["station_id"] == 208656
+    assert config_diagnostics["config"]["data"]["station_id"] == "**REDACTED**"
     assert config_diagnostics["config"]["title"] == "Gas Station"
 
     # Test Device Diagnostics
@@ -44,6 +44,6 @@ async def test_diagnostics(
     assert device is not None
 
     device_diagnostics = await async_get_device_diagnostics(hass, entry, device)
-    assert device_diagnostics["station_id"] == "208656"
+    assert device_diagnostics["station_id"] == "**REDACTED**"
     assert device_diagnostics["unit_of_measure"] == "dollars_per_gallon"
     assert device_diagnostics["regular_gas"]["price"] == 2.95
