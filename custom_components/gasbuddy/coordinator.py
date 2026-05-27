@@ -100,7 +100,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             update_interval=self.interval,
         )
 
-    async def _async_update_data(self) -> dict:
+    async def _async_update_data(self) -> dict:  # noqa: PLR0914
         """Update data via library."""
         if self._config.data.get(CONF_CHEAPEST):
             return await self._async_update_cheapest()
@@ -172,14 +172,24 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                             ),
                             None,
                         )
+                        # Preserve unit/currency from the last good poll where
+                        # possible. Hardcoding USD/dollars_per_gallon mislabels
+                        # CAD stations and any future non-USD market.
+                        carried = {
+                            k: v
+                            for k, v in {
+                                "unit_of_measure": self._data.get("unit_of_measure"),
+                                "currency": self._data.get("currency"),
+                            }.items()
+                            if v is not None
+                        }
                         if matching:
                             self._data = {
                                 "station_id": matching["station_id"],
                                 "name": matching["name"],
                                 "latitude": matching["latitude"],
                                 "longitude": matching["longitude"],
-                                "unit_of_measure": "dollars_per_gallon",
-                                "currency": "USD",
+                                **carried,
                             }
                             # Update config entry if coordinates are new or changed
                             if (
@@ -200,8 +210,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                                 "name": self._config.data.get(CONF_NAME, "EV Station"),
                                 "latitude": lat,
                                 "longitude": lon,
-                                "unit_of_measure": "dollars_per_gallon",
-                                "currency": "USD",
+                                **carried,
                             }
                     except Exception as fallback_ex:  # noqa: BLE001
                         _LOGGER.error("EV fallback failed: %s", fallback_ex)

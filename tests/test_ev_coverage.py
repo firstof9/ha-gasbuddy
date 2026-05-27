@@ -778,3 +778,79 @@ async def test_validate_station_id_collision(hass) -> None:
         assert isinstance(result, dict)
         assert result["type"] == "ev"
         assert result["latitude"] == 44.0
+
+
+async def test_coordinator_fallback_preserves_unit_and_currency(hass):
+    """EV fallback carries unit_of_measure/currency from the last good poll, not hardcoded USD/gallon."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={CONF_EV_CHARGING: True},
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    # Simulate a previous successful poll of a Canadian station.
+    coordinator._data = {"unit_of_measure": "cents_per_liter", "currency": "CAD"}  # noqa: SLF001
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
+    mock_api.ev_stations_nearby = AsyncMock(
+        return_value={
+            "stations": [
+                {
+                    "station_id": "208656",
+                    "name": "Matching Costco EV",
+                    "latitude": 33.45,
+                    "longitude": -112.50,
+                }
+            ]
+        }
+    )
+    coordinator._api = mock_api  # noqa: SLF001
+
+    data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["unit_of_measure"] == "cents_per_liter"
+    assert data["currency"] == "CAD"
+
+
+async def test_coordinator_fallback_omits_unit_when_unknown(hass):
+    """On the first poll (no prior data) the fallback omits unit/currency rather than guessing USD/gallon."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "208656",
+            CONF_NAME: "EV Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={CONF_EV_CHARGING: True},
+    )
+    entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
+    mock_api.ev_stations_nearby = AsyncMock(
+        return_value={
+            "stations": [
+                {
+                    "station_id": "208656",
+                    "name": "Matching Costco EV",
+                    "latitude": 33.45,
+                    "longitude": -112.50,
+                }
+            ]
+        }
+    )
+    coordinator._api = mock_api  # noqa: SLF001
+
+    data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert "unit_of_measure" not in data
+    assert "currency" not in data
