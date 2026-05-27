@@ -366,3 +366,29 @@ async def test_clear_cache_no_config_entry(hass, mock_gasbuddy, mock_aioclient, 
                 blocking=True,
                 return_response=False,
             )
+
+
+async def test_lookup_gps_missing_coordinates(hass, mock_gasbuddy, mock_aioclient, caplog):
+    """lookup_gps warns and returns an empty result for an entity without coordinates."""
+    entry = MockConfigEntry(domain=DOMAIN, title="Gas Station", data=CONFIG_DATA)
+    mock_aioclient.get(GB_URL, status=200, body=load_fixture("index.html"), repeat=True)
+    mock_aioclient.post(TEST_URL, status=200, body=load_fixture("results.json"))
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_id = "device_tracker.no_coords"
+    hass.states.async_set(entity_id, "home", {})
+    await hass.async_block_till_done()
+
+    with caplog.at_level(logging.WARNING):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LOOKUP_GPS,
+            {ATTR_ENTITY_ID: entity_id},
+            blocking=True,
+            return_response=True,
+        )
+
+    assert response[entity_id] == {}
+    assert "lacks latitude/longitude coordinates" in caplog.text

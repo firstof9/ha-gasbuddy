@@ -87,6 +87,16 @@ def _csrf_blocked_via_state(gb: py_gasbuddy.GasBuddy) -> bool:
     return getattr(gb, "_cf_last", None) is False
 
 
+def _lon_delta(a: float, b: float) -> float:
+    """Return the shortest longitude delta between two points (degrees).
+
+    Handles the antimeridian: a station at 179.9° and a server reply at
+    -179.9° are 0.2° apart, not 359.8°.
+    """
+    raw = abs(a - b)
+    return min(raw, 360.0 - raw)
+
+
 def validate_url(url: str) -> bool:
     """Validate user input URL. Only http/https schemes are accepted."""
     pattern = re.compile(
@@ -125,7 +135,7 @@ async def validate_station(
 
             # Anti-collision check: if the gas station is far from our search coordinates, it's an ID collision
             if lat is not None and lon is not None and gas_lat is not None and gas_lon is not None:
-                if abs(gas_lat - lat) > 1.0 or abs(gas_lon - lon) > 1.0:
+                if abs(gas_lat - lat) > 1.0 or _lon_delta(gas_lon, lon) > 1.0:
                     raise APIError("Station ID collision detected")  # noqa: TRY301
 
             return {
@@ -921,20 +931,27 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Enable option flow."""
-        return GasBuddyOptionsFlow(config_entry)
+        return GasBuddyOptionsFlow()
 
 
 class GasBuddyOptionsFlow(config_entries.OptionsFlow):
     """Options flow for GasBuddy."""
 
-    def __init__(self, config_entry):
-        """Initialize."""
-        self.config = config_entry
-        self._data = dict(config_entry.options)
-        self._errors = {}
+    def __init__(self) -> None:
+        """Initialize.
+
+        HA 2024.12+ provides ``self.config_entry`` automatically on the
+        base class — taking ``config_entry`` here triggers a deprecation
+        warning. The previous ``self.config = config_entry`` field was
+        never read.
+        """
+        self._data: dict[str, Any] = {}
+        self._errors: dict[str, str] = {}
 
     async def async_step_init(self, user_input=None):
         """Manage GasBuddy options."""
+        if not self._data:
+            self._data = dict(self.config_entry.options)
         if user_input is not None:
             self._data.update(user_input)
             return self.async_create_entry(title="", data=self._data)
