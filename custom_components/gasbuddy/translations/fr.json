@@ -6,7 +6,8 @@
         "error": {
             "station_id": "ID de station invalide",
             "no_results": "Aucune station trouvée dans cette zone.",
-            "invalid_url": "URL non valide."
+            "invalid_url": "URL non valide.",
+            "cloudflare": "Impossible d'obtenir un jeton CSRF auprès de GasBuddy (Cloudflare bloque les requêtes). Configurez une URL FlareSolverr dans le champ optionnel et réessayez."
         },
         "step": {
             "user": {

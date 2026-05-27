@@ -60,7 +60,10 @@ def _redact(data: Any) -> str:
 
     try:
         return json.dumps(_redact_recursive(data), default=str)
-    except Exception:  # noqa: BLE001
+    except TypeError, ValueError:
+        # json.dumps raises TypeError for non-serialisable objects and
+        # ValueError for circular references / NaN with allow_nan=False.
+        # Anything else is a real bug and should propagate.
         return str(_redact_recursive(data))
 
 

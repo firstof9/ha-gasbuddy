@@ -6,7 +6,8 @@
         "error": {
             "station_id": "ID de estação inválido",
             "no_results": "Nenhuma estação encontrada nesta área.",
-            "invalid_url": "URL inválida."
+            "invalid_url": "URL inválida.",
+            "cloudflare": "Não foi possível obter um token CSRF do GasBuddy (Cloudflare está bloqueando as requisições). Configure uma URL FlareSolverr no campo opcional e tente novamente."
         },
         "step": {
             "user": {
