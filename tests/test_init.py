@@ -14,6 +14,7 @@ from custom_components.gasbuddy.const import (
     CONFIG_VER,
     DOMAIN,
 )
+from custom_components.gasbuddy.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from tests.common import load_fixture
 from tests.const import CONFIG_DATA, CONFIG_DATA_V1
@@ -171,8 +172,6 @@ async def test_sanity_defaults_add_fetch_gas(hass, mock_gasbuddy):
 
 async def test_config_diagnostics_includes_coordinator(hass, integration):
     """Config-level diagnostics should include coordinator data alongside config."""
-    from custom_components.gasbuddy.diagnostics import async_get_config_entry_diagnostics  # noqa: PLC0415
-
     result = await async_get_config_entry_diagnostics(hass, integration)
     assert "config" in result
     assert "coordinator_data" in result

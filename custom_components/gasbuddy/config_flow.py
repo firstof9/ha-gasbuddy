@@ -176,7 +176,7 @@ async def validate_station(
     return False
 
 
-async def _get_station_list(
+async def _get_station_list(  # noqa: PLR0914
     hass: HomeAssistant, user_input, flow_id: str | None = None
 ) -> dict[str, Any]:
     """Return list of utilities by lat/lon."""
