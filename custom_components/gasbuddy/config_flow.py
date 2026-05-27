@@ -814,10 +814,13 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     options[CONF_EV_CHARGING] = False
                     options[CONF_FETCH_GAS] = True
 
+                # async_update_entry already triggers a reload via the
+                # update_listener registered in async_setup_entry; the
+                # previous `async_create_task(async_reload(...))` here
+                # was a second, untracked reload that raced the listener.
                 self.hass.config_entries.async_update_entry(
                     entry, title=self._data[CONF_NAME], data=self._data, options=options
                 )
-                self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
 
@@ -851,10 +854,11 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 new_data.pop(CONF_POSTAL, None)
 
+            # async_update_entry already reloads via the update_listener;
+            # a second explicit reload here would race it (see above).
             self.hass.config_entries.async_update_entry(
                 entry, title=new_data[CONF_NAME], data=new_data
             )
-            self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
             _LOGGER.debug("%s cheapest entry reconfigured.", DOMAIN)
             return self.async_abort(reason="reconfigure_successful")
 
