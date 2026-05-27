@@ -69,12 +69,28 @@ Configuration is done via the Home Assistant UI. When adding the integration, yo
 *   **Manual**: Enter the GasBuddy Station ID directly.
 *   **Search by Home**: Uses your Home Assistant zone coordinates to find nearby stations.
 *   **Search by Postal Code**: Enter a specific Zip or Postal Code to find stations in that area.
+*   **Track Cheapest Nearby Gas**: Instead of a fixed station, follow whichever nearby station is currently cheapest for a fuel type and price type you choose (see [Cheapest gas tracker](#cheapest-gas-tracker)).
 
 You can configure the following options by clicking **Configure** on the integration card:
 *   **Polling interval**: Polling frequency in seconds.
 *   **Show per liter/gallon in unit of measure**: Standardizes price representation.
 *   **Show stations on map**: Enables rendering of stations on the Map panel.
 *   **Enable EV charging sensors**: Toggles dedicated EV charging sensors that report connector counts and charging power per connector type. Entity IDs depend on the station name you configure; the sensor keys created include `ev_level1`, `ev_level2`, `ev_dc_fast`, `ev_j1772` (+ `_power`), `ev_ccs` (+ `_power`), `ev_chademo` (+ `_power`), `ev_nacs` (+ `_power`), and `ev_status`.
+
+### Cheapest gas tracker
+
+The **Track Cheapest Nearby Gas** option creates an entry that follows the lowest-priced nearby station rather than a single fixed station. On every refresh it re-checks and updates to whichever nearby station is currently cheapest, so the sensor always reflects the best nearby price.
+
+When you add it, choose:
+
+*   **Fuel type**: Regular, Midgrade, Premium, Diesel, E85, or UNL88.
+*   **Price type**:
+    *   **Best**: the lowest of the available credit, cash, and deal prices.
+    *   **Credit**: the standard posted (credit) price.
+    *   **Cash**: the cash price.
+    *   **Deal/GasBuddy Pay**: the GasBuddy Pay / deal price.
+
+Leave the postal code blank to search around your Home Assistant home coordinates, or enter a specific Zip/Postal Code to track the cheapest station in that area.
 
 ## Services
 
