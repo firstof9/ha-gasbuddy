@@ -460,7 +460,6 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for GasBuddy."""
 
     VERSION = CONFIG_VER
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     def __init__(self):
         """Initialize."""
@@ -681,7 +680,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._data.update(user_input)
             postal = str(user_input.get(CONF_POSTAL, "")).strip()
             if not _POSTAL_RE.match(postal):
-                self._errors[CONF_POSTAL] = "no_results"
+                self._errors[CONF_POSTAL] = "invalid_postal"
                 return await self._show_config_postal(user_input)
 
             if user_input.get(CONF_SOLVER):
@@ -819,7 +818,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             postal = (user_input.get(CONF_POSTAL) or "").strip()
             if postal:
                 if not _POSTAL_RE.match(postal):
-                    self._errors[CONF_POSTAL] = "no_results"
+                    self._errors[CONF_POSTAL] = "invalid_postal"
                     return await self._show_config_cheapest(user_input)
                 data[CONF_POSTAL] = postal
 
@@ -929,7 +928,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             postal = (user_input.get(CONF_POSTAL) or "").strip()
             if postal:
                 if not _POSTAL_RE.match(postal):
-                    self._errors[CONF_POSTAL] = "no_results"
+                    self._errors[CONF_POSTAL] = "invalid_postal"
                     return await self._show_reconfig_cheapest_form(user_input)
                 new_data[CONF_POSTAL] = postal
             else:

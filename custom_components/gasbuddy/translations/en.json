@@ -7,7 +7,8 @@
             "station_id": "Invalid station ID",
             "no_results": "No stations found in this area.",
             "invalid_url": "Not a valid URL.",
-            "cloudflare": "Couldn't fetch a CSRF token from GasBuddy (Cloudflare is blocking requests). Configure a FlareSolverr URL in the optional field and try again."
+            "cloudflare": "Couldn't fetch a CSRF token from GasBuddy (Cloudflare is blocking requests). Configure a FlareSolverr URL in the optional field and try again.",
+            "invalid_postal": "Invalid postal code format (US ZIP or Canadian postal code)."
         },
         "step": {
             "user": {
