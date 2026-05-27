@@ -322,28 +322,6 @@ def _get_schema_home(
     })
 
 
-def _get_schema_home2(
-    hass: Any,  # pylint: disable=unused-argument
-    user_input: dict[str, Any],
-    default_dict: dict[str, Any],
-    station_list: dict[str, Any],
-) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema({
-        vol.Required(CONF_STATION_ID, default=_get_default(CONF_STATION_ID)): vol.In(station_list),
-        vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
-            cv.string, vol.Strip, vol.Length(max=100)
-        ),
-    })
-
-
 def _get_schema_postal(  # pylint: disable-next=unused-argument
     hass: Any, user_input: dict[str, Any], default_dict: dict[str, Any]
 ) -> Any:
@@ -585,6 +563,56 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
+    async def _async_validate_and_create_entry(self) -> ConfigFlowResult | None:
+        """Validate selected station and create config entry. Returns None on failure."""
+        flow_cache = (
+            self.hass.data
+            .get(DOMAIN, {})
+            .get("station_coordinates_by_flow", {})
+            .pop(self.flow_id, {})
+        )
+        cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
+        lat, lon = cached_coords or (None, None)
+
+        try:
+            validate = await validate_station(
+                self.hass,
+                self._data[CONF_STATION_ID],
+                self._data.get(CONF_SOLVER),
+                lat=lat,
+                lon=lon,
+            )
+        except CloudflareBlocked:
+            self._errors[CONF_STATION_ID] = "cloudflare"
+            validate = False
+        except InvalidStation:
+            validate = False
+
+        if not validate:
+            self._errors.setdefault(CONF_STATION_ID, "station_id")
+            return None
+
+        if isinstance(validate, dict):
+            self._data["latitude"] = validate.get("latitude")
+            self._data["longitude"] = validate.get("longitude")
+            ev_charging = validate["type"] == "ev"
+        else:
+            ev_charging = False
+
+        await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
+        self._abort_if_unique_id_configured()
+        return self.async_create_entry(
+            title=self._data[CONF_NAME],
+            data=self._data,
+            options={
+                CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
+                CONF_UOM: self._data.get(CONF_UOM, True),
+                CONF_GPS: self._data.get(CONF_GPS, True),
+                CONF_EV_CHARGING: ev_charging,
+                CONF_FETCH_GAS: not ev_charging,
+            },
+        )
+
     async def async_step_home2(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
@@ -595,61 +623,10 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
 
-            # Get cached coordinates if available, then drop this flow's
-            # entry — it's not needed past this step and would otherwise
-            # accumulate forever in hass.data across repeated config-flow
-            # attempts.
-            flow_cache = (
-                self.hass.data
-                .get(DOMAIN, {})
-                .get("station_coordinates_by_flow", {})
-                .pop(self.flow_id, {})
-            )
-            cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
-            lat, lon = cached_coords or (None, None)
-
-            try:
-                validate = await validate_station(
-                    self.hass,
-                    self._data[CONF_STATION_ID],
-                    self._data.get(CONF_SOLVER),
-                    lat=lat,
-                    lon=lon,
-                )
-            except CloudflareBlocked:
-                self._errors[CONF_STATION_ID] = "cloudflare"
-                validate = False
-            except InvalidStation:
-                validate = False
-
-            if not validate:
-                # Keep a more specific error (e.g. "cloudflare") if a handler
-                # above already set one; otherwise fall back to "station_id".
-                self._errors.setdefault(CONF_STATION_ID, "station_id")
-                return await self._show_config_home2(user_input)
-            if isinstance(validate, dict):
-                self._data["latitude"] = validate.get("latitude")
-                self._data["longitude"] = validate.get("longitude")
-                ev_charging = validate["type"] == "ev"
-            else:
-                ev_charging = False
-
-            self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
-                self.flow_id, None
-            )
-            await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(
-                title=self._data[CONF_NAME],
-                data=self._data,
-                options={
-                    CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
-                    CONF_UOM: self._data.get(CONF_UOM, True),
-                    CONF_GPS: self._data.get(CONF_GPS, True),
-                    CONF_EV_CHARGING: ev_charging,
-                    CONF_FETCH_GAS: not ev_charging,
-                },
-            )
+            result = await self._async_validate_and_create_entry()
+            if result is not None:
+                return result
+            return await self._show_config_home2(user_input)
         return await self._show_config_home2(user_input)
 
     async def _show_config_home2(self, user_input):
@@ -667,7 +644,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="home2",
-            data_schema=_get_schema_home2(self.hass, user_input, defaults, station_list),
+            data_schema=_get_schema_station_list(self.hass, user_input, defaults, station_list),
             errors=self._errors,
         )
 
@@ -718,61 +695,10 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._data.pop(CONF_POSTAL, None)
             self._data.update(user_input)
 
-            # Get cached coordinates if available, then drop this flow's
-            # entry — it's not needed past this step and would otherwise
-            # accumulate forever in hass.data across repeated config-flow
-            # attempts.
-            flow_cache = (
-                self.hass.data
-                .get(DOMAIN, {})
-                .get("station_coordinates_by_flow", {})
-                .pop(self.flow_id, {})
-            )
-            cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
-            lat, lon = cached_coords or (None, None)
-
-            try:
-                validate = await validate_station(
-                    self.hass,
-                    self._data[CONF_STATION_ID],
-                    self._data.get(CONF_SOLVER),
-                    lat=lat,
-                    lon=lon,
-                )
-            except CloudflareBlocked:
-                self._errors[CONF_STATION_ID] = "cloudflare"
-                validate = False
-            except InvalidStation:
-                validate = False
-
-            if not validate:
-                # Keep a more specific error (e.g. "cloudflare") if a handler
-                # above already set one; otherwise fall back to "station_id".
-                self._errors.setdefault(CONF_STATION_ID, "station_id")
-                return await self._show_config_station_list(user_input)
-            if isinstance(validate, dict):
-                self._data["latitude"] = validate.get("latitude")
-                self._data["longitude"] = validate.get("longitude")
-                ev_charging = validate["type"] == "ev"
-            else:
-                ev_charging = False
-
-            self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
-                self.flow_id, None
-            )
-            await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(
-                title=self._data[CONF_NAME],
-                data=self._data,
-                options={
-                    CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
-                    CONF_UOM: self._data.get(CONF_UOM, True),
-                    CONF_GPS: self._data.get(CONF_GPS, True),
-                    CONF_EV_CHARGING: ev_charging,
-                    CONF_FETCH_GAS: not ev_charging,
-                },
-            )
+            result = await self._async_validate_and_create_entry()
+            if result is not None:
+                return result
+            return await self._show_config_station_list(user_input)
         return await self._show_config_station_list(user_input)
 
     async def _show_config_station_list(self, user_input):
