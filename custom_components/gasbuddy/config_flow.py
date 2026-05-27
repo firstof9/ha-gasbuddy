@@ -153,7 +153,12 @@ async def validate_station(
             limit=50,
         )
         matching = next(
-            (s for s in ev_res.get("stations", []) if str(s["station_id"]) == str(station)),
+            (
+                s
+                for s in ev_res.get("stations", [])
+                if s.get("station_id") is not None
+                and str(s["station_id"]).strip() == str(station).strip()
+            ),
             None,
         )
         if matching:
@@ -205,8 +210,12 @@ async def _get_station_list(
     _LOGGER.debug("search reply: %s stations returned", len(stations.get("results", [])))
 
     for station in stations.get("results", []):
-        full_name = f"{station['name']} @ {station['address']['line1']}"
-        stations_list[station["station_id"]] = full_name
+        station_id = station.get("station_id")
+        if station_id is None:
+            continue
+        addr = (station.get("address") or {}).get("line1", "")
+        full_name = f"{station.get('name', 'Unknown')} @ {addr}"
+        stations_list[station_id] = full_name
 
     # Query EV stations nearby and merge them
     search_lat = lat
