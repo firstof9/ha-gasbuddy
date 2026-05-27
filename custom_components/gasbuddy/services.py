@@ -155,12 +155,19 @@ class GasBuddyServices:
         for entity_id in entity_ids:
             try:
                 entity = self.hass.states.get(entity_id)
-                if entity:
+                if (
+                    entity
+                    and ATTR_LATITUDE in entity.attributes
+                    and ATTR_LONGITUDE in entity.attributes
+                ):
                     lat = entity.attributes[ATTR_LATITUDE]
                     lon = entity.attributes[ATTR_LONGITUDE]
                     results[entity_id] = await api.price_lookup_service(
                         lat=lat, lon=lon, limit=limit
                     )
+                else:
+                    _LOGGER.warning("Entity %s lacks latitude/longitude coordinates", entity_id)
+                    results[entity_id] = {}
             except (APIError, LibraryError, CSRFTokenMissing) as ex:
                 _LOGGER.error("Error checking prices: %s", ex)
 
