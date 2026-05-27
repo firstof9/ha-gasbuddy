@@ -45,16 +45,17 @@ keep it there when adding new code paths.
 pre-commit run --all-files
 ```
 
-The project uses **ruff 0.15.12** (pinned in `.pre-commit-config.yaml`).
-If you've installed a newer ruff system-wide, install the pinned
+The project uses **ruff 0.15.14** (pinned in `.pre-commit-config.yaml`).
+If you've installed a different ruff system-wide, install the pinned
 version into your venv:
 
 ```bash
-uv pip install 'ruff==0.15.12'
+uv pip install 'ruff==0.15.14'
 ```
 
-Newer ruff versions emit `PLW0717` warnings against existing code that
-CI doesn't check — they're noise, not actionable.
+`pyproject.toml` ignores the `PLW0717` rule, which only exists in ruff
+0.15.14+. An older ruff (such as 0.15.12) refuses to run at all with
+`Unknown rule selector: PLW0717`, so match the pinned version.
 
 ### Python 3.14 syntax
 
