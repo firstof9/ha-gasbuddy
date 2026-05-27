@@ -499,7 +499,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=self._data[CONF_NAME],
-                    data=self._data,
+                    data=self._build_entry_data(),
                     options={
                         CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
                         CONF_UOM: self._data.get(CONF_UOM, True),
@@ -563,6 +563,21 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
+    def _build_entry_data(self) -> dict[str, Any]:
+        """Return only the keys that belong in entry.data (not options)."""
+        return {
+            k: self._data[k]
+            for k in (
+                CONF_STATION_ID,
+                CONF_NAME,
+                CONF_SOLVER,
+                CONF_TIMEOUT,
+                "latitude",
+                "longitude",
+            )
+            if k in self._data
+        }
+
     async def _async_validate_and_create_entry(self) -> ConfigFlowResult | None:
         """Validate selected station and create config entry. Returns None on failure."""
         flow_cache = (
@@ -603,7 +618,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         return self.async_create_entry(
             title=self._data[CONF_NAME],
-            data=self._data,
+            data=self._build_entry_data(),
             options={
                 CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
                 CONF_UOM: self._data.get(CONF_UOM, True),
@@ -793,6 +808,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self._show_reconfig_form(user_input)
             else:
                 user_input[CONF_SOLVER] = None
+                self._data[CONF_SOLVER] = None
 
             try:
                 validate = await validate_station(
@@ -825,7 +841,10 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 # previous `async_create_task(async_reload(...))` here
                 # was a second, untracked reload that raced the listener.
                 self.hass.config_entries.async_update_entry(
-                    entry, title=self._data[CONF_NAME], data=self._data, options=options
+                    entry,
+                    title=self._data[CONF_NAME],
+                    data=self._build_entry_data(),
+                    options=options,
                 )
                 _LOGGER.debug("%s reconfigured.", DOMAIN)
                 return self.async_abort(reason="reconfigure_successful")
