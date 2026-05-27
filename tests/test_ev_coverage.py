@@ -593,6 +593,10 @@ async def test_config_flow_ev_charging_flag(hass):
     """Test ConfigFlow sets ev_charging to True when station ends with [EV]."""
     flow = GasBuddyFlowHandler()
     flow.hass = hass
+    # async_set_unique_id mutates self.context; when constructing the flow
+    # directly (not via the flow manager) the default context is a
+    # read-only mappingproxy, so replace it with a real dict.
+    flow.context = {}
     flow._station_list = {"208656": "Costco [EV]"}  # noqa: SLF001
     flow._data = {CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
 

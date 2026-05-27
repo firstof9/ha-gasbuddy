@@ -509,6 +509,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     ev_charging = validate["type"] == "ev"
                 else:
                     ev_charging = False
+                await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=self._data[CONF_NAME],
                     data=self._data,
@@ -627,6 +629,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
                 self.flow_id, None
             )
+            await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
                 data=self._data,
@@ -748,6 +752,8 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self.hass.data.get(DOMAIN, {}).get("station_coordinates_by_flow", {}).pop(
                 self.flow_id, None
             )
+            await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title=self._data[CONF_NAME],
                 data=self._data,
