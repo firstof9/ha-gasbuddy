@@ -75,7 +75,7 @@ You can configure the following options by clicking **Configure** on the integra
 *   **Polling interval**: Polling frequency in seconds.
 *   **Show per liter/gallon in unit of measure**: Standardizes price representation.
 *   **Show stations on map**: Enables rendering of stations on the Map panel.
-*   **Enable EV charging sensors**: Toggles dedicated EV charging sensors that report connector counts and charging power per connector type. Entity IDs depend on the station name you configure; the sensor keys created include `ev_level1`, `ev_level2`, `ev_dc_fast`, `ev_j1772` (+ `_power`), `ev_ccs` (+ `_power`), `ev_chademo` (+ `_power`), `ev_nacs` (+ `_power`), and `ev_status`.
+*   **Enable EV charging sensors**: Toggles dedicated EV charging sensors that report connector counts and charging power per connector type (see [Sensors](#sensors) for details).
 
 ### Cheapest gas tracker
 
@@ -91,6 +91,93 @@ When you add it, choose:
     *   **Deal/GasBuddy Pay**: the GasBuddy Pay / deal price.
 
 Leave the postal code blank to search around your Home Assistant home coordinates, or enter a specific Zip/Postal Code to track the cheapest station in that area.
+
+## Sensors
+
+The integration provides a variety of sensors depending on your configuration options and the capabilities of the tracked station. Sensors are categorized into three groups:
+
+### General & Station Info
+These general sensors track the station status and name.
+
+| Sensor Name | Sensor Key | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **Last Updated** | `last_updated` | **Enabled** | The timestamp when the integration last successfully fetched data |
+| **Station Status** | `open_status` | Disabled | Current opening status of the station (e.g., Open, Closed) |
+| **Station Name** | `name` | Disabled | The name of the station |
+
+### Fuel Price Sensors
+These sensors are created if **Fetch Gas Prices** (`fetch_gas`) is enabled (default). Only fuel types sold at the station will have sensors created.
+
+| Sensor Name | Sensor Key | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **Regular Gas** | `regular_gas` | **Enabled** | Credit/Standard price of Regular gas |
+| **Regular Gas (Cash)** | `regular_gas_cash` | Disabled | Cash price of Regular gas |
+| **Regular Gas (Deal)** | `regular_gas_deal` | Disabled | Deal/GasBuddy Pay price of Regular gas |
+| **MidGrade Gas** | `midgrade_gas` | **Enabled** | Credit/Standard price of MidGrade gas |
+| **MidGrade Gas (Cash)** | `midgrade_gas_cash` | Disabled | Cash price of MidGrade gas |
+| **MidGrade Gas (Deal)** | `midgrade_gas_deal` | Disabled | Deal/GasBuddy Pay price of MidGrade gas |
+| **Premium Gas** | `premium_gas` | **Enabled** | Credit/Standard price of Premium gas |
+| **Premium Gas (Cash)** | `premium_gas_cash` | Disabled | Cash price of Premium gas |
+| **Premium Gas (Deal)** | `premium_gas_deal` | Disabled | Deal/GasBuddy Pay price of Premium gas |
+| **Diesel** | `diesel` | Disabled | Credit/Standard price of Diesel |
+| **Diesel (Cash)** | `diesel_cash` | Disabled | Cash price of Diesel |
+| **Diesel (Deal)** | `diesel_deal` | Disabled | Deal/GasBuddy Pay price of Diesel |
+| **E85** | `e85` | Disabled | Credit/Standard price of E85 |
+| **E85 (Cash)** | `e85_cash` | Disabled | Cash price of E85 |
+| **E85 (Deal)** | `e85_deal` | Disabled | Deal/GasBuddy Pay price of E85 |
+| **UNL88** | `e15` | Disabled | Credit/Standard price of UNL88 |
+| **UNL88 (Cash)** | `e15_cash` | Disabled | Cash price of UNL88 |
+| **UNL88 (Deal)** | `e15_deal` | Disabled | Deal/GasBuddy Pay price of UNL88 |
+
+#### Fuel Price Sensor Attributes
+Each fuel price sensor exposes the following attributes where available:
+*   `attribution`: Data credit/source (e.g. "Member credit via GasBuddy")
+*   `last_updated`: Timestamp of when this specific price was last updated on GasBuddy
+*   `station_id`: GasBuddy station ID
+*   `formatted_price`: Price formatted with currency/unit (e.g. `$3.45/gallon` or `145.9¢/liter`)
+*   `deal_price`: The discounted price (if a GasBuddy deal is active)
+*   `phone`: The telephone number of the station
+*   `star_rating`: User rating out of 5 stars
+*   `address`: Formatted address of the station
+*   `amenities`: List of amenities available at the station (e.g. Convenience Store, Car Wash)
+*   `latitude` & `longitude`: GPS coordinates (only exposed if **Show stations on map** option is enabled)
+
+### EV Charging Sensors
+These sensors are only created if **Enable EV charging sensors** (`ev_charging`) is checked in the options.
+
+| Sensor Name | Sensor Key | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **EV Station Status** | `ev_status` | Disabled | The current status of the charging station |
+| **EV Charging Network** | `ev_network` | **Enabled** | Name of the charging network (e.g. ChargePoint, Tesla) |
+| **EV Charging Network Website** | `ev_network_web` | Disabled | Website of the charging network |
+| **EV Charging Pricing** | `ev_pricing` | **Enabled** | Pricing rules/rates for charging |
+| **EV Access Hours** | `ev_access_hours` | **Enabled** | Hours when the charging station is accessible |
+| **EV Access** | `ev_access` | **Enabled** | Access type or restrictions |
+| **EV Payment Accepted** | `ev_cards_accepted` | Disabled | Payment cards or methods accepted |
+| **EV Last Confirmed** | `ev_date_last_confirmed` | **Enabled** | Timestamp of when the EV data was last verified |
+| **EV Level 1 Chargers** | `ev_level1` | Disabled | Number of Level 1 chargers at the station |
+| **EV Level 2 Chargers** | `ev_level2` | **Enabled** | Number of Level 2 chargers at the station |
+| **EV DC Fast Chargers** | `ev_dc_fast` | **Enabled** | Number of DC Fast chargers at the station |
+| **EV J1772 Connectors** | `ev_j1772` | **Enabled** | Number of J1772 connectors |
+| **EV J1772 Connector Power** | `ev_j1772_power` | Disabled | Charging power of J1772 connectors (kW) |
+| **EV CCS Connectors** | `ev_ccs` | **Enabled** | Number of CCS connectors |
+| **EV CCS Connector Power** | `ev_ccs_power` | Disabled | Charging power of CCS connectors (kW) |
+| **EV CHAdeMO Connectors** | `ev_chademo` | **Enabled** | Number of CHAdeMO connectors |
+| **EV CHAdeMO Connector Power** | `ev_chademo_power` | Disabled | Charging power of CHAdeMO connectors (kW) |
+| **EV NACS Connectors** | `ev_nacs` | **Enabled** | Number of NACS (Tesla) connectors |
+| **EV NACS Connector Power** | `ev_nacs_power` | Disabled | Charging power of NACS connectors (kW) |
+
+#### EV Charging Sensor Attributes
+EV-related sensors expose the following attributes where available:
+*   `station_id`: GasBuddy station ID
+*   `station_name`: Name of the EV charging station
+*   `station_address`: Full address of the EV charging station
+*   `distance_miles`: Distance to the station in miles (if queried by coordinates)
+*   `network`: EV network name
+*   `pricing`: Charging pricing/rates
+*   `access_hours`: Access hours
+*   `website`: Network website (only present on `ev_network`)
+*   `latitude` & `longitude`: GPS coordinates (only exposed if **Show stations on map** option is enabled)
 
 ## Services
 
