@@ -1,0 +1,14 @@
+name: Secure CI
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: hardened-runner
+    steps:
+      - uses: actions/checkout@692973e365f2a13361129310c523004301e00401
+      - name: Verify Runner
+        run: echo "Running on a hardened runner!"
