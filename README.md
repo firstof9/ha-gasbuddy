@@ -92,6 +92,8 @@ When you add it, choose:
 
 Leave the postal code blank to search around your Home Assistant home coordinates, or enter a specific Zip/Postal Code to track the cheapest station in that area.
 
+You can optionally configure inclusion and exclusion filters to restrict tracking to specific brands or stations.
+
 ## Sensors
 
 The integration provides a variety of sensors depending on your configuration options and the capabilities of the tracked station. Sensors are categorized into three groups:

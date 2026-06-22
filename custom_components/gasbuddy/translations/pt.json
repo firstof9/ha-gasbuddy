@@ -77,6 +77,24 @@
                     "fuel_key": "Tipo de combustível",
                     "price_type": "Tipo de preço"
                 }
+            },
+            "cheapest_filters": {
+                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas.",
+                "data": {
+                    "exclude_brands": "Marcas excluídas",
+                    "include_brands": "Marcas incluídas",
+                    "exclude_stations": "Estações excluídas",
+                    "include_stations": "Estações incluídas"
+                }
+            },
+            "reconfigure_cheapest_filters": {
+                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas.",
+                "data": {
+                    "exclude_brands": "Marcas excluídas",
+                    "include_brands": "Marcas incluídas",
+                    "exclude_stations": "Estações excluídas",
+                    "include_stations": "Estações incluídas"
+                }
             }
         }
     },

@@ -11,8 +11,12 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_EV_CHARGING,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
     CONF_GPS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
     CONF_INTERVAL,
     CONF_SOLVER,
     CONF_TIMEOUT,
@@ -110,6 +114,16 @@ async def async_migrate_entry(hass, config_entry) -> bool:
     if version < 7:
         if CONF_TIMEOUT not in updated_config:
             updated_config[CONF_TIMEOUT] = 60000
+
+    if version < 8:
+        for key in (
+            CONF_EXCLUDE_BRANDS,
+            CONF_INCLUDE_BRANDS,
+            CONF_EXCLUDE_STATIONS,
+            CONF_INCLUDE_STATIONS,
+        ):
+            if key not in updated_config:
+                updated_config[key] = []
 
     # Persist the bumped version even when no data keys changed; otherwise
     # the entry stays on the old version and HA re-runs migration every start.

@@ -22,10 +22,14 @@ CONF_FETCH_GAS = "fetch_gas"
 CONF_CHEAPEST = "cheapest"
 CONF_FUEL_KEY = "fuel_key"
 CONF_PRICE_TYPE = "price_type"
+CONF_EXCLUDE_BRANDS = "exclude_brands"
+CONF_INCLUDE_BRANDS = "include_brands"
+CONF_EXCLUDE_STATIONS = "exclude_stations"
+CONF_INCLUDE_STATIONS = "include_stations"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
-CONFIG_VER = 7
+CONFIG_VER = 8
 
 # CSRF token cache, shared across the coordinator, config flow, and services
 # so they all benefit from a single fetched token (and don't each hammer the

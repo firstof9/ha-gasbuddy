@@ -22,9 +22,13 @@ from .const import (
     CACHE_FILE_NAME,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
     CONF_FUEL_KEY,
     CONF_GPS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
@@ -294,6 +298,58 @@ async def _get_station_list(  # noqa: PLR0914
     return stations_list
 
 
+async def _get_nearby_brands_and_stations(
+    hass: HomeAssistant,
+    postal: str | None,
+    solver: str | None,
+    timeout: int,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Fetch nearby stations and return unique brands and stations dicts."""
+    lat = None
+    lon = None
+    if not postal:
+        lat = hass.config.latitude
+        lon = hass.config.longitude
+
+    gb = py_gasbuddy.GasBuddy(
+        solver_url=solver,
+        cache_file=_cache_path(hass),
+        timeout=timeout,
+        session=async_get_clientsession(hass),
+    )
+    try:
+        result = await gb.price_lookup_service(lat=lat, lon=lon, zipcode=postal, limit=20)
+    except CSRFTokenMissing as ex:
+        raise CloudflareBlocked from ex
+    except (APIError, LibraryError) as ex:
+        if _csrf_blocked_via_state(gb):
+            raise CloudflareBlocked from ex
+        _LOGGER.warning("Error fetching nearby stations for filtering: %s", ex)
+        return {}, {}
+    except Exception as ex:  # noqa: BLE001
+        _LOGGER.warning("Unexpected error fetching nearby stations for filtering: %s", ex)
+        return {}, {}
+
+    brands = {}
+    stations = {}
+    for station in result.get("results") or []:
+        station_id = station.get("station_id") or station.get("id")
+        if not station_id:
+            continue
+        station_id = str(station_id)
+        addr = (station.get("address") or {}).get("line1", "")
+        name = station.get("name", "Unknown")
+        stations[station_id] = f"{name} ({addr})" if addr else name
+
+        for brand in station.get("brands", []):
+            brand_id = brand.get("brandId")
+            brand_name = brand.get("name")
+            if brand_id and brand_name:
+                brands[str(brand_id)] = str(brand_name)
+
+    return brands, stations
+
+
 def _get_schema_manual(  # pylint: disable-next=unused-argument
     hass: Any, user_input: dict[str, Any], default_dict: dict[str, Any]
 ) -> Any:
@@ -429,6 +485,64 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
         ),
         vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
             cv.positive_int, vol.Range(min=1000, max=300000)
+        ),
+    })
+
+
+def _get_schema_cheapest_filters(
+    hass: Any,
+    brands: dict[str, str],
+    stations: dict[str, str],
+    user_input: dict[str, Any] | None,
+    default_dict: dict[str, Any],
+) -> Any:
+    """Get a schema for Cheapest Gas brand and station filters."""
+    if user_input is None:
+        user_input = {}
+
+    def _get_default(key: str, fallback_default: Any = None) -> Any | None:
+        """Get default value for key."""
+        return user_input.get(key, default_dict.get(key, fallback_default))
+
+    brand_options = [{"value": k, "label": v} for k, v in brands.items()]
+    station_options = [{"value": k, "label": v} for k, v in stations.items()]
+
+    return vol.Schema({
+        vol.Optional(
+            CONF_EXCLUDE_BRANDS, default=_get_default(CONF_EXCLUDE_BRANDS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=brand_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(
+            CONF_INCLUDE_BRANDS, default=_get_default(CONF_INCLUDE_BRANDS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=brand_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(
+            CONF_EXCLUDE_STATIONS, default=_get_default(CONF_EXCLUDE_STATIONS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=station_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(
+            CONF_INCLUDE_STATIONS, default=_get_default(CONF_INCLUDE_STATIONS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=station_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
         ),
     })
 
@@ -759,7 +873,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     # Cheapest Nearby Gas
     async def async_step_cheapest(self, user_input=None):
-        """Handle the cheapest gas tracker flow."""
+        """Handle the cheapest gas tracker flow (Step 1)."""
         self._errors = {}
 
         if user_input is not None:
@@ -785,6 +899,30 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self._show_config_cheapest(user_input)
                 data[CONF_POSTAL] = postal
 
+            self._data.update(data)
+            return await self.async_step_cheapest_filters()
+        return await self._show_config_cheapest(user_input)
+
+    async def async_step_cheapest_filters(self, user_input=None):
+        """Handle Step 2: Brand/station filters for cheapest gas tracker."""
+        self._errors = {}
+
+        if user_input is not None:
+            data: dict[str, Any] = {
+                CONF_NAME: self._data[CONF_NAME],
+                CONF_CHEAPEST: True,
+                CONF_FUEL_KEY: self._data[CONF_FUEL_KEY],
+                CONF_PRICE_TYPE: self._data[CONF_PRICE_TYPE],
+                CONF_SOLVER: self._data.get(CONF_SOLVER),
+                CONF_TIMEOUT: self._data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+                CONF_EXCLUDE_BRANDS: user_input.get(CONF_EXCLUDE_BRANDS, []),
+                CONF_INCLUDE_BRANDS: user_input.get(CONF_INCLUDE_BRANDS, []),
+                CONF_EXCLUDE_STATIONS: user_input.get(CONF_EXCLUDE_STATIONS, []),
+                CONF_INCLUDE_STATIONS: user_input.get(CONF_INCLUDE_STATIONS, []),
+            }
+            if CONF_POSTAL in self._data:
+                data[CONF_POSTAL] = self._data[CONF_POSTAL]
+
             return self.async_create_entry(
                 title=data[CONF_NAME],
                 data=data,
@@ -796,7 +934,25 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_FETCH_GAS: True,
                 },
             )
-        return await self._show_config_cheapest(user_input)
+
+        try:
+            brands, stations = await _get_nearby_brands_and_stations(
+                self.hass,
+                self._data.get(CONF_POSTAL),
+                self._data.get(CONF_SOLVER),
+                self._data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+            )
+        except CloudflareBlocked:
+            self._errors[CONF_SOLVER] = "cloudflare"
+            return await self._show_config_cheapest(self._data)
+
+        return self.async_show_form(
+            step_id="cheapest_filters",
+            data_schema=_get_schema_cheapest_filters(
+                self.hass, brands, stations, user_input, self._data
+            ),
+            errors=self._errors,
+        )
 
     async def _show_config_cheapest(self, user_input):
         """Show the cheapest gas tracker configuration form."""
@@ -875,7 +1031,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return await self._show_reconfig_form(user_input)
 
     async def _async_step_reconfigure_cheapest(self, entry, user_input):
-        """Handle reconfigure for a cheapest gas tracker entry."""
+        """Handle reconfigure for a cheapest gas tracker entry (Step 1)."""
         if user_input is not None:
             solver = (user_input.get(CONF_SOLVER) or "").strip() or None
             if solver:
@@ -901,15 +1057,49 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 new_data.pop(CONF_POSTAL, None)
 
-            # async_update_entry already reloads via the update_listener;
-            # a second explicit reload here would race it (see above).
+            self._data = new_data
+            return await self.async_step_reconfigure_cheapest_filters()
+
+        return await self._show_reconfig_cheapest_form(user_input)
+
+    async def async_step_reconfigure_cheapest_filters(self, user_input=None):
+        """Handle Step 2 filters for cheapest gas tracker reconfiguration."""
+        entry = self._get_reconfigure_entry()
+        self._errors = {}
+
+        if user_input is not None:
+            new_data: dict[str, Any] = {
+                **self._data,
+                CONF_EXCLUDE_BRANDS: user_input.get(CONF_EXCLUDE_BRANDS, []),
+                CONF_INCLUDE_BRANDS: user_input.get(CONF_INCLUDE_BRANDS, []),
+                CONF_EXCLUDE_STATIONS: user_input.get(CONF_EXCLUDE_STATIONS, []),
+                CONF_INCLUDE_STATIONS: user_input.get(CONF_INCLUDE_STATIONS, []),
+            }
+
             self.hass.config_entries.async_update_entry(
                 entry, title=new_data[CONF_NAME], data=new_data
             )
             _LOGGER.debug("%s cheapest entry reconfigured.", DOMAIN)
             return self.async_abort(reason="reconfigure_successful")
 
-        return await self._show_reconfig_cheapest_form(user_input)
+        try:
+            brands, stations = await _get_nearby_brands_and_stations(
+                self.hass,
+                self._data.get(CONF_POSTAL),
+                self._data.get(CONF_SOLVER),
+                self._data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+            )
+        except CloudflareBlocked:
+            self._errors[CONF_SOLVER] = "cloudflare"
+            return await self._show_reconfig_cheapest_form(self._data)
+
+        return self.async_show_form(
+            step_id="reconfigure_cheapest_filters",
+            data_schema=_get_schema_cheapest_filters(
+                self.hass, brands, stations, user_input, self._data
+            ),
+            errors=self._errors,
+        )
 
     async def _show_reconfig_cheapest_form(self, user_input):
         """Show the cheapest reconfigure form pre-filled with current entry data."""
