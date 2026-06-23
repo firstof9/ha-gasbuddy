@@ -21,8 +21,12 @@ from .const import (
     CACHE_FILE_NAME,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
     CONF_FUEL_KEY,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
@@ -293,7 +297,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Final coordinator data: %s", _redact(self._data))
         return self._data
 
-    async def _async_update_cheapest(self) -> dict:
+    async def _async_update_cheapest(self) -> dict:  # noqa: PLR0914
         """Find and return the cheapest nearby station for the configured fuel and price type."""
         fuel_key = self._config.data.get(CONF_FUEL_KEY, "regular_gas")
         price_type = self._config.data.get(CONF_PRICE_TYPE, "best")
@@ -320,6 +324,33 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         stations = [s for s in (result.get("results") or []) if s.get(fuel_key)]
         if not stations:
             raise UpdateFailed("No stations with prices found for selected fuel")
+
+        exclude_brands = self._config.data.get(CONF_EXCLUDE_BRANDS) or []
+        include_brands = self._config.data.get(CONF_INCLUDE_BRANDS) or []
+        exclude_stations = self._config.data.get(CONF_EXCLUDE_STATIONS) or []
+        include_stations = self._config.data.get(CONF_INCLUDE_STATIONS) or []
+
+        filtered_stations = []
+        for s in stations:
+            station_id = str(s.get("station_id") or s.get("id") or "")
+            station_brand_ids = [
+                str(b.get("brandId")) for b in s.get("brands", []) if b.get("brandId")
+            ]
+
+            if exclude_stations and station_id in exclude_stations:
+                continue
+            if include_stations and station_id not in include_stations:
+                continue
+            if exclude_brands and any(b_id in exclude_brands for b_id in station_brand_ids):
+                continue
+            if include_brands and not any(b_id in include_brands for b_id in station_brand_ids):
+                continue
+
+            filtered_stations.append(s)
+
+        stations = filtered_stations
+        if not stations:
+            raise UpdateFailed("No stations with prices found for selected fuel after filtering")
 
         def _sort_key(s: dict) -> float:
             node = s.get(fuel_key) or {}

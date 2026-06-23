@@ -1,6 +1,7 @@
 """Test gasbuddy services."""
 
 import logging
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -13,6 +14,7 @@ from custom_components.gasbuddy.const import (
     DOMAIN,
 )
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from tests.common import load_fixture
 
@@ -315,7 +317,6 @@ async def test_clear_cache(
 
 async def test_lookup_gps_invalid_solver(hass, mock_gasbuddy, mock_aioclient):
     """lookup_gps raises ServiceValidationError for invalid solver URL (services.py line 53)."""
-    from homeassistant.exceptions import ServiceValidationError  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -342,7 +343,6 @@ async def test_lookup_gps_invalid_solver(hass, mock_gasbuddy, mock_aioclient):
 
 async def test_clear_cache_no_config_entry(hass, mock_gasbuddy, mock_aioclient, caplog):
     """clear_cache raises ValueError when device has no config entry (services.py line 295)."""
-    from unittest.mock import MagicMock, patch  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,

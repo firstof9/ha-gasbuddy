@@ -7,8 +7,12 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy import async_remove_config_entry_device
 from custom_components.gasbuddy.const import (
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
     CONF_GPS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
     CONF_SOLVER,
     CONF_UOM,
     CONFIG_VER,
@@ -118,6 +122,10 @@ async def test_migrate_entry(hass, mock_gasbuddy):
     assert entry.data[CONF_UOM] is True
     assert entry.data[CONF_GPS] is True
     assert entry.data[CONF_SOLVER] is None
+    assert entry.data[CONF_EXCLUDE_BRANDS] == []
+    assert entry.data[CONF_INCLUDE_BRANDS] == []
+    assert entry.data[CONF_EXCLUDE_STATIONS] == []
+    assert entry.data[CONF_INCLUDE_STATIONS] == []
 
 
 async def test_migrate_entry_advances_version_without_data_change(hass, mock_gasbuddy):

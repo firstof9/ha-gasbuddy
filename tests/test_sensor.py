@@ -1,13 +1,21 @@
 """Test gasbuddy sensors."""
 
+import copy
 from unittest.mock import patch
 
+from py_gasbuddy.exceptions import APIError
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.const import (
     CONF_EV_CHARGING,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
+    CONF_POSTAL,
+    CONF_PRICE_TYPE,
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
@@ -25,6 +33,7 @@ from custom_components.gasbuddy.sensor import GasBuddySensor
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
 
@@ -516,7 +525,6 @@ async def test_deal_sensor_enabled_without_pay_status(
 
 async def test_extra_attrs_deal_price_present_without_pay_status(hass, mock_gasbuddy, integration):
     """deal_price attribute appears when deal_price is set, even without pay_status (cheapest mode)."""
-    import copy  # noqa: PLC0415
 
     coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
     original_data = coordinator.data
@@ -571,7 +579,6 @@ async def test_coordinator_cheapest_gps(hass):
 
 async def test_coordinator_cheapest_postal(hass):
     """Cheapest mode uses postal code when configured."""
-    from custom_components.gasbuddy.const import CONF_POSTAL  # noqa: PLC0415
 
     config = {**CONFIG_DATA_CHEAPEST, CONF_POSTAL: "12345"}
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
@@ -591,7 +598,6 @@ async def test_coordinator_cheapest_postal(hass):
 
 async def test_coordinator_cheapest_no_stations(hass):
     """Cheapest mode raises UpdateFailed when no station carries the fuel."""
-    from homeassistant.helpers.update_coordinator import UpdateFailed  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=2
@@ -606,9 +612,6 @@ async def test_coordinator_cheapest_no_stations(hass):
 
 async def test_coordinator_cheapest_api_error(hass):
     """Cheapest mode wraps API errors as UpdateFailed."""
-    from py_gasbuddy.exceptions import APIError  # noqa: PLC0415
-
-    from homeassistant.helpers.update_coordinator import UpdateFailed  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=2
@@ -623,7 +626,6 @@ async def test_coordinator_cheapest_api_error(hass):
 
 async def test_coordinator_cheapest_sort_deal(hass):
     """Cheapest mode sort by deal price."""
-    from custom_components.gasbuddy.const import CONF_PRICE_TYPE  # noqa: PLC0415
 
     config = {**CONFIG_DATA_CHEAPEST, CONF_PRICE_TYPE: "deal"}
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
@@ -639,7 +641,6 @@ async def test_coordinator_cheapest_sort_deal(hass):
 
 async def test_coordinator_cheapest_sort_cash(hass):
     """Cheapest mode sort by cash price."""
-    from custom_components.gasbuddy.const import CONF_PRICE_TYPE  # noqa: PLC0415
 
     config = {**CONFIG_DATA_CHEAPEST, CONF_PRICE_TYPE: "cash"}
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
@@ -655,7 +656,6 @@ async def test_coordinator_cheapest_sort_cash(hass):
 
 async def test_coordinator_cheapest_sort_credit(hass):
     """Cheapest mode sort by credit price (fallback else branch)."""
-    from custom_components.gasbuddy.const import CONF_PRICE_TYPE  # noqa: PLC0415
 
     config = {**CONFIG_DATA_CHEAPEST, CONF_PRICE_TYPE: "credit"}
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
@@ -667,6 +667,115 @@ async def test_coordinator_cheapest_sort_credit(hass):
     ):
         data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
+
+
+async def test_coordinator_cheapest_filtering(hass):
+    """Test coordinator filtering in cheapest mode."""
+
+    stations = [
+        {
+            "station_id": "111",
+            "name": "Expensive Station",
+            "regular_gas": {"price": 4.00, "cash_price": 3.90, "deal_price": 3.80},
+            "brands": [{"brandId": "brand_exp", "name": "Brand Exp"}],
+        },
+        {
+            "station_id": "222",
+            "name": "Cheap Station",
+            "regular_gas": {"price": 3.20, "cash_price": 3.10, "deal_price": 3.00},
+            "brands": [{"brandId": "brand_cheap", "name": "Brand Cheap"}],
+        },
+    ]
+
+    # Test 1: Exclude the cheapest brand (should select Expensive)
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_EXCLUDE_BRANDS: ["brand_cheap"],
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "111"
+
+    # Test 2: Include only the expensive brand (should select Expensive)
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_INCLUDE_BRANDS: ["brand_exp"],
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "111"
+
+    # Test 3: Exclude the cheapest station (should select Expensive)
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_EXCLUDE_STATIONS: ["222"],
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "111"
+
+    # Test 4: Include only the expensive station (should select Expensive)
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_INCLUDE_STATIONS: ["111"],
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "111"
+
+
+async def test_coordinator_cheapest_filtering_no_stations(hass):
+    """Test coordinator filtering in cheapest mode raises UpdateFailed if no stations remain."""
+
+    stations = [
+        {
+            "station_id": "111",
+            "name": "Expensive Station",
+            "regular_gas": {"price": 4.00, "cash_price": 3.90, "deal_price": 3.80},
+            "brands": [{"brandId": "brand_exp", "name": "Brand Exp"}],
+        },
+    ]
+
+    # Exclude the only station's brand (should raise UpdateFailed)
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_EXCLUDE_BRANDS: ["brand_exp"],
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with (
+        patch.object(
+            coordinator._api,  # noqa: SLF001
+            "price_lookup_service",
+            return_value={"results": stations},
+        ),
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator._async_update_data()  # noqa: SLF001
 
 
 async def test_fuels_list_enables_sensors(hass, entity_registry: er.EntityRegistry):
@@ -694,7 +803,6 @@ async def test_fuels_list_enables_sensors(hass, entity_registry: er.EntityRegist
 
 async def test_coordinator_cheapest_no_valid_prices(hass):
     """Cheapest mode raises UpdateFailed when all stations have no finite price."""
-    from homeassistant.helpers.update_coordinator import UpdateFailed  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=2

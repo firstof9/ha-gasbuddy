@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from aioresponses import CallbackResult
-from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, MissingSearchData
+from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError, MissingSearchData
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -14,6 +14,7 @@ from custom_components.gasbuddy.config_flow import (
     InvalidStation,
     SearchFailed,
     _csrf_blocked_via_state,  # noqa: PLC2701
+    _get_nearby_brands_and_stations,  # noqa: PLC2701
     _get_station_list,  # noqa: PLC2701
     _lon_delta,  # noqa: PLC2701
     validate_station,
@@ -21,9 +22,13 @@ from custom_components.gasbuddy.config_flow import (
 from custom_components.gasbuddy.const import (
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
     CONF_FUEL_KEY,
     CONF_GPS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
@@ -40,7 +45,7 @@ from homeassistant import config_entries, setup
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from tests.common import load_fixture
-from tests.const import CONFIG_DATA, STATION_LIST
+from tests.const import CONFIG_DATA, CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST, STATION_LIST
 
 BASE_URL = "https://www.gasbuddy.com/graphql"
 GB_URL = "https://www.gasbuddy.com/home"
@@ -1914,10 +1919,16 @@ async def test_cheapest_flow_gps(hass):
     )
     assert result["type"] == FlowResultType.MENU
 
-    with patch(
-        "custom_components.gasbuddy.async_setup_entry",
-        return_value=True,
-    ) as mock_setup_entry:
+    with (
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ) as mock_setup_entry,
+        patch(
+            "custom_components.gasbuddy.config_flow._get_nearby_brands_and_stations",
+            return_value=({"brand_1": "Shell"}, {"111": "Shell (100 Main St)"}),
+        ),
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "cheapest"}
         )
@@ -1934,6 +1945,19 @@ async def test_cheapest_flow_gps(hass):
                 CONF_SOLVER: "",
             },
         )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "cheapest_filters"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_EXCLUDE_BRANDS: ["brand_1"],
+                CONF_INCLUDE_BRANDS: [],
+                CONF_EXCLUDE_STATIONS: [],
+                CONF_INCLUDE_STATIONS: ["111"],
+            },
+        )
+
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["title"] == "Cheapest Gas"
         assert result["data"][CONF_CHEAPEST] is True
@@ -1941,6 +1965,8 @@ async def test_cheapest_flow_gps(hass):
         assert result["data"][CONF_PRICE_TYPE] == "best"
         assert CONF_POSTAL not in result["data"]
         assert result["data"][CONF_SOLVER] is None
+        assert result["data"][CONF_EXCLUDE_BRANDS] == ["brand_1"]
+        assert result["data"][CONF_INCLUDE_STATIONS] == ["111"]
         assert result["options"][CONF_EV_CHARGING] is False
         assert result["options"][CONF_FETCH_GAS] is True
 
@@ -1955,9 +1981,15 @@ async def test_cheapest_flow_postal(hass):
     )
     assert result["type"] == FlowResultType.MENU
 
-    with patch(
-        "custom_components.gasbuddy.async_setup_entry",
-        return_value=True,
+    with (
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._get_nearby_brands_and_stations",
+            return_value=({}, {}),
+        ),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"next_step_id": "cheapest"}
@@ -1970,6 +2002,18 @@ async def test_cheapest_flow_postal(hass):
                 CONF_FUEL_KEY: "premium_gas",
                 CONF_PRICE_TYPE: "cash",
                 CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "cheapest_filters"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_EXCLUDE_BRANDS: [],
+                CONF_INCLUDE_BRANDS: [],
+                CONF_EXCLUDE_STATIONS: [],
+                CONF_INCLUDE_STATIONS: [],
             },
         )
         assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -2070,7 +2114,6 @@ async def test_reconfigure_invalid_station_id_format(hass, integration):
 @pytest.mark.asyncio
 async def test_reconfigure_cheapest_show_form(hass):
     """Reconfigure for a cheapest entry shows the cheapest form (lines 775, 856)."""
-    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -2092,7 +2135,6 @@ async def test_reconfigure_cheapest_show_form(hass):
 @pytest.mark.asyncio
 async def test_reconfigure_cheapest_success(hass):
     """Reconfigure cheapest entry with valid data succeeds (lines 823-850)."""
-    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -2108,7 +2150,13 @@ async def test_reconfigure_cheapest_success(hass):
         context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
     )
 
-    with patch("homeassistant.config_entries.ConfigEntries.async_reload"):
+    with (
+        patch("homeassistant.config_entries.ConfigEntries.async_reload"),
+        patch(
+            "custom_components.gasbuddy.config_flow._get_nearby_brands_and_stations",
+            return_value=({}, {}),
+        ),
+    ):
         result = await hass.config_entries.flow.async_configure(
             reconfigure_result["flow_id"],
             {
@@ -2117,6 +2165,18 @@ async def test_reconfigure_cheapest_success(hass):
                 CONF_FUEL_KEY: "premium_gas",
                 CONF_PRICE_TYPE: "cash",
                 CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "reconfigure_cheapest_filters"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_EXCLUDE_BRANDS: [],
+                CONF_INCLUDE_BRANDS: [],
+                CONF_EXCLUDE_STATIONS: [],
+                CONF_INCLUDE_STATIONS: [],
             },
         )
 
@@ -2129,7 +2189,6 @@ async def test_reconfigure_cheapest_success(hass):
 @pytest.mark.asyncio
 async def test_reconfigure_cheapest_invalid_solver(hass):
     """Reconfigure cheapest entry rejects invalid solver URL (lines 828-829)."""
-    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -2191,7 +2250,6 @@ async def test_station_list_cache_eviction(hass):
 @pytest.mark.asyncio
 async def test_reconfigure_cheapest_clears_postal(hass):
     """Reconfigure cheapest entry removes postal when submitted blank (line 843)."""
-    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
 
     config_with_postal = {**CONFIG_DATA_CHEAPEST, CONF_POSTAL: "12345"}
     entry = MockConfigEntry(
@@ -2208,7 +2266,13 @@ async def test_reconfigure_cheapest_clears_postal(hass):
         context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
     )
 
-    with patch("homeassistant.config_entries.ConfigEntries.async_reload"):
+    with (
+        patch("homeassistant.config_entries.ConfigEntries.async_reload"),
+        patch(
+            "custom_components.gasbuddy.config_flow._get_nearby_brands_and_stations",
+            return_value=({}, {}),
+        ),
+    ):
         result = await hass.config_entries.flow.async_configure(
             reconfigure_result["flow_id"],
             {
@@ -2217,6 +2281,18 @@ async def test_reconfigure_cheapest_clears_postal(hass):
                 CONF_FUEL_KEY: "regular_gas",
                 CONF_PRICE_TYPE: "best",
                 CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "reconfigure_cheapest_filters"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_EXCLUDE_BRANDS: [],
+                CONF_INCLUDE_BRANDS: [],
+                CONF_EXCLUDE_STATIONS: [],
+                CONF_INCLUDE_STATIONS: [],
             },
         )
 
@@ -2254,7 +2330,6 @@ async def test_cheapest_flow_invalid_postal(hass):
 @pytest.mark.asyncio
 async def test_reconfigure_cheapest_invalid_postal(hass):
     """Reconfigure cheapest entry rejects invalid postal code."""
-    from tests.const import CONFIG_DATA_CHEAPEST, OPTIONS_CHEAPEST  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -2485,3 +2560,172 @@ async def test_station_list_cloudflare_blocked(hass):
 async def test_lon_delta(a, b, expected):
     """Longitude delta takes the short way around the antimeridian."""
     assert _lon_delta(a, b) == pytest.approx(expected)
+
+
+async def test_get_nearby_brands_and_stations_success(hass):
+    """Test _get_nearby_brands_and_stations returns brands and stations correctly."""
+    fake_results = {
+        "results": [
+            {
+                "station_id": "111",
+                "name": "Station A",
+                "address": {"line1": "123 Main St"},
+                "brands": [{"brandId": "brand_1", "name": "Brand A"}],
+            },
+            {
+                "id": "222",
+                "name": "Station B",
+                "address": {},
+                "brands": [{"brandId": "brand_2", "name": "Brand B"}],
+            },
+            {
+                "station_id": None,
+                "name": "Station C",
+            },
+        ]
+    }
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup_service",
+        return_value=fake_results,
+    ):
+        brands, stations = await _get_nearby_brands_and_stations(
+            hass, "12345", "http://solver", 5000
+        )
+
+    assert brands == {"brand_1": "Brand A", "brand_2": "Brand B"}
+    assert stations == {"111": "Station A (123 Main St)", "222": "Station B"}
+
+
+async def test_get_nearby_brands_and_stations_exception(hass):
+    """Test _get_nearby_brands_and_stations returns empty dicts on exception."""
+    with patch(
+        "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup_service",
+        side_effect=Exception("API failure"),
+    ):
+        brands, stations = await _get_nearby_brands_and_stations(hass, None, None, 5000)
+
+    assert brands == {}
+    assert stations == {}
+
+
+async def test_get_nearby_brands_and_stations_cloudflare(hass):
+    """Test _get_nearby_brands_and_stations raises CloudflareBlocked on CSRFTokenMissing/sentinel check."""
+    # Test CSRFTokenMissing raises CloudflareBlocked
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup_service",
+            side_effect=CSRFTokenMissing,
+        ),
+        pytest.raises(CloudflareBlocked),
+    ):
+        await _get_nearby_brands_and_stations(hass, None, None, 5000)
+
+    # Test APIError with sentinel returns True raises CloudflareBlocked
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup_service",
+            side_effect=APIError("Cloudflare block"),
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
+            return_value=True,
+        ),
+        pytest.raises(CloudflareBlocked),
+    ):
+        await _get_nearby_brands_and_stations(hass, None, None, 5000)
+
+    # Test LibraryError with sentinel returns True raises CloudflareBlocked
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup_service",
+            side_effect=LibraryError("Library block"),
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
+            return_value=True,
+        ),
+        pytest.raises(CloudflareBlocked),
+    ):
+        await _get_nearby_brands_and_stations(hass, None, None, 5000)
+
+    # Test LibraryError with sentinel returns False returns empty dicts (no exception raised)
+    with (
+        patch(
+            "custom_components.gasbuddy.config_flow.py_gasbuddy.GasBuddy.price_lookup_service",
+            side_effect=LibraryError("Generic library error"),
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
+            return_value=False,
+        ),
+    ):
+        brands, stations = await _get_nearby_brands_and_stations(hass, None, None, 5000)
+    assert brands == {}
+    assert stations == {}
+
+
+async def test_cheapest_flow_cloudflare_blocked(hass):
+    """Cheapest config flow step 2 catches CloudflareBlocked and redirects to step 1."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "cheapest"}
+    )
+    assert result["step_id"] == "cheapest"
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_nearby_brands_and_stations",
+        side_effect=CloudflareBlocked,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: "Cheapest Gas",
+                CONF_POSTAL: "55904",
+                CONF_FUEL_KEY: "regular_gas",
+                CONF_PRICE_TYPE: "best",
+                CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "cheapest"
+        assert result["errors"] == {CONF_SOLVER: "cloudflare"}
+
+
+async def test_reconfigure_cheapest_cloudflare_blocked(hass):
+    """Reconfigure cheapest entry step 2 catches CloudflareBlocked and redirects to step 1."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Cheapest Gas",
+        data=CONFIG_DATA_CHEAPEST,
+        options=OPTIONS_CHEAPEST,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id},
+    )
+    assert reconfigure_result["type"] is FlowResultType.FORM
+    assert reconfigure_result["step_id"] == "reconfigure"
+
+    with patch(
+        "custom_components.gasbuddy.config_flow._get_nearby_brands_and_stations",
+        side_effect=CloudflareBlocked,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            reconfigure_result["flow_id"],
+            {
+                CONF_NAME: "Updated Cheapest",
+                CONF_POSTAL: "90210",
+                CONF_FUEL_KEY: "premium_gas",
+                CONF_PRICE_TYPE: "cash",
+                CONF_SOLVER: "",
+            },
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "reconfigure"
+        assert result["errors"] == {CONF_SOLVER: "cloudflare"}
