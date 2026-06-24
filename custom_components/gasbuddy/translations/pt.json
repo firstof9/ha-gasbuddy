@@ -79,21 +79,23 @@
                 }
             },
             "cheapest_filters": {
-                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas.",
+                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas. Consulte a [documentação]({brand_adjustments_url}) para exemplos de ajustes de preços por marca.",
                 "data": {
                     "exclude_brands": "Marcas excluídas",
                     "include_brands": "Marcas incluídas",
                     "exclude_stations": "Estações excluídas",
-                    "include_stations": "Estações incluídas"
+                    "include_stations": "Estações incluídas",
+                    "brand_adjustments": "Ajustes de preço da marca"
                 }
             },
             "reconfigure_cheapest_filters": {
-                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas.",
+                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas. Consulte a [documentação]({brand_adjustments_url}) para exemplos de ajustes de preços por marca.",
                 "data": {
                     "exclude_brands": "Marcas excluídas",
                     "include_brands": "Marcas incluídas",
                     "exclude_stations": "Estações excluídas",
-                    "include_stations": "Estações incluídas"
+                    "include_stations": "Estações incluídas",
+                    "brand_adjustments": "Ajustes de preço da marca"
                 }
             }
         }

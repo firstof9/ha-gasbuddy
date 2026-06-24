@@ -376,7 +376,6 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                         val
                         for key, val in brand_adjustments.items()
                         if str(key).lower() == b_name.lower()
-                        or (b_name.lower().startswith(str(key).lower()) and len(str(key)) > 3)
                     ]
                     if matching_adjustments:
                         try:
