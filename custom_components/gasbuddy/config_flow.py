@@ -961,6 +961,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=_get_schema_cheapest_filters(
                 self.hass, brands, stations, user_input, self._data
             ),
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
             errors=self._errors,
         )
 
@@ -1109,6 +1112,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=_get_schema_cheapest_filters(
                 self.hass, brands, stations, user_input, self._data
             ),
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
             errors=self._errors,
         )
 

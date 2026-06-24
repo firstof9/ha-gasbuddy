@@ -80,7 +80,7 @@
                 }
             },
             "cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation](https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments) for brand price adjustment examples.",
+                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
                 "data": {
                     "exclude_brands": "Excluded Brands",
                     "include_brands": "Included Brands",
@@ -90,7 +90,7 @@
                 }
             },
             "reconfigure_cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation](https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments) for brand price adjustment examples.",
+                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
                 "data": {
                     "exclude_brands": "Excluded Brands",
                     "include_brands": "Included Brands",
