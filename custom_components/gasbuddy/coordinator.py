@@ -361,16 +361,16 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 str(b.get("brandId")) for b in s.get("brands", []) if b.get("brandId")
             ]
             station_brand_names = [b.get("name") for b in s.get("brands", []) if b.get("name")]
+            matched = False
             for b_id in station_brand_ids:
                 if b_id in brand_adjustments:
                     try:
                         adjustment = float(brand_adjustments[b_id])
+                        matched = True
                         break
-                    except ValueError:
-                        pass
-                    except TypeError:
-                        pass
-            else:
+                    except (ValueError, TypeError) as ex:
+                        _LOGGER.warning("Invalid price adjustment for brand ID %s: %s", b_id, ex)
+            if not matched:
                 for b_name in station_brand_names:
                     matching_adjustments = [
                         val
@@ -381,10 +381,10 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                         try:
                             adjustment = float(matching_adjustments[0])
                             break
-                        except ValueError:
-                            pass
-                        except TypeError:
-                            pass
+                        except (ValueError, TypeError) as ex:
+                            _LOGGER.warning(
+                                "Invalid price adjustment for brand name %s: %s", b_name, ex
+                            )
 
             def adjust(val: float | None) -> float:
                 if val is None:
