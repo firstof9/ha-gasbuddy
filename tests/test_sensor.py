@@ -905,3 +905,80 @@ async def test_coordinator_cheapest_brand_adjustments(hass):
     ):
         data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "111"
+
+
+async def test_coordinator_cheapest_brand_adjustments_edge_cases(hass):
+    """Test edge cases in coordinator brand adjustments (invalid types and missing price)."""
+    stations = [
+        {
+            "station_id": "111",
+            "name": "Expensive Station",
+            "regular_gas": {"price": 4.00, "cash_price": 3.90, "deal_price": 3.80},
+            "brands": [{"brandId": "brand_exp", "name": "Brand Exp"}],
+        },
+        {
+            "station_id": "222",
+            "name": "Cheap Station",
+            "regular_gas": {"price": 3.50, "cash_price": 3.40, "deal_price": 3.30},
+            "brands": [{"brandId": "brand_cheap", "name": "Brand Cheap"}],
+        },
+    ]
+
+    # Test ValueError/TypeError in brand ID lookup (invalid strings/types)
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_BRAND_ADJUSTMENTS: {"brand_exp": "invalid_float", "brand_cheap": []},
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "222"
+
+    # Test ValueError/TypeError in brand Name lookup (invalid strings/types)
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_BRAND_ADJUSTMENTS: {"brand exp": "invalid_float", "brand cheap": []},
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "222"
+
+    # Test val is None in adjust (when price type is deal but deal_price is None/missing)
+    stations_missing_deal = [
+        {
+            "station_id": "111",
+            "name": "Station A",
+            "regular_gas": {"price": 4.00, "cash_price": 3.90, "deal_price": None},
+            "brands": [{"brandId": "brand_exp", "name": "Brand Exp"}],
+        },
+        {
+            "station_id": "222",
+            "name": "Station B",
+            "regular_gas": {"price": 3.50, "cash_price": 3.40, "deal_price": 3.30},
+            "brands": [{"brandId": "brand_cheap", "name": "Brand Cheap"}],
+        },
+    ]
+    config = {
+        **CONFIG_DATA_CHEAPEST,
+        CONF_PRICE_TYPE: "deal",
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations_missing_deal},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert data["station_id"] == "222"
