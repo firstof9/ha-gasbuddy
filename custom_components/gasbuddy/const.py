@@ -26,10 +26,11 @@ CONF_EXCLUDE_BRANDS = "exclude_brands"
 CONF_INCLUDE_BRANDS = "include_brands"
 CONF_EXCLUDE_STATIONS = "exclude_stations"
 CONF_INCLUDE_STATIONS = "include_stations"
+CONF_BRAND_ADJUSTMENTS = "brand_adjustments"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
-CONFIG_VER = 8
+CONFIG_VER = 9
 
 # CSRF token cache, shared across the coordinator, config flow, and services
 # so they all benefit from a single fetched token (and don't each hammer the

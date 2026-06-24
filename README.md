@@ -94,6 +94,20 @@ Leave the postal code blank to search around your Home Assistant home coordinate
 
 You can optionally configure inclusion and exclusion filters to restrict tracking to specific brands or stations.
 
+#### Brand Price Adjustments
+
+You can configure price adjustments (e.g. discounts or markups) per brand when selecting the cheapest station. These adjustments will apply only when determining which station is cheapest; the reported sensor value remains the actual retail price at the pump.
+
+Specify adjustments as a YAML or JSON map, where the key is either the brand name (case-insensitive) or the brand ID, and the value is the adjustment amount (a negative number for a discount, or positive for a markup).
+
+For example, if you receive a $0.10 discount at Walmart and a $0.05 discount at Costco, configure the following in the brand price adjustments input:
+```yaml
+Walmart: -0.10
+Costco: -0.05
+```
+
+This ensures a Walmart station with a posted price of $3.50 will be compared as $3.40, allowing it to be chosen over a Shell station with a posted price of $3.45, while still reporting the final sensor state as $3.50.
+
 ## Sensors
 
 The integration provides a variety of sensors depending on your configuration options and the capabilities of the tracked station. Sensors are categorized into three groups:
