@@ -37,7 +37,6 @@ categories:
       - "code-quality"
       - "CI"
       - "test"
-      - "has-tests"
 autolabeler:
   - label: "breaking-change"
     title:
