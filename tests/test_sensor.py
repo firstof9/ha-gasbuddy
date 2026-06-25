@@ -1154,3 +1154,11 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     assert state
     assert state.state == "1.35"
     assert state.attributes.get("discounted_price") == 1.35
+
+    # Test get_brand_adjustment coverage when data is None/empty
+    coordinator = hass.data[DOMAIN][entry_cad.entry_id][COORDINATOR]
+    assert coordinator.get_brand_adjustment({}) == 0.0
+    original_data = coordinator.data
+    coordinator.data = None
+    assert coordinator.get_brand_adjustment(None) == 0.0
+    coordinator.data = original_data
