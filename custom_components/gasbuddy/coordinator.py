@@ -330,7 +330,6 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         include_brands = self._config.data.get(CONF_INCLUDE_BRANDS) or []
         exclude_stations = self._config.data.get(CONF_EXCLUDE_STATIONS) or []
         include_stations = self._config.data.get(CONF_INCLUDE_STATIONS) or []
-        brand_adjustments = self._config.data.get(CONF_BRAND_ADJUSTMENTS) or {}
 
         filtered_stations = []
         for s in stations:
@@ -356,35 +355,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
         def _sort_key(s: dict) -> float:
             node = s.get(fuel_key) or {}
-            adjustment = 0.0
-            station_brand_ids = [
-                str(b.get("brandId")) for b in s.get("brands", []) if b.get("brandId")
-            ]
-            station_brand_names = [b.get("name") for b in s.get("brands", []) if b.get("name")]
-            matched = False
-            for b_id in station_brand_ids:
-                if b_id in brand_adjustments:
-                    try:
-                        adjustment = float(brand_adjustments[b_id])
-                        matched = True
-                        break
-                    except (ValueError, TypeError) as ex:
-                        _LOGGER.warning("Invalid price adjustment for brand ID %s: %s", b_id, ex)
-            if not matched:
-                for b_name in station_brand_names:
-                    matching_adjustments = [
-                        val
-                        for key, val in brand_adjustments.items()
-                        if str(key).lower() == b_name.lower()
-                    ]
-                    if matching_adjustments:
-                        try:
-                            adjustment = float(matching_adjustments[0])
-                            break
-                        except (ValueError, TypeError) as ex:
-                            _LOGGER.warning(
-                                "Invalid price adjustment for brand name %s: %s", b_name, ex
-                            )
+            adjustment = self.get_brand_adjustment(s)
 
             def adjust(val: float | None) -> float:
                 if val is None:
@@ -410,6 +381,45 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         cheapest["last_updated"] = datetime.now(UTC)
         _LOGGER.debug("Cheapest gas station: %s", _redact(cheapest))
         return cheapest
+
+    def get_brand_adjustment(self, data: dict | None = None) -> float:
+        """Get the brand price adjustment for the current or specified station."""
+        if data is None:
+            data = self.data
+        if not data:
+            return 0.0
+
+        brand_adjustments = (
+            self._config.options.get(CONF_BRAND_ADJUSTMENTS)
+            or self._config.data.get(CONF_BRAND_ADJUSTMENTS)
+            or {}
+        )
+        if not brand_adjustments:
+            return 0.0
+
+        station_brand_ids = [
+            str(b.get("brandId")) for b in data.get("brands", []) if b.get("brandId")
+        ]
+        station_brand_names = [b.get("name") for b in data.get("brands", []) if b.get("name")]
+
+        for b_id in station_brand_ids:
+            if b_id in brand_adjustments:
+                try:
+                    return float(brand_adjustments[b_id])
+                except (ValueError, TypeError) as ex:
+                    _LOGGER.warning("Invalid price adjustment for brand ID %s: %s", b_id, ex)
+
+        for b_name in station_brand_names:
+            matching_adjustments = [
+                val for key, val in brand_adjustments.items() if str(key).lower() == b_name.lower()
+            ]
+            if matching_adjustments:
+                try:
+                    return float(matching_adjustments[0])
+                except (ValueError, TypeError) as ex:
+                    _LOGGER.warning("Invalid price adjustment for brand name %s: %s", b_name, ex)
+
+        return 0.0
 
     async def clear_cache(self) -> None:
         """Clear cache file."""

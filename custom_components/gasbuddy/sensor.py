@@ -19,6 +19,7 @@ from .const import (
     CONF_FETCH_GAS,
     CONF_GPS,
     CONF_NAME,
+    CONF_SHOW_DISCOUNTED,
     CONF_STATION_ID,
     CONF_UOM,
     COORDINATOR,
@@ -153,10 +154,15 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         if price is None:
             return None
 
+        adjustment = self.coordinator.get_brand_adjustment()
+        display_price = price
+        if self._config.options.get(CONF_SHOW_DISCOUNTED, False):
+            display_price = price + adjustment
+
         if data.get("unit_of_measure") == "cents_per_liter":
-            self._state = price / 100
+            self._state = display_price / 100
         else:
-            self._state = price
+            self._state = display_price
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         return self._state
@@ -235,6 +241,22 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         if self._config.options.get(CONF_GPS):
             attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
             attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
+
+        if self._deal:
+            price = data[self._type].get("deal_price")
+        elif self._cash:
+            price = data[self._type].get("cash_price")
+        else:
+            price = data[self._type].get("price")
+
+        if price is not None:
+            adjustment = self.coordinator.get_brand_adjustment()
+            if adjustment != 0.0:
+                if data.get("unit_of_measure") == "cents_per_liter":
+                    attrs["discounted_price"] = (price + adjustment) / 100
+                else:
+                    attrs["discounted_price"] = price + adjustment
+
         return attrs
 
     @property

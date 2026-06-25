@@ -103,12 +103,15 @@
     "options": {
         "step": {
             "init": {
+                "description": "Configurar opciones de GasBuddy. Consulte la [documentación]({brand_adjustments_url}) para ver ejemplos de ajuste de precios de marca.",
                 "data": {
                     "interval": "Intervalo de actualización",
                     "uom": "Mostrar por litro/galón en unidad de medida",
                     "gps": "Mostrar estaciones en el mapa (deshabilitar atributos lat/long)",
                     "ev_charging": "Habilitar sensores de carga de VE",
-                    "fetch_gas": "Obtener precios de combustible"
+                    "fetch_gas": "Obtener precios de combustible",
+                    "show_discounted": "Mostrar precio con descuento",
+                    "brand_adjustments": "Ajustes de precios de marca"
                 }
             }
         }
