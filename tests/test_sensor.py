@@ -1,6 +1,7 @@
 """Test gasbuddy sensors."""
 
 import copy
+import json
 from unittest.mock import patch
 
 from py_gasbuddy.exceptions import APIError
@@ -13,10 +14,14 @@ from custom_components.gasbuddy.const import (
     CONF_EXCLUDE_BRANDS,
     CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
+    CONF_GPS,
     CONF_INCLUDE_BRANDS,
     CONF_INCLUDE_STATIONS,
+    CONF_INTERVAL,
+    CONF_NAME,
     CONF_POSTAL,
     CONF_PRICE_TYPE,
+    CONF_SHOW_DISCOUNTED,
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
@@ -982,3 +987,170 @@ async def test_coordinator_cheapest_brand_adjustments_edge_cases(hass):
     ):
         data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
+
+
+async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
+    """Test sensor behavior with brand adjustments, discounted_price attribute and state toggle."""
+    graphql_response_usd = {
+        "data": {
+            "station": {
+                "id": "999001",
+                "name": "Cheap Station",
+                "phone": "(507)281-3105",
+                "openStatus": "open",
+                "priceUnit": "dollars_per_gallon",
+                "currency": "USD",
+                "latitude": 41.8781,
+                "longitude": -87.6298,
+                "brands": [
+                    {
+                        "brandId": "brand_cheap",
+                        "brandingType": "fuel",
+                        "imageUrl": "https://images.gasbuddy.io/b/165.png",
+                        "name": "Brand Cheap",
+                    }
+                ],
+                "prices": [
+                    {
+                        "cash": None,
+                        "credit": {
+                            "nickname": "tigerdoodles",
+                            "postedTime": "2026-05-19T15:02:49.375Z",
+                            "price": 3.00,
+                            "formattedPrice": "$3.00",
+                        },
+                        "fuelProduct": "regular_gas",
+                        "longName": "Regular",
+                    }
+                ],
+            }
+        }
+    }
+
+    mock_aioclient.get(
+        "https://www.gasbuddy.com/home", status=200, body=load_fixture("index.html"), repeat=True
+    )
+    mock_aioclient.post(
+        "https://www.gasbuddy.com/graphql",
+        status=200,
+        body=json.dumps(graphql_response_usd),
+        repeat=True,
+    )
+
+    config = {
+        CONF_NAME: "Gas Station",
+        CONF_STATION_ID: "999001",
+    }
+    options = {
+        CONF_INTERVAL: 3600,
+        CONF_UOM: True,
+        CONF_GPS: True,
+        CONF_FETCH_GAS: True,
+        CONF_SHOW_DISCOUNTED: False,
+        CONF_BRAND_ADJUSTMENTS: {"brand_cheap": -0.10},
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=config,
+        options=options,
+        version=9,
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # The regular gas state should show the actual pump price (3.00)
+    state = hass.states.get("sensor.gas_station_regular_gas")
+    assert state
+    assert state.state == "3.0"
+    # But the discounted_price attribute should reflect the $0.10 discount
+    assert state.attributes.get("discounted_price") == 2.90
+
+    # 2. Test with show_discounted=True
+    # Update options to enable show_discounted
+    options_discounted = {
+        **options,
+        CONF_SHOW_DISCOUNTED: True,
+    }
+    hass.config_entries.async_update_entry(entry, options=options_discounted)
+    await hass.async_block_till_done()
+
+    # The regular gas state should now show the discounted price (2.90)
+    state = hass.states.get("sensor.gas_station_regular_gas")
+    assert state
+    assert state.state == "2.9"
+    assert state.attributes.get("discounted_price") == 2.90
+
+    # 3. Test cents_per_liter unit (CAD)
+    graphql_response_cad = {
+        "data": {
+            "station": {
+                "id": "999002",
+                "name": "Cheap Station CAD",
+                "phone": "(507)281-3105",
+                "openStatus": "open",
+                "priceUnit": "cents_per_liter",
+                "currency": "CAD",
+                "latitude": 41.8781,
+                "longitude": -87.6298,
+                "brands": [
+                    {
+                        "brandId": "brand_cheap",
+                        "brandingType": "fuel",
+                        "imageUrl": "https://images.gasbuddy.io/b/165.png",
+                        "name": "Brand Cheap",
+                    }
+                ],
+                "prices": [
+                    {
+                        "cash": None,
+                        "credit": {
+                            "nickname": "tigerdoodles",
+                            "postedTime": "2026-05-19T15:02:49.375Z",
+                            "price": 140.0,
+                            "formattedPrice": "140.0",
+                        },
+                        "fuelProduct": "regular_gas",
+                        "longName": "Regular",
+                    }
+                ],
+            }
+        }
+    }
+
+    mock_aioclient.clear()
+    mock_aioclient.get(
+        "https://www.gasbuddy.com/home", status=200, body=load_fixture("index.html"), repeat=True
+    )
+    mock_aioclient.post(
+        "https://www.gasbuddy.com/graphql",
+        status=200,
+        body=json.dumps(graphql_response_cad),
+        repeat=True,
+    )
+
+    options_cad = {
+        **options,
+        CONF_SHOW_DISCOUNTED: True,
+        CONF_BRAND_ADJUSTMENTS: {"Brand Cheap": -5.0},  # Matching by name
+    }
+    entry_cad = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station CAD",
+        data={**config, CONF_NAME: "Gas Station CAD", CONF_STATION_ID: "999002"},
+        options=options_cad,
+        version=9,
+    )
+    entry_cad.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry_cad.entry_id)
+    await hass.async_block_till_done()
+
+    # 140.0 - 5.0 = 135.0 cents/liter -> 1.35 CAD/liter
+    state = hass.states.get("sensor.gas_station_cad_regular_gas")
+    assert state
+    assert state.state == "1.35"
+    assert state.attributes.get("discounted_price") == 1.35

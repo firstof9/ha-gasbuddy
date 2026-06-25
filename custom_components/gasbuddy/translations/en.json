@@ -104,12 +104,15 @@
     "options": {
         "step": {
             "init": {
+                "description": "Configure GasBuddy options. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
                 "data": {
                     "interval": "Polling interval",
                     "uom": "Show per liter/gallon in unit of measure",
                     "gps": "Show stations on map (disable lat/long attributes)",
                     "ev_charging": "Enable EV charging sensors",
-                    "fetch_gas": "Fetch Gas Prices"
+                    "fetch_gas": "Fetch Gas Prices",
+                    "show_discounted": "Display discounted price",
+                    "brand_adjustments": "Brand Price Adjustments"
                 }
             }
         }

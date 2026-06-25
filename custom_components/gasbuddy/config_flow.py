@@ -39,6 +39,7 @@ from .const import (
     CONF_NAME,
     CONF_POSTAL,
     CONF_PRICE_TYPE,
+    CONF_SHOW_DISCOUNTED,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -575,6 +576,12 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         vol.Optional(CONF_EV_CHARGING, default=_get_default(CONF_EV_CHARGING, False)): cv.boolean,
         vol.Optional(CONF_FETCH_GAS, default=_get_default(CONF_FETCH_GAS, True)): cv.boolean,
+        vol.Optional(
+            CONF_SHOW_DISCOUNTED, default=_get_default(CONF_SHOW_DISCOUNTED, False)
+        ): cv.boolean,
+        vol.Optional(
+            CONF_BRAND_ADJUSTMENTS, default=_get_default(CONF_BRAND_ADJUSTMENTS, {})
+        ): ObjectSelector(),
     })
 
 
@@ -1169,5 +1176,8 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=_get_schema_options(self.hass, user_input, self._data),
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
             errors=self._errors,
         )

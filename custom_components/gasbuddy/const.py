@@ -27,6 +27,7 @@ CONF_INCLUDE_BRANDS = "include_brands"
 CONF_EXCLUDE_STATIONS = "exclude_stations"
 CONF_INCLUDE_STATIONS = "include_stations"
 CONF_BRAND_ADJUSTMENTS = "brand_adjustments"
+CONF_SHOW_DISCOUNTED = "show_discounted"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
