@@ -27,10 +27,8 @@ categories:
       - "dependencies"
       - "github_actions"
       - "refactor"
-      - "style"
       - "build"
       - "revert"
-      - "translations"
     collapse-after: 1
   - title: "🎓 Code Quality 🎓"
     labels:
