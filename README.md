@@ -102,10 +102,20 @@ If you want the sensor state value itself to show the discounted price, you can 
 
 Specify adjustments as a YAML or JSON map, where the key is either the brand name (case-insensitive) or the brand ID, and the value is the adjustment amount (a negative number for a discount, or positive for a markup).
 
-For example, if you receive a $0.10 discount at Walmart and a $0.05 discount at Costco, configure the following in the brand price adjustments input:
+> [!IMPORTANT]
+> **Adjustment Units**: The adjustment value must use the same unit as the station's raw price before any metric conversions.
+> - For dollar-based stations (e.g. USD/gallon), use dollar amounts (e.g., `-0.10` for $0.10).
+> - For cents-based stations (e.g. CAD/cents-per-liter), use cents (e.g., `-5.0` for a 5¢ discount).
+
+For example, if you receive a $0.10 discount at Walmart and a $0.05 discount at Costco (on a US/dollar-based station):
 ```yaml
 Walmart: -0.10
 Costco: -0.05
+```
+
+For Canadian/metric stations where prices are retrieved in cents-per-liter (e.g. a 5¢ per liter discount at Costco):
+```yaml
+Costco: -5.0
 ```
 
 This ensures a Walmart station with a posted price of $3.50 will be compared as $3.40 (or reported as $3.40 state value if the discount display toggle is active), while also exposing the `discounted_price` attribute as `3.40`.
