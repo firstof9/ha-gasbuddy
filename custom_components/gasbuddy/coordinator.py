@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     CACHE_FILE_NAME,
+    CONF_BRAND_ADJUSTMENTS,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_EXCLUDE_BRANDS,
@@ -329,6 +330,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         include_brands = self._config.data.get(CONF_INCLUDE_BRANDS) or []
         exclude_stations = self._config.data.get(CONF_EXCLUDE_STATIONS) or []
         include_stations = self._config.data.get(CONF_INCLUDE_STATIONS) or []
+        brand_adjustments = self._config.data.get(CONF_BRAND_ADJUSTMENTS) or {}
 
         filtered_stations = []
         for s in stations:
@@ -354,16 +356,49 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
         def _sort_key(s: dict) -> float:
             node = s.get(fuel_key) or {}
+            adjustment = 0.0
+            station_brand_ids = [
+                str(b.get("brandId")) for b in s.get("brands", []) if b.get("brandId")
+            ]
+            station_brand_names = [b.get("name") for b in s.get("brands", []) if b.get("name")]
+            matched = False
+            for b_id in station_brand_ids:
+                if b_id in brand_adjustments:
+                    try:
+                        adjustment = float(brand_adjustments[b_id])
+                        matched = True
+                        break
+                    except (ValueError, TypeError) as ex:
+                        _LOGGER.warning("Invalid price adjustment for brand ID %s: %s", b_id, ex)
+            if not matched:
+                for b_name in station_brand_names:
+                    matching_adjustments = [
+                        val
+                        for key, val in brand_adjustments.items()
+                        if str(key).lower() == b_name.lower()
+                    ]
+                    if matching_adjustments:
+                        try:
+                            adjustment = float(matching_adjustments[0])
+                            break
+                        except (ValueError, TypeError) as ex:
+                            _LOGGER.warning(
+                                "Invalid price adjustment for brand name %s: %s", b_name, ex
+                            )
+
+            def adjust(val: float | None) -> float:
+                if val is None:
+                    return float("inf")
+                return val + adjustment
+
             if price_type == "best":
                 candidates = [node.get("deal_price"), node.get("cash_price"), node.get("price")]
-                vals = [p for p in candidates if p is not None]
+                vals = [adjust(p) for p in candidates if p is not None]
                 return min(vals) if vals else float("inf")
             if price_type == "deal":
-                dp = node.get("deal_price")
-                return dp if dp is not None else float("inf")
+                return adjust(node.get("deal_price"))
             field = "cash_price" if price_type == "cash" else "price"
-            v = node.get(field)
-            return v if v is not None else float("inf")
+            return adjust(node.get(field))
 
         keyed = [(s, _sort_key(s)) for s in stations]
         finite = [(s, k) for s, k in keyed if math.isfinite(k)]

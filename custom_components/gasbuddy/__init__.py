@@ -10,6 +10,7 @@ from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_BRAND_ADJUSTMENTS,
     CONF_EV_CHARGING,
     CONF_EXCLUDE_BRANDS,
     CONF_EXCLUDE_STATIONS,
@@ -124,6 +125,10 @@ async def async_migrate_entry(hass, config_entry) -> bool:
         ):
             if key not in updated_config:
                 updated_config[key] = []
+
+    if version < 9:
+        if CONF_BRAND_ADJUSTMENTS not in updated_config:
+            updated_config[CONF_BRAND_ADJUSTMENTS] = {}
 
     # Persist the bumped version even when no data keys changed; otherwise
     # the entry stays on the old version and HA re-runs migration every start.

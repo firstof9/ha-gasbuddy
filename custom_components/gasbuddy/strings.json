@@ -80,21 +80,23 @@
                 }
             },
             "cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked.",
+                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
                 "data": {
                     "exclude_brands": "Excluded Brands",
                     "include_brands": "Included Brands",
                     "exclude_stations": "Excluded Stations",
-                    "include_stations": "Included Stations"
+                    "include_stations": "Included Stations",
+                    "brand_adjustments": "Brand Price Adjustments"
                 }
             },
             "reconfigure_cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked.",
+                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
                 "data": {
                     "exclude_brands": "Excluded Brands",
                     "include_brands": "Included Brands",
                     "exclude_stations": "Excluded Stations",
-                    "include_stations": "Included Stations"
+                    "include_stations": "Included Stations",
+                    "brand_adjustments": "Brand Price Adjustments"
                 }
             }
         }

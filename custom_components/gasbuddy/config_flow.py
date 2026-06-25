@@ -16,10 +16,16 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig, SelectSelectorMode
+from homeassistant.helpers.selector import (
+    ObjectSelector,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     CACHE_FILE_NAME,
+    CONF_BRAND_ADJUSTMENTS,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_EXCLUDE_BRANDS,
@@ -544,6 +550,9 @@ def _get_schema_cheapest_filters(
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
+        vol.Optional(
+            CONF_BRAND_ADJUSTMENTS, default=_get_default(CONF_BRAND_ADJUSTMENTS, {})
+        ): ObjectSelector(),
     })
 
 
@@ -919,6 +928,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_INCLUDE_BRANDS: user_input.get(CONF_INCLUDE_BRANDS, []),
                 CONF_EXCLUDE_STATIONS: user_input.get(CONF_EXCLUDE_STATIONS, []),
                 CONF_INCLUDE_STATIONS: user_input.get(CONF_INCLUDE_STATIONS, []),
+                CONF_BRAND_ADJUSTMENTS: user_input.get(CONF_BRAND_ADJUSTMENTS, {}),
             }
             if CONF_POSTAL in self._data:
                 data[CONF_POSTAL] = self._data[CONF_POSTAL]
@@ -951,6 +961,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=_get_schema_cheapest_filters(
                 self.hass, brands, stations, user_input, self._data
             ),
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
             errors=self._errors,
         )
 
@@ -1074,6 +1087,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_INCLUDE_BRANDS: user_input.get(CONF_INCLUDE_BRANDS, []),
                 CONF_EXCLUDE_STATIONS: user_input.get(CONF_EXCLUDE_STATIONS, []),
                 CONF_INCLUDE_STATIONS: user_input.get(CONF_INCLUDE_STATIONS, []),
+                CONF_BRAND_ADJUSTMENTS: user_input.get(CONF_BRAND_ADJUSTMENTS, {}),
             }
 
             self.hass.config_entries.async_update_entry(
@@ -1098,6 +1112,9 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=_get_schema_cheapest_filters(
                 self.hass, brands, stations, user_input, self._data
             ),
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
             errors=self._errors,
         )
 

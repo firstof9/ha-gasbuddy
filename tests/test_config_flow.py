@@ -20,6 +20,7 @@ from custom_components.gasbuddy.config_flow import (
     validate_station,
 )
 from custom_components.gasbuddy.const import (
+    CONF_BRAND_ADJUSTMENTS,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_EXCLUDE_BRANDS,
@@ -2729,3 +2730,52 @@ async def test_reconfigure_cheapest_cloudflare_blocked(hass):
         assert result["type"] is FlowResultType.FORM
         assert result["step_id"] == "reconfigure"
         assert result["errors"] == {CONF_SOLVER: "cloudflare"}
+
+
+async def test_cheapest_flow_brand_adjustments(hass):
+    """Test cheapest flow includes brand adjustments."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+
+    with (
+        patch(
+            "custom_components.gasbuddy.async_setup_entry",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.gasbuddy.config_flow._get_nearby_brands_and_stations",
+            return_value=({"brand_1": "Shell"}, {"111": "Shell (100 Main St)"}),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "cheapest"}
+        )
+        assert result["step_id"] == "cheapest"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: "Cheapest Gas",
+                CONF_POSTAL: "",
+                CONF_FUEL_KEY: "regular_gas",
+                CONF_PRICE_TYPE: "best",
+                CONF_SOLVER: "",
+            },
+        )
+        assert result["step_id"] == "cheapest_filters"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_EXCLUDE_BRANDS: ["brand_1"],
+                CONF_INCLUDE_BRANDS: [],
+                CONF_EXCLUDE_STATIONS: [],
+                CONF_INCLUDE_STATIONS: ["111"],
+                CONF_BRAND_ADJUSTMENTS: {"brand_1": -0.10},
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_BRAND_ADJUSTMENTS] == {"brand_1": -0.10}
