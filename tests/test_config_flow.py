@@ -2780,3 +2780,101 @@ async def test_cheapest_flow_brand_adjustments(hass):
 
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_BRAND_ADJUSTMENTS] == {}
+
+
+async def test_hub_config_flow(hass):
+    """Test Virtual Hub config flow setup."""
+    # 1. Start the flow
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.MENU
+
+    # 2. Select "hub" step
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "hub"}
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "hub"
+
+    # 3. Submit invalid solver URL
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            CONF_NAME: "Custom Hub Name",
+            CONF_SOLVER: "not-a-url",
+            CONF_TIMEOUT: 5000,
+            CONF_BRAND_ADJUSTMENTS: {"brand_1": -0.05},
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {CONF_SOLVER: "invalid_url"}
+
+    # 4. Submit valid input
+    with patch(
+        "custom_components.gasbuddy.async_setup_entry",
+        return_value=True,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_NAME: "Custom Hub Name",
+                CONF_SOLVER: "http://flaresolverr:8191",
+                CONF_TIMEOUT: 5000,
+                CONF_BRAND_ADJUSTMENTS: {"brand_1": -0.05},
+            },
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["title"] == "Custom Hub Name"
+        assert result["data"][CONF_SOLVER] == "http://flaresolverr:8191"
+        assert result["data"][CONF_TIMEOUT] == 5000
+        assert result["data"][CONF_BRAND_ADJUSTMENTS] == {"brand_1": -0.05}
+
+
+async def test_hub_options_flow(hass):
+    """Test Virtual Hub options flow."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={
+            CONF_NAME: "GasBuddy Hub",
+            CONF_SOLVER: "http://flaresolverr:8191",
+            CONF_TIMEOUT: 5000,
+            CONF_BRAND_ADJUSTMENTS: {},
+        },
+        version=9,
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "hub"
+
+    # Submit invalid solver URL
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_NAME: "New Hub Name",
+            CONF_SOLVER: "not-a-url",
+            CONF_TIMEOUT: 6000,
+            CONF_BRAND_ADJUSTMENTS: {"brand_a": 0.05},
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {CONF_SOLVER: "invalid_url"}
+
+    # Submit valid input
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_NAME: "New Hub Name",
+            CONF_SOLVER: "http://flaresolverr:8192",
+            CONF_TIMEOUT: 6000,
+            CONF_BRAND_ADJUSTMENTS: {"brand_a": 0.05},
+        },
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_SOLVER] == "http://flaresolverr:8192"
+    assert entry.options[CONF_TIMEOUT] == 6000
+    assert entry.options[CONF_BRAND_ADJUSTMENTS] == {"brand_a": 0.05}
