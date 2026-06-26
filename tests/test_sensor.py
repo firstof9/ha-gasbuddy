@@ -1162,3 +1162,38 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     coordinator.data = None
     assert coordinator.get_brand_adjustment(None) == 0.0
     coordinator.data = original_data
+
+
+async def test_sensor_via_device_hub_link(hass, mock_gasbuddy):
+    """Test that station sensor device registry entry correctly links to the Virtual Hub device."""
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Custom GasBuddy Hub Name",
+        unique_id="hub",
+        data={CONF_NAME: "Custom GasBuddy Hub Name"},
+        options={},
+        version=9,
+    )
+    hub_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(hub_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Now setup the station
+    station_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+        options={},
+        version=9,
+    )
+    station_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(station_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Retrieve coordinator and sensors
+    coordinator = hass.data[DOMAIN][station_entry.entry_id][COORDINATOR]
+
+    description = SENSOR_TYPES["regular_gas"]
+    sensor = GasBuddySensor(description, coordinator, station_entry)
+
+    assert sensor.device_info["via_device"] == (DOMAIN, "hub")

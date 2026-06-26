@@ -16,7 +16,8 @@
                 "menu_options": {
                     "manual": "Enter Station ID Manually",
                     "search": "Search for a station nearby",
-                    "cheapest": "Track cheapest nearby gas"
+                    "cheapest": "Track cheapest nearby gas",
+                    "hub": "Configure Virtual Hub (Global Settings)"
                 }
             },
             "manual": {
@@ -25,6 +26,14 @@
                     "solver": "FlareSolverr URL (optional)",
                     "timeout": "FlareSolverr timeout (ms)",
                     "station_id": "Station ID"
+                }
+            },
+            "hub": {
+                "description": "Configure the Virtual Hub to manage settings globally across all stations. Brand price adjustments are entered in YAML format.",
+                "data": {
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)",
+                    "brand_adjustments": "Brand Price Adjustments"
                 }
             },
             "search": {
@@ -112,6 +121,14 @@
                     "ev_charging": "Enable EV charging sensors",
                     "fetch_gas": "Fetch Gas Prices",
                     "show_discounted": "Display discounted price",
+                    "brand_adjustments": "Brand Price Adjustments"
+                }
+            },
+            "hub": {
+                "description": "Configure Virtual Hub options. Brand price adjustments are entered in YAML format.",
+                "data": {
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)",
                     "brand_adjustments": "Brand Price Adjustments"
                 }
             }

@@ -6,6 +6,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
@@ -19,11 +20,13 @@ from .const import (
     CONF_INCLUDE_BRANDS,
     CONF_INCLUDE_STATIONS,
     CONF_INTERVAL,
+    CONF_NAME,
     CONF_SOLVER,
     CONF_TIMEOUT,
     CONF_UOM,
     CONFIG_VER,
     COORDINATOR,
+    DEFAULT_TIMEOUT,
     DOMAIN,
     ISSUE_URL,
     PLATFORMS,
@@ -45,6 +48,72 @@ async def async_setup(  # pylint: disable-next=unused-argument
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up is called when Home Assistant is loading our component."""
+    if config_entry.unique_id == "hub":
+        migrated_any = False
+        hub_data = dict(config_entry.data)
+        hub_options = dict(config_entry.options)
+
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if entry.unique_id == "hub":
+                continue
+
+            for key in (CONF_SOLVER, CONF_TIMEOUT, CONF_BRAND_ADJUSTMENTS):
+                val = entry.options.get(key) or entry.data.get(key)
+                if val:
+                    if key == CONF_BRAND_ADJUSTMENTS:
+                        existing_adj = (
+                            hub_data.get(CONF_BRAND_ADJUSTMENTS)
+                            or hub_options.get(CONF_BRAND_ADJUSTMENTS)
+                            or {}
+                        )
+                        merged_adj = {**existing_adj, **val}
+                        hub_data[CONF_BRAND_ADJUSTMENTS] = merged_adj
+                        migrated_any = True
+                    is_default = (
+                        key == CONF_SOLVER and not (hub_data.get(key) or hub_options.get(key))
+                    ) or (
+                        key == CONF_TIMEOUT
+                        and (
+                            hub_data.get(key) == DEFAULT_TIMEOUT
+                            or hub_options.get(key) == DEFAULT_TIMEOUT
+                        )
+                    )
+                    if hub_data.get(key) is None or is_default:
+                        hub_data[key] = val
+                        migrated_any = True
+
+        if migrated_any:
+            hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
+
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if entry.unique_id == "hub":
+                continue
+
+            new_data = dict(entry.data)
+            new_options = dict(entry.options)
+            cleaned_up = False
+            for key in (CONF_SOLVER, CONF_TIMEOUT, CONF_BRAND_ADJUSTMENTS):
+                if key in new_data:
+                    new_data.pop(key)
+                    cleaned_up = True
+                if key in new_options:
+                    new_options.pop(key)
+                    cleaned_up = True
+            if cleaned_up:
+                hass.config_entries.async_update_entry(entry, data=new_data, options=new_options)
+
+        device_registry = dr.async_get(hass)
+        device_registry.async_get_or_create(
+            config_entry_id=config_entry.entry_id,
+            identifiers={(DOMAIN, "hub")},
+            name=config_entry.data.get(CONF_NAME, "GasBuddy Hub"),
+            manufacturer="GasBuddy",
+            model="Virtual Hub",
+        )
+
+        config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+        return True
+
     hass.data.setdefault(DOMAIN, {})
     _LOGGER.info(
         "Version %s is starting, if you have any issues please report them here: %s",
@@ -146,11 +215,14 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     """Handle removal of an entry."""
     _LOGGER.debug("Attempting to unload entities from the %s integration", DOMAIN)
 
+    if config_entry.unique_id == "hub":
+        return True
+
     unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
     if unload_ok:
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
-        entry_data = hass.data[DOMAIN].pop(config_entry.entry_id, None)
+        entry_data = hass.data.get(DOMAIN, {}).pop(config_entry.entry_id, None)
         if entry_data and (services := entry_data.get(SERVICES)):
             services.async_unregister()
 

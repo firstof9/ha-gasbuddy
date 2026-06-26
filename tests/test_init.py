@@ -7,6 +7,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy import async_remove_config_entry_device
 from custom_components.gasbuddy.const import (
+    CONF_BRAND_ADJUSTMENTS,
     CONF_EXCLUDE_BRANDS,
     CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
@@ -14,6 +15,7 @@ from custom_components.gasbuddy.const import (
     CONF_INCLUDE_BRANDS,
     CONF_INCLUDE_STATIONS,
     CONF_SOLVER,
+    CONF_TIMEOUT,
     CONF_UOM,
     CONFIG_VER,
     DOMAIN,
@@ -199,3 +201,45 @@ async def test_service_unregistration_on_unload(hass, mock_gasbuddy):
     await hass.async_block_till_done()
 
     assert not hass.services.has_service(DOMAIN, "lookup_gps")
+
+
+async def test_virtual_hub_setup_and_migration(hass):
+    """Test setting up Virtual Hub entry automatically migrates options from existing entries."""
+    station_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station",
+        data={
+            **CONFIG_DATA,
+            CONF_SOLVER: "http://flaresolverr:8191",
+            CONF_BRAND_ADJUSTMENTS: {"brand_a": -0.05},
+        },
+        options={
+            CONF_TIMEOUT: 5000,
+        },
+        version=2,
+    )
+    station_entry.add_to_hass(hass)
+
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={},
+        options={},
+        version=2,
+    )
+    hub_entry.add_to_hass(hass)
+
+    # Setup the hub entry - triggers migration
+    assert await hass.config_entries.async_setup(hub_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Verify that the hub entry imported the settings
+    assert hub_entry.data[CONF_SOLVER] == "http://flaresolverr:8191"
+    assert hub_entry.data[CONF_BRAND_ADJUSTMENTS] == {"brand_a": -0.05}
+    assert hub_entry.data[CONF_TIMEOUT] == 5000
+
+    # Verify the station entry was cleaned up
+    assert CONF_SOLVER not in station_entry.data
+    assert CONF_BRAND_ADJUSTMENTS not in station_entry.data
+    assert CONF_TIMEOUT not in station_entry.options

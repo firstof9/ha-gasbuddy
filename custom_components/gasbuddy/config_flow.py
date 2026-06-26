@@ -551,9 +551,6 @@ def _get_schema_cheapest_filters(
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Optional(
-            CONF_BRAND_ADJUSTMENTS, default=_get_default(CONF_BRAND_ADJUSTMENTS, {})
-        ): ObjectSelector(),
     })
 
 
@@ -579,9 +576,6 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
         vol.Optional(
             CONF_SHOW_DISCOUNTED, default=_get_default(CONF_SHOW_DISCOUNTED, False)
         ): cv.boolean,
-        vol.Optional(
-            CONF_BRAND_ADJUSTMENTS, default=_get_default(CONF_BRAND_ADJUSTMENTS, {})
-        ): ObjectSelector(),
     })
 
 
@@ -600,7 +594,62 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the flow initialized by the user."""
-        return self.async_show_menu(step_id="user", menu_options=MENU_OPTIONS)
+        hub_exists = any(entry.unique_id == "hub" for entry in self._async_current_entries())
+        menu_options = list(MENU_OPTIONS)
+        if not hub_exists:
+            menu_options.append("hub")
+        return self.async_show_menu(step_id="user", menu_options=menu_options)
+
+    async def async_step_hub(self, user_input=None) -> ConfigFlowResult:
+        """Handle configuring the Virtual Hub."""
+        self._errors = {}
+
+        if user_input is not None:
+            user_input.setdefault(CONF_NAME, "GasBuddy Hub")
+            user_input.setdefault(CONF_SOLVER)
+            user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            user_input.setdefault(CONF_BRAND_ADJUSTMENTS, {})
+            if user_input.get(CONF_SOLVER):
+                url_valid = validate_url(user_input[CONF_SOLVER])
+                if not url_valid:
+                    self._errors[CONF_SOLVER] = "invalid_url"
+
+            if not self._errors:
+                await self.async_set_unique_id("hub")
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME],
+                    data=user_input,
+                    options={},
+                )
+
+        defaults = {
+            CONF_NAME: "GasBuddy Hub",
+            CONF_SOLVER: "",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+            CONF_BRAND_ADJUSTMENTS: {},
+        }
+        if user_input:
+            defaults.update(user_input)
+
+        schema = vol.Schema({
+            vol.Required(CONF_NAME, default=defaults[CONF_NAME]): vol.All(
+                cv.string, vol.Strip, vol.Length(max=100)
+            ),
+            vol.Optional(CONF_SOLVER, default=defaults[CONF_SOLVER]): vol.All(cv.string, vol.Strip),
+            vol.Optional(CONF_TIMEOUT, default=defaults[CONF_TIMEOUT]): vol.All(
+                cv.positive_int, vol.Range(min=1000, max=300000)
+            ),
+            vol.Optional(
+                CONF_BRAND_ADJUSTMENTS, default=defaults[CONF_BRAND_ADJUSTMENTS]
+            ): ObjectSelector(),
+        })
+
+        return self.async_show_form(
+            step_id="hub",
+            data_schema=schema,
+            errors=self._errors,
+        )
 
     # Manual Station ID input
     async def async_step_manual(self, user_input=None):
@@ -1164,12 +1213,69 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         """Manage GasBuddy options."""
+        if self.config_entry.unique_id == "hub":
+            return await self.async_step_hub(user_input)
+
         if not self._data:
             self._data = dict(self.config_entry.options)
         if user_input is not None:
             self._data.update(user_input)
             return self.async_create_entry(title="", data=self._data)
         return await self._show_options_form(user_input)
+
+    async def async_step_hub(self, user_input=None):
+        """Manage GasBuddy Hub options."""
+        if not self._data:
+            self._data = {
+                CONF_NAME: self.config_entry.options.get(CONF_NAME)
+                or self.config_entry.data.get(CONF_NAME, "GasBuddy Hub"),
+                CONF_SOLVER: self.config_entry.options.get(CONF_SOLVER)
+                or self.config_entry.data.get(CONF_SOLVER, ""),
+                CONF_TIMEOUT: self.config_entry.options.get(CONF_TIMEOUT)
+                or self.config_entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+                CONF_BRAND_ADJUSTMENTS: self.config_entry.options.get(CONF_BRAND_ADJUSTMENTS)
+                or self.config_entry.data.get(CONF_BRAND_ADJUSTMENTS, {}),
+            }
+        self._errors = {}
+        if user_input is not None:
+            user_input.setdefault(CONF_NAME, "GasBuddy Hub")
+            user_input.setdefault(CONF_SOLVER)
+            user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            user_input.setdefault(CONF_BRAND_ADJUSTMENTS, {})
+            if user_input.get(CONF_SOLVER):
+                url_valid = validate_url(user_input[CONF_SOLVER])
+                if not url_valid:
+                    self._errors[CONF_SOLVER] = "invalid_url"
+
+            if not self._errors:
+                self._data.update(user_input)
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    title=self._data[CONF_NAME],
+                    data={**self.config_entry.data, CONF_NAME: self._data[CONF_NAME]},
+                )
+                return self.async_create_entry(title="", data=self._data)
+
+        schema = vol.Schema({
+            vol.Required(CONF_NAME, default=self._data[CONF_NAME]): vol.All(
+                cv.string, vol.Strip, vol.Length(max=100)
+            ),
+            vol.Optional(CONF_SOLVER, default=self._data[CONF_SOLVER]): vol.All(
+                cv.string, vol.Strip
+            ),
+            vol.Optional(CONF_TIMEOUT, default=self._data[CONF_TIMEOUT]): vol.All(
+                cv.positive_int, vol.Range(min=1000, max=300000)
+            ),
+            vol.Optional(
+                CONF_BRAND_ADJUSTMENTS, default=self._data[CONF_BRAND_ADJUSTMENTS]
+            ): ObjectSelector(),
+        })
+
+        return self.async_show_form(
+            step_id="hub",
+            data_schema=schema,
+            errors=self._errors,
+        )
 
     async def _show_options_form(self, user_input):
         """Show the configuration form to edit options."""

@@ -1284,7 +1284,6 @@ async def test_reconfigure_no_solver(
                 CONF_INTERVAL: 1600,
                 CONF_UOM: True,
                 CONF_SHOW_DISCOUNTED: False,
-                CONF_BRAND_ADJUSTMENTS: {},
             },
         ),
     ],
@@ -2776,9 +2775,8 @@ async def test_cheapest_flow_brand_adjustments(hass):
                 CONF_INCLUDE_BRANDS: [],
                 CONF_EXCLUDE_STATIONS: [],
                 CONF_INCLUDE_STATIONS: ["111"],
-                CONF_BRAND_ADJUSTMENTS: {"brand_1": -0.10},
             },
         )
 
         assert result["type"] is FlowResultType.CREATE_ENTRY
-        assert result["data"][CONF_BRAND_ADJUSTMENTS] == {"brand_1": -0.10}
+        assert result["data"][CONF_BRAND_ADJUSTMENTS] == {}

@@ -112,6 +112,11 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
     @property
     def device_info(self) -> DeviceInfo:
         """Return a port description for device registry."""
+        hub_exists = any(
+            entry.unique_id == "hub"
+            for entry in self.coordinator.hass.config_entries.async_entries(DOMAIN)
+        )
+        via = (DOMAIN, "hub") if hub_exists else None
         return DeviceInfo(
             manufacturer="GasBuddy",
             name=self._config.data[CONF_NAME],
@@ -123,6 +128,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             # device entry; it can be removed once users have migrated.
             identifiers={(DOMAIN, self._unique_id)},
             connections={(DOMAIN, self._unique_id)},
+            via_device=via,
         )
 
     @property

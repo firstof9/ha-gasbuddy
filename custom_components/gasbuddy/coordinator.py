@@ -94,10 +94,10 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._data: dict[Any, Any] = {}
         self._cache_file = f"{self.hass.config.config_dir}/{CACHE_FILE_NAME}"
         self._api = GasBuddy(
-            solver_url=config.data.get(CONF_SOLVER),
+            solver_url=self._get_hub_setting(CONF_SOLVER),
             station_id=config.data.get(CONF_STATION_ID),
             cache_file=self._cache_file,
-            timeout=config.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+            timeout=self._get_hub_setting(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             session=async_get_clientsession(hass),
         )
 
@@ -111,8 +111,20 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             update_interval=self.interval,
         )
 
+    def _get_hub_setting(self, key: str, default: Any = None) -> Any:
+        """Get a setting from the Virtual Hub if configured, otherwise fall back to local config."""
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.unique_id == "hub":
+                val = entry.options.get(key) or entry.data.get(key)
+                if val is not None:
+                    return val
+        return self._config.options.get(key) or self._config.data.get(key, default)
+
     async def _async_update_data(self) -> dict:  # noqa: PLR0914
         """Update data via library."""
+        self._api.solver_url = self._get_hub_setting(CONF_SOLVER)
+        self._api.timeout = self._get_hub_setting(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+
         if self._config.data.get(CONF_CHEAPEST):
             return await self._async_update_cheapest()
 
@@ -300,6 +312,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_cheapest(self) -> dict:  # noqa: PLR0914
         """Find and return the cheapest nearby station for the configured fuel and price type."""
+        self._api.solver_url = self._get_hub_setting(CONF_SOLVER)
+        self._api.timeout = self._get_hub_setting(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+
         fuel_key = self._config.data.get(CONF_FUEL_KEY, "regular_gas")
         price_type = self._config.data.get(CONF_PRICE_TYPE, "best")
 
@@ -389,11 +404,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         if not data:
             return 0.0
 
-        brand_adjustments = (
-            self._config.options.get(CONF_BRAND_ADJUSTMENTS)
-            or self._config.data.get(CONF_BRAND_ADJUSTMENTS)
-            or {}
-        )
+        brand_adjustments = self._get_hub_setting(CONF_BRAND_ADJUSTMENTS, {})
         if not brand_adjustments:
             return 0.0
 
