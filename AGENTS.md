@@ -168,5 +168,7 @@ files give good templates:
 - `test_ev_coverage.py` — EV-charging-specific paths
 - `test_diagnostics.py` — diagnostics output snapshot
 
+- **Patch Test Coverage**: All patch/added code in the PR must have **100% test coverage** before submission.
+
 Common helpers in `tests/common.py` + `tests/const.py`; HTTP fixtures
 under `tests/fixtures/`.

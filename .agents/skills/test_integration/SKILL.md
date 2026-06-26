@@ -27,6 +27,7 @@ Add new test cases to `tests/`. Identify the target area to add tests:
 - `test_config_flow.py`: Form steps, reconfigurations, and options validation.
 - `test_init.py`: Component setup, uninstallation, migration logic, and background services.
 - `test_sensor.py`: Price state assertions, unit of measure changes, and device attribute assertions.
+- **100% Coverage Rule**: All patch/added code in the PR must have **100% test coverage** before submission.
 
 ## Test Mocking Guidelines
 
