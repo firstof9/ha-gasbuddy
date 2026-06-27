@@ -1228,13 +1228,17 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
         if not self._data:
             self._data = {
                 CONF_NAME: self.config_entry.options.get(CONF_NAME)
-                or self.config_entry.data.get(CONF_NAME, "GasBuddy Hub"),
+                if self.config_entry.options.get(CONF_NAME) is not None
+                else self.config_entry.data.get(CONF_NAME, "GasBuddy Hub"),
                 CONF_SOLVER: self.config_entry.options.get(CONF_SOLVER)
-                or self.config_entry.data.get(CONF_SOLVER, ""),
+                if self.config_entry.options.get(CONF_SOLVER) is not None
+                else self.config_entry.data.get(CONF_SOLVER, ""),
                 CONF_TIMEOUT: self.config_entry.options.get(CONF_TIMEOUT)
-                or self.config_entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+                if self.config_entry.options.get(CONF_TIMEOUT) is not None
+                else self.config_entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
                 CONF_BRAND_ADJUSTMENTS: self.config_entry.options.get(CONF_BRAND_ADJUSTMENTS)
-                or self.config_entry.data.get(CONF_BRAND_ADJUSTMENTS, {}),
+                if self.config_entry.options.get(CONF_BRAND_ADJUSTMENTS) is not None
+                else self.config_entry.data.get(CONF_BRAND_ADJUSTMENTS, {}),
             }
         self._errors = {}
         if user_input is not None:
@@ -1252,7 +1256,13 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
                 self.hass.config_entries.async_update_entry(
                     self.config_entry,
                     title=self._data[CONF_NAME],
-                    data={**self.config_entry.data, CONF_NAME: self._data[CONF_NAME]},
+                    data={
+                        **self.config_entry.data,
+                        CONF_NAME: self._data[CONF_NAME],
+                        CONF_SOLVER: self._data.get(CONF_SOLVER) or None,
+                        CONF_TIMEOUT: self._data[CONF_TIMEOUT],
+                        CONF_BRAND_ADJUSTMENTS: self._data.get(CONF_BRAND_ADJUSTMENTS, {}),
+                    },
                 )
                 return self.async_create_entry(title="", data=self._data)
 

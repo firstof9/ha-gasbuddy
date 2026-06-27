@@ -115,10 +115,14 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         """Get a setting from the Virtual Hub if configured, otherwise fall back to local config."""
         for entry in self.hass.config_entries.async_entries(DOMAIN):
             if entry.unique_id == "hub":
-                val = entry.options.get(key) or entry.data.get(key)
-                if val is not None:
-                    return val
-        return self._config.options.get(key) or self._config.data.get(key, default)
+                if key in entry.options and entry.options[key] is not None:
+                    return entry.options[key]
+                if key in entry.data and entry.data[key] is not None:
+                    return entry.data[key]
+                break
+        if key in self._config.options and self._config.options[key] is not None:
+            return self._config.options[key]
+        return self._config.data.get(key, default)
 
     async def _async_update_data(self) -> dict:  # noqa: PLR0914
         """Update data via library."""

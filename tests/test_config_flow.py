@@ -2878,3 +2878,21 @@ async def test_hub_options_flow(hass):
     assert entry.options[CONF_SOLVER] == "http://flaresolverr:8192"
     assert entry.options[CONF_TIMEOUT] == 6000
     assert entry.options[CONF_BRAND_ADJUSTMENTS] == {"brand_a": 0.05}
+
+    # Now clear options to test that they are not overridden by data
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "hub"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_NAME: "New Hub Name",
+            CONF_SOLVER: "",
+            CONF_TIMEOUT: 6000,
+            CONF_BRAND_ADJUSTMENTS: {},
+        },
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_SOLVER] == ""
+    assert entry.options[CONF_BRAND_ADJUSTMENTS] == {}
