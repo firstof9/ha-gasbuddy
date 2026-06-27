@@ -100,6 +100,14 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
             _migrate_entry_keys(entry, hub_data, hub_options)
 
         try:
+            # Commit the hub FIRST — hub_data already has all migrated values
+            # from Phase 1 (_migrate_entry_keys). If this fails, stations
+            # are untouched and migration will retry on next startup.
+            hub_data["migrated"] = True
+            hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
+
+            # THEN clean up station entries. If this fails, the hub already
+            # has all the data and "migrated" is set.
             migrated_count = 0
             for entry in hass.config_entries.async_entries(DOMAIN):
                 if entry.unique_id == "hub":
@@ -120,9 +128,6 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
                         entry, data=new_data, options=new_options
                     )
                     migrated_count += 1
-
-            hub_data["migrated"] = True
-            hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
 
             if migrated_count > 0:
                 _LOGGER.info("Migrated settings from %d station(s) to Virtual Hub", migrated_count)

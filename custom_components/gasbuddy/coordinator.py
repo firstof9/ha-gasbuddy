@@ -86,11 +86,19 @@ def _redact(data: Any) -> str:
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
+    @staticmethod
+    def _find_hub_entry(hass: HomeAssistant) -> ConfigEntry | None:
+        """Find the virtual hub config entry."""
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if entry.unique_id == "hub":
+                return entry
+        return None
+
     def __init__(self, hass: HomeAssistant, config: ConfigEntry) -> None:
         """Initialize."""
         self._config = config
         self.hass = hass
-        self._hub_entry: ConfigEntry | None = None
+        self._hub_entry = self._find_hub_entry(hass)
         self.interval = self._get_interval()
         self._data: dict[Any, Any] = {}
         self._cache_file = f"{self.hass.config.config_dir}/{CACHE_FILE_NAME}"
@@ -115,10 +123,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     def _get_hub_setting(self, key: str, default: Any = None) -> Any:
         """Get a setting from the Virtual Hub if configured, otherwise fall back to local config."""
         if self._hub_entry is None:
-            for entry in self.hass.config_entries.async_entries(DOMAIN):
-                if entry.unique_id == "hub":
-                    self._hub_entry = entry
-                    break
+            self._hub_entry = self._find_hub_entry(self.hass)
         if self._hub_entry is not None:
             if key in self._hub_entry.options and self._hub_entry.options[key] is not None:
                 return self._hub_entry.options[key]
