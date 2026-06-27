@@ -20,6 +20,7 @@ from custom_components.gasbuddy.const import (
     CONFIG_VER,
     DOMAIN,
 )
+from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator
 from custom_components.gasbuddy.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from tests.common import load_fixture
@@ -243,3 +244,93 @@ async def test_virtual_hub_setup_and_migration(hass):
     assert CONF_SOLVER not in station_entry.data
     assert CONF_BRAND_ADJUSTMENTS not in station_entry.data
     assert CONF_TIMEOUT not in station_entry.options
+
+
+async def test_virtual_hub_migration_edge_cases(hass):
+    """Test Virtual Hub migration edge cases for full coverage."""
+    # 1. Test entry with no settings (covers line 56 - continue on missing setting)
+    empty_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="empty_station",
+        data={},
+        options={},
+        version=2,
+    )
+    empty_entry.add_to_hass(hass)
+
+    # 2. Test conflict in brand adjustments (covers line 66 - conflict warning)
+    conflicting_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="conflicting_station",
+        data={
+            CONF_BRAND_ADJUSTMENTS: {"brand_a": -0.10},
+        },
+        options={},
+        version=2,
+    )
+    conflicting_entry.add_to_hass(hass)
+
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={
+            CONF_BRAND_ADJUSTMENTS: {"brand_a": -0.05},
+        },
+        options={},
+        version=2,
+    )
+    hub_entry.add_to_hass(hass)
+
+    # Setup the hub entry - triggers migration and logs conflict warning
+    assert await hass.config_entries.async_setup(hub_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # 3. Test exception in migration update (covers lines 124-125)
+    hub_entry_err = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub Err",
+        unique_id="hub",
+        data={},
+        options={},
+        version=9,
+    )
+    # Remove previous hub first to avoid unique id conflict
+    await hass.config_entries.async_remove(hub_entry.entry_id)
+    await hass.async_block_till_done()
+
+    hub_entry_err.add_to_hass(hass)
+
+    with patch(
+        "homeassistant.config_entries.ConfigEntries.async_update_entry",
+        side_effect=Exception("Update entry failed"),
+    ):
+        assert await hass.config_entries.async_setup(hub_entry_err.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_coordinator_get_hub_setting_from_options(hass):
+    """Test that _get_hub_setting retrieves value from hub options (covers line 119 in coordinator.py)."""
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={},
+        options={
+            CONF_SOLVER: "http://options-solver",
+        },
+        version=9,
+    )
+    hub_entry.add_to_hass(hass)
+
+    station_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station",
+        data=CONFIG_DATA,
+        options={},
+        version=9,
+    )
+    station_entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, station_entry)
+    assert coordinator._get_hub_setting(CONF_SOLVER) == "http://options-solver"  # noqa: SLF001
