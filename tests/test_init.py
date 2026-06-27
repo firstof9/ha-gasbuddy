@@ -300,6 +300,7 @@ async def test_virtual_hub_migration_edge_cases(hass):
         data={
             **CONFIG_DATA,
             CONF_SOLVER: "http://flaresolverr:8191",
+            CONF_BRAND_ADJUSTMENTS: {"Shell": -0.05},
         },
         options={
             CONF_TIMEOUT: 5000,
@@ -327,6 +328,7 @@ async def test_virtual_hub_migration_edge_cases(hass):
 
     # Verify that the station entry data was NOT cleaned up
     assert station_entry_err.data[CONF_SOLVER] == "http://flaresolverr:8191"
+    assert station_entry_err.data[CONF_BRAND_ADJUSTMENTS] == {"Shell": -0.05}
     assert station_entry_err.options[CONF_TIMEOUT] == 5000
 
 
