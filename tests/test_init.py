@@ -415,3 +415,60 @@ async def test_migration_phase3_failure_preserves_stations(hass, mock_gasbuddy):
     assert hub_entry.data.get("stations_cleaned") is not True
     # Station still has redundant data (Phase 3 failed)
     assert station_entry.data.get(CONF_SOLVER) == "http://flaresolverr:8191"
+
+
+async def test_coordinator_get_hub_setting_dynamic_and_none_fallback(hass):
+    """Test that coordinator settings lookup handles recreated hub and fallback defaults on None values."""
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={},
+        options={
+            CONF_SOLVER: "http://solver-v1",
+        },
+        version=9,
+    )
+    hub_entry.add_to_hass(hass)
+
+    station_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station",
+        data={
+            **CONFIG_DATA,
+            CONF_SOLVER: None,  # Test that None in data triggers fallback to default
+        },
+        options={},
+        version=9,
+    )
+    station_entry.add_to_hass(hass)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, station_entry)
+    assert coordinator._get_hub_setting(CONF_SOLVER) == "http://solver-v1"  # noqa: SLF001
+
+    # Remove the old hub and add a new one (simulating hub deletion and recreation)
+    await hass.config_entries.async_remove(hub_entry.entry_id)
+    await hass.async_block_till_done()
+
+    hub_entry_v2 = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub V2",
+        unique_id="hub",
+        data={},
+        options={
+            CONF_SOLVER: "http://solver-v2",
+        },
+        version=9,
+    )
+    hub_entry_v2.add_to_hass(hass)
+
+    # Verify that the coordinator dynamically picks up the new hub settings
+    assert coordinator._get_hub_setting(CONF_SOLVER) == "http://solver-v2"  # noqa: SLF001
+
+    # Remove the hub entirely and assert that local data None value correctly falls back to default
+    await hass.config_entries.async_remove(hub_entry_v2.entry_id)
+    await hass.async_block_till_done()
+    assert (
+        coordinator._get_hub_setting(CONF_SOLVER, "http://default-solver")  # noqa: SLF001
+        == "http://default-solver"
+    )

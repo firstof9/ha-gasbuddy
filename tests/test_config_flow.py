@@ -2878,6 +2878,10 @@ async def test_hub_options_flow(hass):
     assert entry.options[CONF_SOLVER] == "http://flaresolverr:8192"
     assert entry.options[CONF_TIMEOUT] == 6000
     assert entry.options[CONF_BRAND_ADJUSTMENTS] == {"brand_a": 0.05}
+    # Verify that the changes are NOT written to the data dict
+    assert entry.data[CONF_SOLVER] == "http://flaresolverr:8191"
+    assert entry.data[CONF_TIMEOUT] == 5000
+    assert entry.data[CONF_BRAND_ADJUSTMENTS] == {}
 
     # Now clear options to test that they are not overridden by data
     result = await hass.config_entries.options.async_init(entry.entry_id)

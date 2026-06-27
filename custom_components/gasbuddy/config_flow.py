@@ -1259,9 +1259,6 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
                     data={
                         **self.config_entry.data,
                         CONF_NAME: self._data[CONF_NAME],
-                        CONF_SOLVER: self._data.get(CONF_SOLVER),
-                        CONF_TIMEOUT: self._data[CONF_TIMEOUT],
-                        CONF_BRAND_ADJUSTMENTS: self._data.get(CONF_BRAND_ADJUSTMENTS, {}),
                     },
                 )
                 return self.async_create_entry(title="", data=self._data)

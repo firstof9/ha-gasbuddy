@@ -147,13 +147,20 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
             _LOGGER.exception("Station cleanup failed; redundant data remains in station entries")
 
     device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
+    hub_device = device_registry.async_get_or_create(
         config_entry_id=config_entry.entry_id,
         identifiers={(DOMAIN, "hub")},
         name=hub_data.get(CONF_NAME, "GasBuddy Hub"),
         manufacturer="GasBuddy",
         model="Virtual Hub",
     )
+
+    # Link existing station devices to the Virtual Hub device
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.unique_id == "hub":
+            continue
+        for dev in device_registry.devices.get_devices_for_config_entry_id(entry.entry_id):
+            device_registry.async_update_device(dev.id, via_device_id=hub_device.id)
 
     config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
     return True
