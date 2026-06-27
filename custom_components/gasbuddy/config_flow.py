@@ -606,7 +606,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             user_input.setdefault(CONF_NAME, "GasBuddy Hub")
-            user_input.setdefault(CONF_SOLVER)
+            user_input.setdefault(CONF_SOLVER, "")
             user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
             user_input.setdefault(CONF_BRAND_ADJUSTMENTS, {})
             if user_input.get(CONF_SOLVER):
@@ -1243,7 +1243,7 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
         self._errors = {}
         if user_input is not None:
             user_input.setdefault(CONF_NAME, "GasBuddy Hub")
-            user_input.setdefault(CONF_SOLVER)
+            user_input.setdefault(CONF_SOLVER, "")
             user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
             user_input.setdefault(CONF_BRAND_ADJUSTMENTS, {})
             if user_input.get(CONF_SOLVER):
@@ -1259,7 +1259,7 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
                     data={
                         **self.config_entry.data,
                         CONF_NAME: self._data[CONF_NAME],
-                        CONF_SOLVER: self._data.get(CONF_SOLVER) or None,
+                        CONF_SOLVER: self._data.get(CONF_SOLVER),
                         CONF_TIMEOUT: self._data[CONF_TIMEOUT],
                         CONF_BRAND_ADJUSTMENTS: self._data.get(CONF_BRAND_ADJUSTMENTS, {}),
                     },

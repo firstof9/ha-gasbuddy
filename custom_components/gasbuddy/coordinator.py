@@ -90,6 +90,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         """Initialize."""
         self._config = config
         self.hass = hass
+        self._hub_entry: ConfigEntry | None = None
         self.interval = self._get_interval()
         self._data: dict[Any, Any] = {}
         self._cache_file = f"{self.hass.config.config_dir}/{CACHE_FILE_NAME}"
@@ -113,13 +114,16 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     def _get_hub_setting(self, key: str, default: Any = None) -> Any:
         """Get a setting from the Virtual Hub if configured, otherwise fall back to local config."""
-        for entry in self.hass.config_entries.async_entries(DOMAIN):
-            if entry.unique_id == "hub":
-                if key in entry.options and entry.options[key] is not None:
-                    return entry.options[key]
-                if key in entry.data and entry.data[key] is not None:
-                    return entry.data[key]
-                break
+        if self._hub_entry is None:
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if entry.unique_id == "hub":
+                    self._hub_entry = entry
+                    break
+        if self._hub_entry is not None:
+            if key in self._hub_entry.options and self._hub_entry.options[key] is not None:
+                return self._hub_entry.options[key]
+            if key in self._hub_entry.data and self._hub_entry.data[key] is not None:
+                return self._hub_entry.data[key]
         if key in self._config.options and self._config.options[key] is not None:
             return self._config.options[key]
         return self._config.data.get(key, default)

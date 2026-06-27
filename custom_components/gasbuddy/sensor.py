@@ -108,15 +108,15 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         self._attr_icon = sensor_description.icon
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
+        self._hub_exists = any(
+            entry.unique_id == "hub"
+            for entry in coordinator.hass.config_entries.async_entries(DOMAIN)
+        )
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return a port description for device registry."""
-        hub_exists = any(
-            entry.unique_id == "hub"
-            for entry in self.coordinator.hass.config_entries.async_entries(DOMAIN)
-        )
-        via = (DOMAIN, "hub") if hub_exists else None
+        via = (DOMAIN, "hub") if self._hub_exists else None
         return DeviceInfo(
             manufacturer="GasBuddy",
             name=self._config.data[CONF_NAME],

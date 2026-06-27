@@ -1197,3 +1197,23 @@ async def test_sensor_via_device_hub_link(hass, mock_gasbuddy):
     sensor = GasBuddySensor(description, coordinator, station_entry)
 
     assert sensor.device_info["via_device"] == (DOMAIN, "hub")
+
+
+async def test_sensor_via_device_no_hub_link(hass, mock_gasbuddy):
+    """Test that station sensor device registry entry has via_device=None when no Hub exists."""
+    station_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+        options={},
+        version=9,
+    )
+    station_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(station_entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][station_entry.entry_id][COORDINATOR]
+    description = SENSOR_TYPES["regular_gas"]
+    sensor = GasBuddySensor(description, coordinator, station_entry)
+
+    assert sensor.device_info.get("via_device") is None

@@ -100,9 +100,7 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
             _migrate_entry_keys(entry, hub_data, hub_options)
 
         try:
-            hub_data["migrated"] = True
-            hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
-
+            migrated_count = 0
             for entry in hass.config_entries.async_entries(DOMAIN):
                 if entry.unique_id == "hub":
                     continue
@@ -121,6 +119,13 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
                     hass.config_entries.async_update_entry(
                         entry, data=new_data, options=new_options
                     )
+                    migrated_count += 1
+
+            hub_data["migrated"] = True
+            hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
+
+            if migrated_count > 0:
+                _LOGGER.info("Migrated settings from %d station(s) to Virtual Hub", migrated_count)
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Hub migration failed; station settings preserved")
 
