@@ -287,6 +287,27 @@ async def test_virtual_hub_migration_edge_cases(hass):
     await hass.async_block_till_done()
 
     # 3. Test exception in migration update (covers lines 124-125)
+    # Remove previous hub and stations first
+    await hass.config_entries.async_remove(hub_entry.entry_id)
+    await hass.config_entries.async_remove(empty_entry.entry_id)
+    await hass.config_entries.async_remove(conflicting_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a fresh station entry with settings that should be preserved on migration failure
+    station_entry_err = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station_err",
+        data={
+            **CONFIG_DATA,
+            CONF_SOLVER: "http://flaresolverr:8191",
+        },
+        options={
+            CONF_TIMEOUT: 5000,
+        },
+        version=9,
+    )
+    station_entry_err.add_to_hass(hass)
+
     hub_entry_err = MockConfigEntry(
         domain=DOMAIN,
         title="GasBuddy Hub Err",
@@ -295,10 +316,6 @@ async def test_virtual_hub_migration_edge_cases(hass):
         options={},
         version=9,
     )
-    # Remove previous hub first to avoid unique id conflict
-    await hass.config_entries.async_remove(hub_entry.entry_id)
-    await hass.async_block_till_done()
-
     hub_entry_err.add_to_hass(hass)
 
     with patch(
@@ -307,6 +324,10 @@ async def test_virtual_hub_migration_edge_cases(hass):
     ):
         assert await hass.config_entries.async_setup(hub_entry_err.entry_id)
         await hass.async_block_till_done()
+
+    # Verify that the station entry data was NOT cleaned up
+    assert station_entry_err.data[CONF_SOLVER] == "http://flaresolverr:8191"
+    assert station_entry_err.options[CONF_TIMEOUT] == 5000
 
 
 async def test_coordinator_get_hub_setting_from_options(hass):
@@ -318,6 +339,7 @@ async def test_coordinator_get_hub_setting_from_options(hass):
         data={},
         options={
             CONF_SOLVER: "http://options-solver",
+            CONF_TIMEOUT: 0,
         },
         version=9,
     )
@@ -334,3 +356,4 @@ async def test_coordinator_get_hub_setting_from_options(hass):
 
     coordinator = GasBuddyUpdateCoordinator(hass, station_entry)
     assert coordinator._get_hub_setting(CONF_SOLVER) == "http://options-solver"  # noqa: SLF001
+    assert coordinator._get_hub_setting(CONF_TIMEOUT, 30) == 0  # noqa: SLF001
