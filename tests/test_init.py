@@ -8,12 +8,14 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.gasbuddy import async_remove_config_entry_device
 from custom_components.gasbuddy.const import (
     CONF_BRAND_ADJUSTMENTS,
+    CONF_EV_CHARGING,
     CONF_EXCLUDE_BRANDS,
     CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
     CONF_GPS,
     CONF_INCLUDE_BRANDS,
     CONF_INCLUDE_STATIONS,
+    CONF_INTERVAL,
     CONF_SOLVER,
     CONF_TIMEOUT,
     CONF_UOM,
@@ -23,6 +25,7 @@ from custom_components.gasbuddy.const import (
 from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator
 from custom_components.gasbuddy.diagnostics import async_get_config_entry_diagnostics
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.config_entries import ConfigEntries
 from tests.common import load_fixture
 from tests.const import CONFIG_DATA, CONFIG_DATA_V1
 
@@ -359,3 +362,56 @@ async def test_coordinator_get_hub_setting_from_options(hass):
     coordinator = GasBuddyUpdateCoordinator(hass, station_entry)
     assert coordinator._get_hub_setting(CONF_SOLVER) == "http://options-solver"  # noqa: SLF001
     assert coordinator._get_hub_setting(CONF_TIMEOUT, 30) == 0  # noqa: SLF001
+
+
+async def test_migration_phase3_failure_preserves_stations(hass, mock_gasbuddy):
+    """Test that Phase 3 failure leaves stations with redundant data and sets migrated flag."""
+    station_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station",
+        data={
+            **CONFIG_DATA,
+            CONF_SOLVER: "http://flaresolverr:8191",
+        },
+        options={
+            CONF_TIMEOUT: 5000,
+            CONF_UOM: True,
+            CONF_GPS: True,
+            CONF_INTERVAL: 3600,
+            CONF_EV_CHARGING: False,
+            CONF_FETCH_GAS: True,
+        },
+        version=9,
+    )
+    station_entry.add_to_hass(hass)
+
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={},
+        options={},
+        version=9,
+    )
+    hub_entry.add_to_hass(hass)
+
+    original_update = ConfigEntries.async_update_entry
+
+    def side_effect(self, config_entry, **kwargs):
+        if config_entry.unique_id != "hub":  # Phase 3 (station cleanup) fails
+            raise RuntimeError("Update failed")
+        return original_update(self, config_entry, **kwargs)
+
+    with patch(
+        "homeassistant.config_entries.ConfigEntries.async_update_entry",
+        autospec=True,
+        side_effect=side_effect,
+    ):
+        assert await hass.config_entries.async_setup(hub_entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Hub has the data (Phase 2 succeeded)
+    assert hub_entry.data.get("migrated") is True
+    assert hub_entry.data.get("stations_cleaned") is not True
+    # Station still has redundant data (Phase 3 failed)
+    assert station_entry.data.get(CONF_SOLVER) == "http://flaresolverr:8191"

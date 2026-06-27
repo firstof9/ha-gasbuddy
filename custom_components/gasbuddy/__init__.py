@@ -56,6 +56,8 @@ def _migrate_entry_keys(entry: ConfigEntry, hub_data: dict, hub_options: dict) -
             continue
 
         if key == CONF_BRAND_ADJUSTMENTS:
+            if not val:  # skip empty dicts
+                continue
             existing_adj = (
                 hub_data.get(CONF_BRAND_ADJUSTMENTS)
                 or hub_options.get(CONF_BRAND_ADJUSTMENTS)
@@ -91,6 +93,9 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
     hub_options = dict(config_entry.options)
 
     if not hub_data.get("migrated"):
+        # Sort by entry_id for deterministic migration order.
+        # If two stations have conflicting brand adjustments, the one with
+        # the lexicographically smaller entry_id wins.
         for entry in sorted(
             hass.config_entries.async_entries(DOMAIN),
             key=lambda e: e.entry_id,
@@ -105,9 +110,14 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
             # are untouched and migration will retry on next startup.
             hub_data["migrated"] = True
             hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Hub migration failed; station settings preserved")
+            return True
 
-            # THEN clean up station entries. If this fails, the hub already
-            # has all the data and "migrated" is set.
+    # Phase 3: Clean up station entries. Checked separately using "stations_cleaned"
+    # so we can retry cleanup independently if it fails.
+    if hub_data.get("migrated") and not hub_data.get("stations_cleaned"):
+        try:
             migrated_count = 0
             for entry in hass.config_entries.async_entries(DOMAIN):
                 if entry.unique_id == "hub":
@@ -131,8 +141,10 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
 
             if migrated_count > 0:
                 _LOGGER.info("Migrated settings from %d station(s) to Virtual Hub", migrated_count)
+            hub_data["stations_cleaned"] = True
+            hass.config_entries.async_update_entry(config_entry, data=hub_data)
         except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Hub migration failed; station settings preserved")
+            _LOGGER.exception("Station cleanup failed; redundant data remains in station entries")
 
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
@@ -150,6 +162,7 @@ async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry)
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up is called when Home Assistant is loading our component."""
     if config_entry.unique_id == "hub":
+        hass.data.setdefault(DOMAIN, {})
         return await _async_setup_hub_entry(hass, config_entry)
 
     hass.data.setdefault(DOMAIN, {})
