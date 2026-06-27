@@ -1143,7 +1143,7 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_INCLUDE_BRANDS: user_input.get(CONF_INCLUDE_BRANDS, []),
                 CONF_EXCLUDE_STATIONS: user_input.get(CONF_EXCLUDE_STATIONS, []),
                 CONF_INCLUDE_STATIONS: user_input.get(CONF_INCLUDE_STATIONS, []),
-                CONF_BRAND_ADJUSTMENTS: user_input.get(CONF_BRAND_ADJUSTMENTS, {}),
+                CONF_BRAND_ADJUSTMENTS: self._data.get(CONF_BRAND_ADJUSTMENTS, {}),
             }
 
             self.hass.config_entries.async_update_entry(

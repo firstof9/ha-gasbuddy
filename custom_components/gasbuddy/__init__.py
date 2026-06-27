@@ -46,73 +46,101 @@ async def async_setup(  # pylint: disable-next=unused-argument
     return True
 
 
+def _migrate_entry_keys(entry: ConfigEntry, hub_data: dict, hub_options: dict) -> None:
+    """Migrate settings from a single entry to the hub."""
+    for key in (CONF_SOLVER, CONF_TIMEOUT, CONF_BRAND_ADJUSTMENTS):
+        val = entry.options.get(key)
+        if val is None:
+            val = entry.data.get(key)
+        if val is None:
+            continue
+
+        if key == CONF_BRAND_ADJUSTMENTS:
+            existing_adj = (
+                hub_data.get(CONF_BRAND_ADJUSTMENTS)
+                or hub_options.get(CONF_BRAND_ADJUSTMENTS)
+                or {}
+            )
+            for brand, adj in val.items():
+                if brand in existing_adj and existing_adj[brand] != adj:
+                    _LOGGER.warning(
+                        "Conflict during brand adjustment migration: '%s' has %s (hub) and %s (entry %s); using %s",
+                        brand,
+                        existing_adj[brand],
+                        adj,
+                        entry.entry_id,
+                        adj,
+                    )
+            hub_data[CONF_BRAND_ADJUSTMENTS] = {**existing_adj, **val}
+        else:
+            is_default = (
+                key == CONF_SOLVER and not (hub_data.get(key) or hub_options.get(key))
+            ) or (
+                key == CONF_TIMEOUT
+                and (
+                    hub_data.get(key) == DEFAULT_TIMEOUT or hub_options.get(key) == DEFAULT_TIMEOUT
+                )
+            )
+            if hub_data.get(key) is None or is_default:
+                hub_data[key] = val
+
+
+async def _async_setup_hub_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Set up the Virtual Hub entry."""
+    hub_data = dict(config_entry.data)
+    hub_options = dict(config_entry.options)
+
+    if not hub_data.get("migrated"):
+        for entry in sorted(
+            hass.config_entries.async_entries(DOMAIN),
+            key=lambda e: e.entry_id,
+        ):
+            if entry.unique_id == "hub":
+                continue
+            _migrate_entry_keys(entry, hub_data, hub_options)
+
+        try:
+            hub_data["migrated"] = True
+            hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
+
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                if entry.unique_id == "hub":
+                    continue
+
+                new_data = dict(entry.data)
+                new_options = dict(entry.options)
+                cleaned_up = False
+                for key in (CONF_SOLVER, CONF_TIMEOUT, CONF_BRAND_ADJUSTMENTS):
+                    if key in new_data:
+                        new_data.pop(key)
+                        cleaned_up = True
+                    if key in new_options:
+                        new_options.pop(key)
+                        cleaned_up = True
+                if cleaned_up:
+                    hass.config_entries.async_update_entry(
+                        entry, data=new_data, options=new_options
+                    )
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Hub migration failed; station settings preserved")
+
+    device_registry = dr.async_get(hass)
+    device_registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        identifiers={(DOMAIN, "hub")},
+        name=hub_data.get(CONF_NAME, "GasBuddy Hub"),
+        manufacturer="GasBuddy",
+        model="Virtual Hub",
+    )
+
+    config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up is called when Home Assistant is loading our component."""
     if config_entry.unique_id == "hub":
-        migrated_any = False
-        hub_data = dict(config_entry.data)
-        hub_options = dict(config_entry.options)
-
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if entry.unique_id == "hub":
-                continue
-
-            for key in (CONF_SOLVER, CONF_TIMEOUT, CONF_BRAND_ADJUSTMENTS):
-                val = entry.options.get(key) or entry.data.get(key)
-                if val:
-                    if key == CONF_BRAND_ADJUSTMENTS:
-                        existing_adj = (
-                            hub_data.get(CONF_BRAND_ADJUSTMENTS)
-                            or hub_options.get(CONF_BRAND_ADJUSTMENTS)
-                            or {}
-                        )
-                        merged_adj = {**existing_adj, **val}
-                        hub_data[CONF_BRAND_ADJUSTMENTS] = merged_adj
-                        migrated_any = True
-                    is_default = (
-                        key == CONF_SOLVER and not (hub_data.get(key) or hub_options.get(key))
-                    ) or (
-                        key == CONF_TIMEOUT
-                        and (
-                            hub_data.get(key) == DEFAULT_TIMEOUT
-                            or hub_options.get(key) == DEFAULT_TIMEOUT
-                        )
-                    )
-                    if hub_data.get(key) is None or is_default:
-                        hub_data[key] = val
-                        migrated_any = True
-
-        if migrated_any:
-            hass.config_entries.async_update_entry(config_entry, data=hub_data, options=hub_options)
-
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if entry.unique_id == "hub":
-                continue
-
-            new_data = dict(entry.data)
-            new_options = dict(entry.options)
-            cleaned_up = False
-            for key in (CONF_SOLVER, CONF_TIMEOUT, CONF_BRAND_ADJUSTMENTS):
-                if key in new_data:
-                    new_data.pop(key)
-                    cleaned_up = True
-                if key in new_options:
-                    new_options.pop(key)
-                    cleaned_up = True
-            if cleaned_up:
-                hass.config_entries.async_update_entry(entry, data=new_data, options=new_options)
-
-        device_registry = dr.async_get(hass)
-        device_registry.async_get_or_create(
-            config_entry_id=config_entry.entry_id,
-            identifiers={(DOMAIN, "hub")},
-            name=config_entry.data.get(CONF_NAME, "GasBuddy Hub"),
-            manufacturer="GasBuddy",
-            model="Virtual Hub",
-        )
-
-        config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
-        return True
+        return await _async_setup_hub_entry(hass, config_entry)
 
     hass.data.setdefault(DOMAIN, {})
     _LOGGER.info(
@@ -216,6 +244,9 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     _LOGGER.debug("Attempting to unload entities from the %s integration", DOMAIN)
 
     if config_entry.unique_id == "hub":
+        device_registry = dr.async_get(hass)
+        for dev in device_registry.devices.get_devices_for_config_entry_id(config_entry.entry_id):
+            device_registry.async_remove_device(dev.id)
         return True
 
     unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
