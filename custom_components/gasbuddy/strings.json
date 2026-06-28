@@ -1,110 +1,17 @@
 {
     "config": {
         "abort": {
-            "reconfigure_successful": "Reconfigure Successful"
+            "single_instance_allowed": "Only a single GasBuddy Virtual Hub is allowed."
         },
         "error": {
-            "station_id": "Invalid station ID",
-            "no_results": "No stations found in this area.",
-            "invalid_url": "Not a valid URL.",
-            "cloudflare": "Couldn't fetch a CSRF token from GasBuddy (Cloudflare is blocking requests). Configure a FlareSolverr URL in the optional field and try again.",
-            "invalid_postal": "Invalid postal code format (US ZIP or Canadian postal code)."
+            "invalid_url": "Not a valid URL."
         },
         "step": {
             "user": {
-                "description": "Please select either manual station ID or search for a station.",
-                "menu_options": {
-                    "manual": "Enter Station ID Manually",
-                    "search": "Search for a station nearby",
-                    "cheapest": "Track cheapest nearby gas",
-                    "hub": "Configure Virtual Hub (Global Settings)"
-                }
-            },
-            "manual": {
-                "description": "Please enter the Station ID",
-                "data": {
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "station_id": "Station ID"
-                }
-            },
-            "hub": {
                 "description": "Configure the Virtual Hub to manage settings globally across all stations. Brand price adjustments are entered in YAML format.",
                 "data": {
                     "solver": "FlareSolverr URL (optional)",
                     "timeout": "FlareSolverr timeout (ms)",
-                    "brand_adjustments": "Brand Price Adjustments"
-                }
-            },
-            "search": {
-                "description": "Search by your configured GPS location or by Postal Code",
-                "menu_options": {
-                    "home": "Use Home Assistant configured coordinates",
-                    "postal": "Use postal code (zip code)"
-                }
-            },
-            "home": {
-                "description": "Please select a station",
-                "data": {
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "station_id": "Station"
-                }
-            },
-            "postal": {
-                "description": "Please enter a postal code (zip code)",
-                "data": {
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "zipcode": "Postal Code (zip code)"
-                }
-            },
-            "station_list": {
-                "description": "Please select a station",
-                "data": {
-                    "station_id": "Station"
-                }
-            },
-            "cheapest": {
-                "description": "Track the cheapest nearby gas station. Uses your home coordinates or a postal code. On every refresh the coordinator re-checks and updates to the current cheapest station.",
-                "data": {
-                    "name": "Name",
-                    "zipcode": "Postal Code (optional — leave blank to use HA home coordinates)",
-                    "fuel_key": "Fuel type",
-                    "price_type": "Price type",
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)"
-                }
-            },
-            "reconfigure": {
-                "description": "Please enter the configuration details for this entry",
-                "data": {
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "station_id": "Station ID",
-                    "name": "Name",
-                    "zipcode": "Postal Code (optional — leave blank to use HA home coordinates)",
-                    "fuel_key": "Fuel type",
-                    "price_type": "Price type"
-                }
-            },
-            "cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
-                "data": {
-                    "exclude_brands": "Excluded Brands",
-                    "include_brands": "Included Brands",
-                    "exclude_stations": "Excluded Stations",
-                    "include_stations": "Included Stations",
-                    "brand_adjustments": "Brand Price Adjustments"
-                }
-            },
-            "reconfigure_cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
-                "data": {
-                    "exclude_brands": "Excluded Brands",
-                    "include_brands": "Included Brands",
-                    "exclude_stations": "Excluded Stations",
-                    "include_stations": "Included Stations",
                     "brand_adjustments": "Brand Price Adjustments"
                 }
             }
@@ -113,20 +20,9 @@
     "options": {
         "step": {
             "init": {
-                "description": "Configure GasBuddy options. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
-                "data": {
-                    "interval": "Polling interval",
-                    "uom": "Show per liter/gallon in unit of measure",
-                    "gps": "Show stations on map (disable lat/long attributes)",
-                    "ev_charging": "Enable EV charging sensors",
-                    "fetch_gas": "Fetch Gas Prices",
-                    "show_discounted": "Display discounted price",
-                    "brand_adjustments": "Brand Price Adjustments"
-                }
-            },
-            "hub": {
                 "description": "Configure Virtual Hub options. Brand price adjustments are entered in YAML format.",
                 "data": {
+                    "name": "Name",
                     "solver": "FlareSolverr URL (optional)",
                     "timeout": "FlareSolverr timeout (ms)",
                     "brand_adjustments": "Brand Price Adjustments"
@@ -141,6 +37,119 @@
                     "public": "Public",
                     "private": "Private",
                     "none": "None"
+                }
+            }
+        }
+    },
+    "config_subentries": {
+        "station": {
+            "title": "Gas Station",
+            "entry_type": "Gas Station",
+            "abort": {
+                "reconfigure_successful": "Reconfigure Successful"
+            },
+            "error": {
+                "station_id": "Invalid station ID",
+                "no_results": "No stations found in this area.",
+                "invalid_url": "Not a valid URL.",
+                "cloudflare": "Couldn't fetch a CSRF token from GasBuddy (Cloudflare is blocking requests). Configure a FlareSolverr URL in the optional field and try again.",
+                "invalid_postal": "Invalid postal code format (US ZIP or Canadian postal code)."
+            },
+            "initiate_flow": {
+                "reconfigure": "Reconfigure Gas Station",
+                "user": "Add Gas Station"
+            },
+            "step": {
+                "user": {
+                    "description": "Please select either manual station ID or search for a station.",
+                    "menu_options": {
+                        "manual": "Enter Station ID Manually",
+                        "search": "Search for a station nearby",
+                        "cheapest": "Track cheapest nearby gas",
+                        "hub": "Configure Virtual Hub (Global Settings)"
+                    }
+                },
+                "manual": {
+                    "description": "Please enter the Station ID",
+                    "data": {
+                        "station_id": "Station ID",
+                        "name": "Name"
+                    }
+                },
+                "search": {
+                    "description": "Search by your configured GPS location or by Postal Code",
+                    "menu_options": {
+                        "home": "Use Home Assistant configured coordinates",
+                        "postal": "Use postal code (zip code)"
+                    }
+                },
+                "home": {
+                    "description": "Please select a station"
+                },
+                "home2": {
+                    "description": "Please select a station",
+                    "data": {
+                        "station_id": "Station",
+                        "name": "Name"
+                    }
+                },
+                "postal": {
+                    "description": "Please enter a postal code (zip code)",
+                    "data": {
+                        "zipcode": "Postal Code (zip code)"
+                    }
+                },
+                "station_list": {
+                    "description": "Please select a station",
+                    "data": {
+                        "station_id": "Station",
+                        "name": "Name"
+                    }
+                },
+                "cheapest": {
+                    "description": "Track the cheapest nearby gas station. Uses your home coordinates or a postal code. On every refresh the coordinator re-checks and updates to the current cheapest station.",
+                    "data": {
+                        "name": "Name",
+                        "zipcode": "Postal Code (optional — leave blank to use HA home coordinates)",
+                        "fuel_key": "Fuel type",
+                        "price_type": "Price type"
+                    }
+                },
+                "cheapest_filters": {
+                    "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
+                    "data": {
+                        "exclude_brands": "Excluded Brands",
+                        "include_brands": "Included Brands",
+                        "exclude_stations": "Excluded Stations",
+                        "include_stations": "Included Stations",
+                        "brand_adjustments": "Brand Price Adjustments"
+                    }
+                },
+                "reconfigure": {
+                    "description": "Please enter the configuration details for this entry",
+                    "data": {
+                        "station_id": "Station ID",
+                        "name": "Name"
+                    }
+                },
+                "reconfigure_cheapest_filters": {
+                    "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
+                    "data": {
+                        "exclude_brands": "Excluded Brands",
+                        "include_brands": "Included Brands",
+                        "exclude_stations": "Excluded Stations",
+                        "include_stations": "Included Stations",
+                        "brand_adjustments": "Brand Price Adjustments"
+                    }
+                },
+                "reconfigure_cheapest": {
+                    "description": "Track the cheapest nearby gas station. Uses your home coordinates or a postal code. On every refresh the coordinator re-checks and updates to the current cheapest station.",
+                    "data": {
+                        "name": "Name",
+                        "zipcode": "Postal Code (optional — leave blank to use HA home coordinates)",
+                        "fuel_key": "Fuel type",
+                        "price_type": "Price type"
+                    }
                 }
             }
         }

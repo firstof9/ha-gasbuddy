@@ -38,7 +38,7 @@ from custom_components.gasbuddy.coordinator import (
 from custom_components.gasbuddy.sensor import GasBuddySensor
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
@@ -1197,70 +1197,3 @@ async def test_sensor_via_device_hub_link(hass, mock_gasbuddy):
     sensor = GasBuddySensor(description, coordinator, station_entry)
 
     assert sensor.device_info["via_device"] == (DOMAIN, "hub")
-
-
-async def test_sensor_via_device_no_hub_link(hass, mock_gasbuddy):
-    """Test that station sensor device registry entry has via_device=None when no Hub exists."""
-    station_entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Gas Station",
-        data=CONFIG_DATA,
-        options={},
-        version=9,
-    )
-    station_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(station_entry.entry_id)
-    await hass.async_block_till_done()
-
-    coordinator = hass.data[DOMAIN][station_entry.entry_id][COORDINATOR]
-    description = SENSOR_TYPES["regular_gas"]
-    sensor = GasBuddySensor(description, coordinator, station_entry)
-
-    assert sensor.device_info.get("via_device") is None
-
-
-async def test_sensor_via_device_hub_link_after_station(hass, mock_gasbuddy):
-    """Test that station device registry entry via_device is updated when hub is created after station."""
-
-    # 1. Setup the station first
-    station_entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Gas Station",
-        data=CONFIG_DATA,
-        options={},
-        version=9,
-    )
-    station_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(station_entry.entry_id)
-    await hass.async_block_till_done()
-
-    # Verify device registry entry has no via_device initially
-    device_registry = dr.async_get(hass)
-    devices = device_registry.devices.get_devices_for_config_entry_id(station_entry.entry_id)
-    assert len(devices) == 1
-    station_device = next(iter(devices))
-    assert station_device.via_device_id is None
-
-    # 2. Setup the hub
-    hub_entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="GasBuddy Hub",
-        unique_id="hub",
-        data={CONF_NAME: "GasBuddy Hub"},
-        options={},
-        version=9,
-    )
-    hub_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(hub_entry.entry_id)
-    await hass.async_block_till_done()
-
-    # Verify device registry entry has via_device set after hub setup
-    devices = device_registry.devices.get_devices_for_config_entry_id(station_entry.entry_id)
-    assert len(devices) == 1
-    station_device = next(iter(devices))
-    assert station_device.via_device_id is not None
-
-    hub_devices = device_registry.devices.get_devices_for_config_entry_id(hub_entry.entry_id)
-    assert len(hub_devices) == 1
-    hub_device = next(iter(hub_devices))
-    assert station_device.via_device_id == hub_device.id

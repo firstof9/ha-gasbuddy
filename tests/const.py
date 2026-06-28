@@ -1,8 +1,10 @@
 """Constants for tests."""
 
 from datetime import UTC, datetime
+from types import MappingProxyType
 
 from custom_components.gasbuddy.const import (
+    CONF_BRAND_ADJUSTMENTS,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_FETCH_GAS,
@@ -18,6 +20,28 @@ from custom_components.gasbuddy.const import (
     DEFAULT_TIMEOUT,
 )
 
+# Hub config entry data
+HUB_DATA = {
+    CONF_NAME: "GasBuddy Hub",
+    CONF_SOLVER: None,
+    CONF_TIMEOUT: DEFAULT_TIMEOUT,
+    CONF_BRAND_ADJUSTMENTS: {},
+}
+
+# Station subentry data (replaces old CONFIG_DATA + options)
+STATION_SUBENTRY_DATA = MappingProxyType({
+    CONF_STATION_ID: 999001,
+    CONF_NAME: "Gas Station",
+    "latitude": 41.8781,
+    "longitude": -87.6298,
+    CONF_INTERVAL: 3600,
+    CONF_UOM: True,
+    CONF_GPS: True,
+    CONF_EV_CHARGING: False,
+    CONF_FETCH_GAS: True,
+})
+
+# Legacy config data (for migration tests)
 CONFIG_DATA = {
     CONF_NAME: "Gas Station",
     CONF_INTERVAL: 3600,
@@ -127,6 +151,18 @@ COORDINATOR_DATA = {
     },
     "last_updated": datetime(2025, 1, 9, 16, 12, 51, tzinfo=UTC),
 }
+
+CHEAPEST_SUBENTRY_DATA = MappingProxyType({
+    CONF_NAME: "Cheapest Gas",
+    CONF_CHEAPEST: True,
+    CONF_FUEL_KEY: "regular_gas",
+    CONF_PRICE_TYPE: "best",
+    CONF_INTERVAL: 3600,
+    CONF_UOM: True,
+    CONF_GPS: False,
+    CONF_EV_CHARGING: False,
+    CONF_FETCH_GAS: True,
+})
 
 CONFIG_DATA_CHEAPEST = {
     CONF_NAME: "Cheapest Gas",

@@ -1,101 +1,19 @@
 {
     "config": {
         "abort": {
-            "reconfigure_successful": "Reconfiguração bem-sucedida"
+            "single_instance_allowed": "Apenas um único hub virtual GasBuddy é permitido."
         },
         "error": {
-            "station_id": "ID de estação inválido",
-            "no_results": "Nenhuma estação encontrada nesta área.",
-            "invalid_url": "URL inválida.",
-            "cloudflare": "Não foi possível obter um token CSRF do GasBuddy (Cloudflare está bloqueando as requisições). Configure uma URL FlareSolverr no campo opcional e tente novamente."
+            "invalid_url": "URL inválida."
         },
         "step": {
             "user": {
                 "description": "Por favor, selecione manualmente o ID da estação ou pesquise por uma estação.",
-                "menu_options": {
-                    "manual": "Inserir ID da estação manualmente",
-                    "search": "Pesquisar por uma estação próxima",
-                    "cheapest": "Rastrear o combustível mais barato próximo"
-                }
-            },
-            "manual": {
-                "description": "Por favor, insira o ID da estação",
                 "data": {
-                    "solver": "URL do FlareSolverr (opcional)",
-                    "timeout": "Tempo limite do FlareSolverr (ms)",
-                    "station_id": "ID da Estação"
-                }
-            },
-            "search": {
-                "description": "Pesquisar pela localização GPS configurada ou pelo Código Postal",
-                "menu_options": {
-                    "home": "Usar coordenadas configuradas no Home Assistant",
-                    "postal": "Usar código postal (CEP)"
-                }
-            },
-            "home": {
-                "description": "Por favor, selecione uma estação",
-                "data": {
-                    "solver": "URL do FlareSolverr (opcional)",
-                    "timeout": "Tempo limite do FlareSolverr (ms)",
-                    "station_id": "Estação"
-                }
-            },
-            "postal": {
-                "description": "Por favor, insira um código postal (CEP)",
-                "data": {
-                    "solver": "URL do FlareSolverr (opcional)",
-                    "timeout": "Tempo limite do FlareSolverr (ms)",
-                    "zipcode": "Código Postal (CEP)"
-                }
-            },
-            "station_list": {
-                "description": "Por favor, selecione uma estação",
-                "data": {
-                    "station_id": "Estação"
-                }
-            },
-            "cheapest": {
-                "description": "Rastreie o posto de combustível mais barato próximo. Usa suas coordenadas de casa ou um código postal. A cada atualização, o coordenador reavalia e atualiza para a estação mais barata no momento.",
-                "data": {
-                    "name": "Nome",
-                    "zipcode": "Código Postal (opcional — deixe em branco para usar as coordenadas do HA)",
-                    "fuel_key": "Tipo de combustível",
-                    "price_type": "Tipo de preço",
-                    "solver": "URL do FlareSolverr (opcional)",
-                    "timeout": "Tempo limite do FlareSolverr (ms)"
-                }
-            },
-            "reconfigure": {
-                "description": "Por favor, preencha os detalhes de configuração desta entrada",
-                "data": {
-                    "solver": "URL do FlareSolverr (opcional)",
-                    "timeout": "Tempo limite do FlareSolverr (ms)",
-                    "station_id": "ID da Estação",
-                    "name": "Nome",
-                    "zipcode": "Código Postal (opcional — deixe em branco para usar as coordenadas do HA)",
-                    "fuel_key": "Tipo de combustível",
-                    "price_type": "Tipo de preço"
-                }
-            },
-            "cheapest_filters": {
-                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas. Consulte a [documentação]({brand_adjustments_url}) para exemplos de ajustes de preços por marca.",
-                "data": {
-                    "exclude_brands": "Marcas excluídas",
-                    "include_brands": "Marcas incluídas",
-                    "exclude_stations": "Estações excluídas",
-                    "include_stations": "Estações incluídas",
-                    "brand_adjustments": "Ajustes de preço da marca"
-                }
-            },
-            "reconfigure_cheapest_filters": {
-                "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas. Consulte a [documentação]({brand_adjustments_url}) para exemplos de ajustes de preços por marca.",
-                "data": {
-                    "exclude_brands": "Marcas excluídas",
-                    "include_brands": "Marcas incluídas",
-                    "exclude_stations": "Estações excluídas",
-                    "include_stations": "Estações incluídas",
-                    "brand_adjustments": "Ajustes de preço da marca"
+                    "name": "Name",
+                    "solver": "FlareSolverr URL (optional)",
+                    "timeout": "FlareSolverr timeout (ms)",
+                    "brand_adjustments": "Brand Price Adjustments"
                 }
             }
         }
@@ -103,14 +21,11 @@
     "options": {
         "step": {
             "init": {
-                "description": "Configurar opções do GasBuddy. Consulte a [documentação]({brand_adjustments_url}) para exemplos de ajuste de preço da marca.",
+                "description": "Configurar as opções do Virtual Hub. Os ajustes de preço da marca são introduzidos no formato YAML.",
                 "data": {
-                    "interval": "Intervalo de consulta",
-                    "uom": "Mostrar por litro/galão na unidade de medida",
-                    "gps": "Mostrar estações no mapa (desativar atributos lat/long)",
-                    "ev_charging": "Ativar sensores de carregamento de VE",
-                    "fetch_gas": "Buscar preços de combustível",
-                    "show_discounted": "Exibir preço com desconto",
+                    "name": "Nome",
+                    "solver": "URL FlareSolverr (opcional)",
+                    "timeout": "Tempo limite do FlareSolverr (ms)",
                     "brand_adjustments": "Ajustes de preço da marca"
                 }
             }
@@ -123,6 +38,117 @@
                     "public": "Público",
                     "private": "Privado",
                     "none": "Nenhum"
+                }
+            }
+        }
+    },
+    "config_subentries": {
+        "station": {
+            "title": "Estação de serviço",
+            "entry_type": "Estação de serviço",
+            "abort": {
+                "reconfigure_successful": "Reconfiguração bem-sucedida"
+            },
+            "error": {
+                "station_id": "ID de estação inválido",
+                "no_results": "Nenhuma estação encontrada nesta área.",
+                "invalid_url": "URL inválida.",
+                "cloudflare": "Não foi possível obter um token CSRF do GasBuddy (Cloudflare está bloqueando as requisições). Configure uma URL FlareSolverr no campo opcional e tente novamente."
+            },
+            "initiate_flow": {
+                "reconfigure": "Reconfigurar posto de gasolina",
+                "user": "Adicionar posto de gasolina"
+            },
+            "step": {
+                "user": {
+                    "description": "Por favor, selecione manualmente o ID da estação ou pesquise por uma estação.",
+                    "menu_options": {
+                        "manual": "Inserir ID da estação manualmente",
+                        "search": "Pesquisar por uma estação próxima",
+                        "cheapest": "Rastrear o combustível mais barato próximo"
+                    }
+                },
+                "manual": {
+                    "description": "Por favor, insira o ID da estação",
+                    "data": {
+                        "station_id": "ID da Estação",
+                        "name": "Nome"
+                    }
+                },
+                "search": {
+                    "description": "Pesquisar pela localização GPS configurada ou pelo Código Postal",
+                    "menu_options": {
+                        "home": "Usar coordenadas configuradas no Home Assistant",
+                        "postal": "Usar código postal (CEP)"
+                    }
+                },
+                "home": {
+                    "description": "Por favor, selecione uma estação"
+                },
+                "home2": {
+                    "description": "Por favor, selecione uma estação",
+                    "data": {
+                        "station_id": "Estação",
+                        "name": "Nome"
+                    }
+                },
+                "postal": {
+                    "description": "Por favor, insira um código postal (CEP)",
+                    "data": {
+                        "zipcode": "Código Postal (CEP)"
+                    }
+                },
+                "station_list": {
+                    "description": "Por favor, selecione uma estação",
+                    "data": {
+                        "station_id": "Estação",
+                        "name": "Nome"
+                    }
+                },
+                "cheapest": {
+                    "description": "Rastreie o posto de combustível mais barato próximo. Usa suas coordenadas de casa ou um código postal. A cada atualização, o coordenador reavalia e atualiza para a estação mais barata no momento.",
+                    "data": {
+                        "name": "Nome",
+                        "zipcode": "Código Postal (opcional — deixe em branco para usar as coordenadas do HA)",
+                        "fuel_key": "Tipo de combustível",
+                        "price_type": "Tipo de preço"
+                    }
+                },
+                "cheapest_filters": {
+                    "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas. Consulte a [documentação]({brand_adjustments_url}) para exemplos de ajustes de preços por marca.",
+                    "data": {
+                        "exclude_brands": "Marcas excluídas",
+                        "include_brands": "Marcas incluídas",
+                        "exclude_stations": "Estações excluídas",
+                        "include_stations": "Estações incluídas",
+                        "brand_adjustments": "Ajustes de preço da marca"
+                    }
+                },
+                "reconfigure": {
+                    "description": "Por favor, preencha os detalhes de configuração desta entrada",
+                    "data": {
+                        "station_id": "ID da Estação",
+                        "name": "Nome"
+                    }
+                },
+                "reconfigure_cheapest_filters": {
+                    "description": "Configure os filtros de marcas e estações para limitar as estações rastreadas. Consulte a [documentação]({brand_adjustments_url}) para exemplos de ajustes de preços por marca.",
+                    "data": {
+                        "exclude_brands": "Marcas excluídas",
+                        "include_brands": "Marcas incluídas",
+                        "exclude_stations": "Estações excluídas",
+                        "include_stations": "Estações incluídas",
+                        "brand_adjustments": "Ajustes de preço da marca"
+                    }
+                },
+                "reconfigure_cheapest": {
+                    "description": "Rastreie o posto de combustível mais barato próximo. Usa suas coordenadas de casa ou um código postal. A cada atualização, o coordenador reavalia e atualiza para a estação mais barata no momento.",
+                    "data": {
+                        "name": "Nome",
+                        "zipcode": "Código Postal (opcional — deixe em branco para usar as coordenadas do HA)",
+                        "fuel_key": "Tipo de combustível",
+                        "price_type": "Tipo de preço"
+                    }
                 }
             }
         }

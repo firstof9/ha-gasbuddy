@@ -8,7 +8,6 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.config_flow import (
-    GasBuddyFlowHandler,
     _get_station_list,  # noqa: PLC2701
     validate_station,
 )
@@ -652,14 +651,17 @@ async def test_get_station_list_postal_coordinates_and_ev(hass):
 
 async def test_config_flow_ev_charging_flag(hass):
     """Test ConfigFlow sets ev_charging to True when station ends with [EV]."""
-    flow = GasBuddyFlowHandler()
+    from custom_components.gasbuddy.config_flow import GasBuddySubentryFlowHandler
+
+    flow = GasBuddySubentryFlowHandler()
     flow.hass = hass
     # async_set_unique_id mutates self.context; when constructing the flow
     # directly (not via the flow manager) the default context is a
     # read-only mappingproxy, so replace it with a real dict.
-    flow.context = {}
+    flow.context = {"source": "user"}
     flow._station_list = {"208656": "Costco [EV]"}  # noqa: SLF001
     flow._data = {CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
+    flow._get_entry = MagicMock(return_value=MockConfigEntry())
 
     # 1. Test async_step_home2
     with (
@@ -674,7 +676,7 @@ async def test_config_flow_ev_charging_flag(hass):
             CONF_NAME: "Costco Station",
         })
         assert result["type"] == "create_entry"
-        assert result["options"][CONF_EV_CHARGING] is True
+        assert result["data"][CONF_EV_CHARGING] is True
         assert flow._data["latitude"] == 33.45  # noqa: SLF001
         assert flow._data["longitude"] == -112.50  # noqa: SLF001
 
@@ -693,7 +695,7 @@ async def test_config_flow_ev_charging_flag(hass):
             CONF_NAME: "Costco Station",
         })
         assert result["type"] == "create_entry"
-        assert result["options"][CONF_EV_CHARGING] is True
+        assert result["data"][CONF_EV_CHARGING] is True
         assert flow._data["latitude"] == 33.45  # noqa: SLF001
         assert flow._data["longitude"] == -112.50  # noqa: SLF001
 

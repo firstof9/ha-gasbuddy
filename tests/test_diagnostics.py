@@ -34,13 +34,14 @@ async def test_diagnostics(
 
     # Test Config Entry Diagnostics
     config_diagnostics = await async_get_config_entry_diagnostics(hass, entry)
-    assert config_diagnostics["config"]["data"]["station_id"] == "**REDACTED**"
-    assert config_diagnostics["config"]["title"] == "Gas Station"
+    assert config_diagnostics["config"]["subentries"][0]["data"]["station_id"] == "**REDACTED**"
+    assert config_diagnostics["config"]["title"] == "GasBuddy Hub"
 
     # Test Device Diagnostics
     device_registry = dr.async_get(hass)
-    # The integration registers devices via connections, not identifiers
-    device = device_registry.async_get_device(connections={(DOMAIN, entry.entry_id)})
+    # The integration registers devices via identifiers (DOMAIN, unique_id)
+    # The unique_id of the subentry is 999001
+    device = device_registry.async_get_device(identifiers={(DOMAIN, "999001")})
     assert device is not None
 
     device_diagnostics = await async_get_device_diagnostics(hass, entry, device)

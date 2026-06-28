@@ -12,7 +12,7 @@ from py_gasbuddy import GasBuddy
 # pylint: disable-next=import-error,no-name-in-module
 from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -86,25 +86,21 @@ def _redact(data: Any) -> str:
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    @staticmethod
-    def _find_hub_entry(hass: HomeAssistant) -> ConfigEntry | None:
-        """Find the virtual hub config entry."""
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if entry.unique_id == "hub":
-                return entry
-        return None
-
-    def __init__(self, hass: HomeAssistant, config: ConfigEntry) -> None:
+    def __init__(
+        self, hass: HomeAssistant, config: ConfigEntry, subentry: ConfigSubentry | None = None
+    ) -> None:
         """Initialize."""
         self._config = config
+        if subentry is None and config.subentries:
+            subentry = next(iter(config.subentries.values()))
+        self._subentry = subentry
         self.hass = hass
-        self._hub_entry = self._find_hub_entry(hass)
         self.interval = self._get_interval()
         self._data: dict[Any, Any] = {}
         self._cache_file = f"{self.hass.config.config_dir}/{CACHE_FILE_NAME}"
         self._api = GasBuddy(
             solver_url=self._get_hub_setting(CONF_SOLVER),
-            station_id=config.data.get(CONF_STATION_ID),
+            station_id=self._subentry.data.get(CONF_STATION_ID),
             cache_file=self._cache_file,
             timeout=self._get_hub_setting(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             session=async_get_clientsession(hass),
@@ -120,18 +116,23 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             update_interval=self.interval,
         )
 
+    @property
+    def data(self) -> dict[str, Any]:
+        """Return data."""
+        return self._data
+
+    @data.setter
+    def data(self, value: dict[str, Any]) -> None:
+        """Set data."""
+        self._data = value
+
     def _get_hub_setting(self, key: str, default: Any = None) -> Any:
-        """Get a setting from the Virtual Hub if configured, otherwise fall back to local config."""
-        hub_entry = self._find_hub_entry(self.hass)
-        self._hub_entry = hub_entry
-        if hub_entry is not None:
-            if key in hub_entry.options and hub_entry.options[key] is not None:
-                return hub_entry.options[key]
-            if key in hub_entry.data and hub_entry.data[key] is not None:
-                return hub_entry.data[key]
-        if key in self._config.options and self._config.options[key] is not None:
-            return self._config.options[key]
-        val = self._config.data.get(key)
+        """Get a setting from the hub config entry, falling back to subentry data."""
+        # Hub-wide settings are stored in the parent config entry's data
+        if key in self._config.data and self._config.data[key] is not None:
+            return self._config.data[key]
+        # Fall back to subentry data (for backward compat during migration)
+        val = self._subentry.data.get(key)
         return val if val is not None else default
 
     async def _async_update_data(self) -> dict:  # noqa: PLR0914
@@ -139,11 +140,11 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._api.solver_url = self._get_hub_setting(CONF_SOLVER)
         self._api.timeout = self._get_hub_setting(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
-        if self._config.data.get(CONF_CHEAPEST):
+        if self._subentry.data.get(CONF_CHEAPEST):
             return await self._async_update_cheapest()
 
-        ev_charging_enabled = self._config.options.get(CONF_EV_CHARGING, False)
-        fetch_gas = self._config.options.get(CONF_FETCH_GAS, True)
+        ev_charging_enabled = self._subentry.data.get(CONF_EV_CHARGING, False)
+        fetch_gas = self._subentry.data.get(CONF_FETCH_GAS, True)
 
         if not fetch_gas:  # noqa: PLR1702
             # User has disabled gas-price polling on this station — most
@@ -154,11 +155,11 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed(
                     "Both gas price polling and EV charging are disabled — nothing to fetch."
                 )
-            lat = self._config.data.get("latitude") or self.hass.config.latitude
-            lon = self._config.data.get("longitude") or self.hass.config.longitude
+            lat = self._subentry.data.get("latitude") or self.hass.config.latitude
+            lon = self._subentry.data.get("longitude") or self.hass.config.longitude
             self._data = {
-                "station_id": self._config.data[CONF_STATION_ID],
-                "name": self._config.data.get(CONF_NAME, "EV Station"),
+                "station_id": self._subentry.data[CONF_STATION_ID],
+                "name": self._subentry.data.get(CONF_NAME, "EV Station"),
                 "latitude": lat,
                 "longitude": lon,
             }
@@ -170,8 +171,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             try:
                 self._data = await self._api.price_lookup()
                 _LOGGER.debug("Gas station data: %s", _redact(self._data))
-                config_lat = self._config.data.get("latitude")
-                config_lon = self._config.data.get("longitude")
+                config_lat = self._subentry.data.get("latitude")
+                config_lon = self._subentry.data.get("longitude")
                 if config_lat is not None and config_lon is not None:
                     gas_lat = self._data.get("latitude")
                     gas_lon = self._data.get("longitude")
@@ -182,9 +183,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 if ev_charging_enabled:
                     _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
                     try:
-                        # Use coordinates from config entry if available, otherwise home coordinates
-                        lat = self._config.data.get("latitude")
-                        lon = self._config.data.get("longitude")
+                        # Use coordinates from subentry if available, otherwise home coordinates
+                        lat = self._subentry.data.get("latitude")
+                        lon = self._subentry.data.get("longitude")
                         if lat is None:
                             lat = self.hass.config.latitude
                         if lon is None:
@@ -204,21 +205,23 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                                 for s in (ev_res or {}).get("stations", [])
                                 if s.get("station_id") is not None
                                 and str(s["station_id"]).strip()
-                                == str(self._config.data[CONF_STATION_ID]).strip()
+                                == str(self._subentry.data[CONF_STATION_ID]).strip()
                             ),
                             None,
                         )
                         # Preserve unit/currency from the last good poll where
                         # possible. Hardcoding USD/dollars_per_gallon mislabels
                         # CAD stations and any future non-USD market.
-                        carried = {
-                            k: v
-                            for k, v in {
-                                "unit_of_measure": self._data.get("unit_of_measure"),
-                                "currency": self._data.get("currency"),
-                            }.items()
-                            if v is not None
-                        }
+                        carried = {}
+                        if self._data is not None:
+                            carried = {
+                                k: v
+                                for k, v in {
+                                    "unit_of_measure": self._data.get("unit_of_measure"),
+                                    "currency": self._data.get("currency"),
+                                }.items()
+                                if v is not None
+                            }
                         if matching:
                             self._data = {
                                 "station_id": matching["station_id"],
@@ -227,23 +230,23 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                                 "longitude": matching["longitude"],
                                 **carried,
                             }
-                            # Update config entry if coordinates are new or changed
+                            # Update subentry data if coordinates are new or changed
                             if (
-                                self._config.data.get("latitude") != matching["latitude"]
-                                or self._config.data.get("longitude") != matching["longitude"]
+                                self._subentry.data.get("latitude") != matching["latitude"]
+                                or self._subentry.data.get("longitude") != matching["longitude"]
                             ):
                                 new_data = {
-                                    **self._config.data,
+                                    **self._subentry.data,
                                     "latitude": matching["latitude"],
                                     "longitude": matching["longitude"],
                                 }
-                                self.hass.config_entries.async_update_entry(
-                                    self._config, data=new_data
+                                self.hass.config_entries.async_update_subentry(
+                                    self._config, self._subentry, data=new_data
                                 )
                         else:
                             self._data = {
-                                "station_id": self._config.data[CONF_STATION_ID],
-                                "name": self._config.data.get(CONF_NAME, "EV Station"),
+                                "station_id": self._subentry.data[CONF_STATION_ID],
+                                "name": self._subentry.data.get(CONF_NAME, "EV Station"),
                                 "latitude": lat,
                                 "longitude": lon,
                                 **carried,
@@ -329,16 +332,16 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._api.solver_url = self._get_hub_setting(CONF_SOLVER)
         self._api.timeout = self._get_hub_setting(CONF_TIMEOUT, DEFAULT_TIMEOUT)
 
-        fuel_key = self._config.data.get(CONF_FUEL_KEY, "regular_gas")
-        price_type = self._config.data.get(CONF_PRICE_TYPE, "best")
+        fuel_key = self._subentry.data.get(CONF_FUEL_KEY, "regular_gas")
+        price_type = self._subentry.data.get(CONF_PRICE_TYPE, "best")
 
-        postal = self._config.data.get(CONF_POSTAL)
+        postal = self._subentry.data.get(CONF_POSTAL)
         lat: float | None = None
         lon: float | None = None
         if not postal:
-            config_lat = self._config.data.get("latitude")
+            config_lat = self._subentry.data.get("latitude")
             lat = config_lat if config_lat is not None else self.hass.config.latitude
-            config_lon = self._config.data.get("longitude")
+            config_lon = self._subentry.data.get("longitude")
             lon = config_lon if config_lon is not None else self.hass.config.longitude
 
         try:
@@ -355,10 +358,10 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         if not stations:
             raise UpdateFailed("No stations with prices found for selected fuel")
 
-        exclude_brands = self._config.data.get(CONF_EXCLUDE_BRANDS) or []
-        include_brands = self._config.data.get(CONF_INCLUDE_BRANDS) or []
-        exclude_stations = self._config.data.get(CONF_EXCLUDE_STATIONS) or []
-        include_stations = self._config.data.get(CONF_INCLUDE_STATIONS) or []
+        exclude_brands = self._subentry.data.get(CONF_EXCLUDE_BRANDS) or []
+        include_brands = self._subentry.data.get(CONF_INCLUDE_BRANDS) or []
+        exclude_stations = self._subentry.data.get(CONF_EXCLUDE_STATIONS) or []
+        include_stations = self._subentry.data.get(CONF_INCLUDE_STATIONS) or []
 
         filtered_stations = []
         for s in stations:
@@ -453,5 +456,5 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
 
     def _get_interval(self) -> timedelta:
         """Return the update interval."""
-        interval = self._config.options.get(CONF_INTERVAL, 3600)
+        interval = self._subentry.data.get(CONF_INTERVAL, 3600)
         return timedelta(seconds=interval)
