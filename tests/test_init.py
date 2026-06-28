@@ -19,6 +19,7 @@ from custom_components.gasbuddy.const import (
     DOMAIN,
 )
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from tests.conftest import _make_hub_entry, _make_station_subentry
 from tests.const import COORDINATOR_DATA, STATION_SUBENTRY_DATA
 
@@ -282,3 +283,38 @@ async def test_legacy_migration_full(hass, mock_gasbuddy):
     from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
 
     await _async_migrate_legacy_entries(hass, updated_hub)
+
+
+async def test_subentry_removal_cleanup(hass, mock_gasbuddy):
+    """Test that deleting a station subentry cleans up its device and entity registry entries."""
+    entry = _make_hub_entry(hass)
+    subentry = next(iter(entry.subentries.values()))
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Verify device and entity registries have entries for the subentry
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+
+    device = dev_reg.async_get_device(identifiers={(DOMAIN, subentry.subentry_id)})
+    assert device is not None
+    assert subentry.subentry_id in device.config_entries_subentries.get(entry.entry_id, set())
+
+    entities = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+    sub_entities = [e for e in entities if e.config_subentry_id == subentry.subentry_id]
+    assert len(sub_entities) > 0
+
+    # Simulate subentry deletion: remove subentry from config entry
+    hass.config_entries.async_remove_subentry(entry, subentry.subentry_id)
+    await hass.async_block_till_done()
+
+    # Reload integration to trigger async_setup_entry and cleanup
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Verify device and entities are purged
+    assert dev_reg.async_get_device(identifiers={(DOMAIN, subentry.subentry_id)}) is None
+    entities_post = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+    sub_entities_post = [e for e in entities_post if e.config_subentry_id == subentry.subentry_id]
+    assert len(sub_entities_post) == 0

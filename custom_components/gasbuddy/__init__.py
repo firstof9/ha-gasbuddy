@@ -8,7 +8,11 @@ from types import MappingProxyType
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
@@ -229,8 +233,32 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             finally:
                 domain_data.pop("_migrating", None)
 
-    # Set up coordinators for each station subentry
+    # Clean up device and entity registries for any removed subentries
     device_registry = dr.async_get(hass)
+    entity_registry = er.async_get(hass)
+    for device_entry in dr.async_entries_for_config_entry(device_registry, config_entry.entry_id):
+        subentry_ids = device_entry.config_entries_subentries.get(config_entry.entry_id)
+        if subentry_ids and any(sub_id not in config_entry.subentries for sub_id in subentry_ids):
+            _LOGGER.debug(
+                "Removing device %s as its subentries %s were removed",
+                device_entry.name,
+                subentry_ids,
+            )
+            device_registry.async_remove_device(device_entry.id)
+
+    for entity_entry in er.async_entries_for_config_entry(entity_registry, config_entry.entry_id):
+        if (
+            entity_entry.config_subentry_id is not None
+            and entity_entry.config_subentry_id not in config_entry.subentries
+        ):
+            _LOGGER.debug(
+                "Removing entity %s as its subentry %s was removed",
+                entity_entry.entity_id,
+                entity_entry.config_subentry_id,
+            )
+            entity_registry.async_remove(entity_entry.entity_id)
+
+    # Set up coordinators for each station subentry
     coordinators: dict[str, GasBuddyUpdateCoordinator] = {}
     for subentry in config_entry.subentries.values():
         if subentry.subentry_type != "station":
