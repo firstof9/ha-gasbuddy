@@ -229,17 +229,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             finally:
                 domain_data.pop("_migrating", None)
 
-    # Create hub device
-    device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
-        config_entry_id=config_entry.entry_id,
-        identifiers={(DOMAIN, "hub")},
-        name=config_entry.data.get(CONF_NAME, config_entry.title or "GasBuddy Hub"),
-        manufacturer="GasBuddy",
-        model="Virtual Hub",
-    )
-
     # Set up coordinators for each station subentry
+    device_registry = dr.async_get(hass)
     coordinators: dict[str, GasBuddyUpdateCoordinator] = {}
     for subentry in config_entry.subentries.values():
         if subentry.subentry_type != "station":
@@ -249,7 +240,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         await coordinator.async_config_entry_first_refresh()
         coordinators[subentry.subentry_id] = coordinator
 
-        # Ensure station device exists and is linked to hub
+        # Ensure station device exists
         old_entry_id = subentry.data.get("old_entry_id")
         station_id = old_entry_id if old_entry_id is not None else subentry.subentry_id
         device_registry.async_get_or_create(
@@ -258,7 +249,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             identifiers={(DOMAIN, station_id)},
             name=subentry.title,
             manufacturer="GasBuddy",
-            via_device=(DOMAIN, "hub"),
         )
 
     hass.data[DOMAIN][config_entry.entry_id] = {

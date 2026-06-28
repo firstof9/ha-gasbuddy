@@ -153,7 +153,6 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             manufacturer="GasBuddy",
             name=self._subentry.data.get(CONF_NAME, self._subentry.title),
             identifiers={(DOMAIN, self._unique_id)},
-            via_device=(DOMAIN, "hub"),
         )
 
     @property
