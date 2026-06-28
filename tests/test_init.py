@@ -182,3 +182,40 @@ async def test_multiple_station_subentries(hass):
     assert len(coordinators) == 2
     assert "sub1" in coordinators
     assert "sub2" in coordinators
+
+
+async def test_legacy_entry_auto_hub_creation_failure(hass, mock_gasbuddy):
+    """Test that a failure in creating the default hub doesn't crash component setup."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="gas_station",
+        data={"name": "Gas Station", "station_id": 999001},
+        version=CONFIG_VER,
+        unique_id="legacy",
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "homeassistant.config_entries.ConfigEntriesFlowManager.async_init",
+        side_effect=Exception("Failed to initialize flow"),
+    ):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Hub should not be created
+    hub_entries = [e for e in hass.config_entries.async_entries(DOMAIN) if e.unique_id == "hub"]
+    assert len(hub_entries) == 0
+
+
+async def test_legacy_entry_migration_race_guard(hass, mock_gasbuddy):
+    """Test that concurrent/parallel setup of legacy entries handles the migrating state cleanly."""
+    hass.data.setdefault(DOMAIN, {})
+    # Simulate a migration already in progress
+    hass.data[DOMAIN]["_migrating"] = True
+
+    hub_entry = _make_hub_entry(hass, subentries=[])
+    assert await hass.config_entries.async_setup(hub_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # The migrated flag should have remained True (it wasn't cleaned up by another setup because it was skipped)
+    assert hass.data[DOMAIN]["_migrating"] is True
