@@ -11,40 +11,44 @@ import pytest
 from pytest_homeassistant_custom_component import common
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.gasbuddy.const import (
+    CONF_BRAND_ADJUSTMENTS,
+    CONF_CHEAPEST,
+    CONF_EV_CHARGING,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
+    CONF_FETCH_GAS,
+    CONF_FUEL_KEY,
+    CONF_GPS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
+    CONF_INTERVAL,
+    CONF_NAME,
+    CONF_PRICE_TYPE,
+    CONF_SHOW_DISCOUNTED,
+    CONF_SOLVER,
+    CONF_STATION_ID,
+    CONF_TIMEOUT,
+    CONF_UOM,
+    CONFIG_VER,
+    DEFAULT_TIMEOUT,
+    DOMAIN,
+)
+from homeassistant.config_entries import ConfigSubentry
+from tests.const import COORDINATOR_DATA, COORDINATOR_DATA_CAD, HUB_DATA, STATION_SUBENTRY_DATA
+
 original_init = common.MockConfigEntry.__init__
 
 
 def patched_init(self, *args, **kwargs):
+    """Patch MockConfigEntry.__init__ to convert non-hub GasBuddy entries to Hub + Subentry."""
     domain = kwargs.get("domain") or (args[0] if args else None)
     if domain == "gasbuddy":
         unique_id = kwargs.get("unique_id")
-        if unique_id != "hub" and unique_id != "legacy":
+        if unique_id not in {"hub", "legacy"}:
             # Extract legacy data and options
             data = kwargs.get("data", {})
             options = kwargs.get("options", {})
-
-            from custom_components.gasbuddy.const import (
-                CONF_BRAND_ADJUSTMENTS,
-                CONF_CHEAPEST,
-                CONF_EV_CHARGING,
-                CONF_EXCLUDE_BRANDS,
-                CONF_EXCLUDE_STATIONS,
-                CONF_FETCH_GAS,
-                CONF_FUEL_KEY,
-                CONF_GPS,
-                CONF_INCLUDE_BRANDS,
-                CONF_INCLUDE_STATIONS,
-                CONF_INTERVAL,
-                CONF_NAME,
-                CONF_PRICE_TYPE,
-                CONF_SHOW_DISCOUNTED,
-                CONF_SOLVER,
-                CONF_STATION_ID,
-                CONF_TIMEOUT,
-                CONF_UOM,
-                CONFIG_VER,
-                DEFAULT_TIMEOUT,
-            )
 
             # Build subentry data
             sub_data = {}
@@ -120,11 +124,6 @@ def patched_init(self, *args, **kwargs):
 
 
 common.MockConfigEntry.__init__ = patched_init
-# Re-import MockConfigEntry to ensure the patch takes effect in conftest.py's scope
-
-from custom_components.gasbuddy.const import CONFIG_VER, DOMAIN
-from homeassistant.config_entries import ConfigSubentry
-from tests.const import COORDINATOR_DATA, COORDINATOR_DATA_CAD, HUB_DATA, STATION_SUBENTRY_DATA
 
 
 # This fixture enables loading custom integrations in all tests.

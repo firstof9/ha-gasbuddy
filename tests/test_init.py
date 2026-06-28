@@ -1,4 +1,5 @@
 """Test gasbuddy setup process."""
+# ruff: noqa: SLF001
 
 from types import MappingProxyType
 from unittest.mock import patch
@@ -136,8 +137,8 @@ async def test_coordinator_uses_hub_settings(hass, mock_gasbuddy):
     assert len(coordinators) == 1
     coordinator = next(iter(coordinators.values()))
 
-    assert coordinator._get_hub_setting(CONF_SOLVER) == "http://my-solver:8191"  # noqa: SLF001
-    assert coordinator._get_hub_setting(CONF_TIMEOUT) == 30000  # noqa: SLF001
+    assert coordinator._get_hub_setting(CONF_SOLVER) == "http://my-solver:8191"
+    assert coordinator._get_hub_setting(CONF_TIMEOUT) == 30000
 
 
 async def test_coordinator_falls_back_to_default(hass, mock_gasbuddy):
@@ -150,7 +151,7 @@ async def test_coordinator_falls_back_to_default(hass, mock_gasbuddy):
     coordinators = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     coordinator = next(iter(coordinators.values()))
 
-    assert coordinator._get_hub_setting(CONF_SOLVER) is None  # noqa: SLF001
+    assert coordinator._get_hub_setting(CONF_SOLVER) is None
     assert coordinator._get_hub_setting(CONF_TIMEOUT, DEFAULT_TIMEOUT) == DEFAULT_TIMEOUT
 
 

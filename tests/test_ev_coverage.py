@@ -1,4 +1,5 @@
 """Unit tests covering EV station coordinator fallback, enrichment, and services."""
+# ruff: noqa: SLF001
 
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -8,6 +9,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.gasbuddy.config_flow import (
+    GasBuddySubentryFlowHandler,
     _get_station_list,  # noqa: PLC2701
     validate_station,
 )
@@ -68,9 +70,9 @@ async def test_coordinator_fallback_ev_matching(hass):
             ]
         }
     )
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
-    data = await coordinator._async_update_data()  # noqa: SLF001
+    data = await coordinator._async_update_data()
 
     assert data["station_id"] == "208656"
     assert data["name"] == "Matching Costco EV"
@@ -111,9 +113,9 @@ async def test_coordinator_fallback_ev_no_match(hass):
             ]
         }
     )
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
-    data = await coordinator._async_update_data()  # noqa: SLF001
+    data = await coordinator._async_update_data()
 
     assert data["station_id"] == "208656"
     assert data["name"] == "EV Station"
@@ -141,10 +143,10 @@ async def test_coordinator_fallback_ev_exception(hass):
     mock_api = MagicMock()
     mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
     mock_api.ev_stations_nearby = AsyncMock(side_effect=Exception("EV lookup failed"))
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
     with pytest.raises(UpdateFailed):
-        await coordinator._async_update_data()  # noqa: SLF001
+        await coordinator._async_update_data()
 
 
 async def test_coordinator_skips_price_lookup_when_fetch_gas_disabled(hass):
@@ -177,9 +179,9 @@ async def test_coordinator_skips_price_lookup_when_fetch_gas_disabled(hass):
             ]
         }
     )
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
-    data = await coordinator._async_update_data()  # noqa: SLF001
+    data = await coordinator._async_update_data()
     assert not mock_api.price_lookup.called
     assert mock_api.ev_stations_nearby.called
     assert data["station_id"] == "208656"
@@ -201,7 +203,7 @@ async def test_coordinator_raises_when_both_options_disabled(hass):
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
 
     with pytest.raises(UpdateFailed):
-        await coordinator._async_update_data()  # noqa: SLF001
+        await coordinator._async_update_data()
 
 
 async def test_coordinator_enrichment_success(hass):
@@ -265,9 +267,9 @@ async def test_coordinator_enrichment_success(hass):
             ]
         }
     )
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
-    data = await coordinator._async_update_data()  # noqa: SLF001
+    data = await coordinator._async_update_data()
 
     assert data["ev_level1"] == 0
     assert data["ev_level2"] == 2
@@ -312,10 +314,10 @@ async def test_coordinator_enrichment_exception_logged(hass, caplog):
         }
     )
     mock_api.ev_stations_nearby = AsyncMock(side_effect=Exception("GraphQLTimeout"))
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
     with caplog.at_level(logging.WARNING):
-        data = await coordinator._async_update_data()  # noqa: SLF001
+        data = await coordinator._async_update_data()
 
     assert data["station_id"] == "208656"
     assert "Failed to fetch EV station data: GraphQLTimeout" in caplog.text
@@ -651,16 +653,14 @@ async def test_get_station_list_postal_coordinates_and_ev(hass):
 
 async def test_config_flow_ev_charging_flag(hass):
     """Test ConfigFlow sets ev_charging to True when station ends with [EV]."""
-    from custom_components.gasbuddy.config_flow import GasBuddySubentryFlowHandler
-
     flow = GasBuddySubentryFlowHandler()
     flow.hass = hass
     # async_set_unique_id mutates self.context; when constructing the flow
     # directly (not via the flow manager) the default context is a
     # read-only mappingproxy, so replace it with a real dict.
     flow.context = {"source": "user"}
-    flow._station_list = {"208656": "Costco [EV]"}  # noqa: SLF001
-    flow._data = {CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
+    flow._station_list = {"208656": "Costco [EV]"}
+    flow._data = {CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}
     flow._get_entry = MagicMock(return_value=MockConfigEntry())
 
     # 1. Test async_step_home2
@@ -677,11 +677,11 @@ async def test_config_flow_ev_charging_flag(hass):
         })
         assert result["type"] == "create_entry"
         assert result["data"][CONF_EV_CHARGING] is True
-        assert flow._data["latitude"] == 33.45  # noqa: SLF001
-        assert flow._data["longitude"] == -112.50  # noqa: SLF001
+        assert flow._data["latitude"] == 33.45
+        assert flow._data["longitude"] == -112.50
 
     # 2. Test async_step_station_list
-    flow._data = {CONF_POSTAL: "85326", CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}  # noqa: SLF001
+    flow._data = {CONF_POSTAL: "85326", CONF_NAME: "Costco Station", CONF_STATION_ID: "208656"}
 
     with (
         patch(
@@ -696,8 +696,8 @@ async def test_config_flow_ev_charging_flag(hass):
         })
         assert result["type"] == "create_entry"
         assert result["data"][CONF_EV_CHARGING] is True
-        assert flow._data["latitude"] == 33.45  # noqa: SLF001
-        assert flow._data["longitude"] == -112.50  # noqa: SLF001
+        assert flow._data["latitude"] == 33.45
+        assert flow._data["longitude"] == -112.50
 
 
 async def test_ev_station_id_collision_coordinator(hass) -> None:
@@ -745,7 +745,7 @@ async def test_ev_station_id_collision_coordinator(hass) -> None:
         }
     )
 
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
     await coordinator.async_refresh()
 
     assert coordinator.last_update_success
@@ -800,7 +800,7 @@ async def test_coordinator_fallback_preserves_unit_and_currency(hass):
 
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     # Simulate a previous successful poll of a Canadian station.
-    coordinator._data = {"unit_of_measure": "cents_per_liter", "currency": "CAD"}  # noqa: SLF001
+    coordinator._data = {"unit_of_measure": "cents_per_liter", "currency": "CAD"}
 
     mock_api = MagicMock()
     mock_api.price_lookup = AsyncMock(side_effect=APIError("Price lookup failed"))
@@ -816,9 +816,9 @@ async def test_coordinator_fallback_preserves_unit_and_currency(hass):
             ]
         }
     )
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
-    data = await coordinator._async_update_data()  # noqa: SLF001
+    data = await coordinator._async_update_data()
 
     assert data["unit_of_measure"] == "cents_per_liter"
     assert data["currency"] == "CAD"
@@ -853,9 +853,9 @@ async def test_coordinator_fallback_omits_unit_when_unknown(hass):
             ]
         }
     )
-    coordinator._api = mock_api  # noqa: SLF001
+    coordinator._api = mock_api
 
-    data = await coordinator._async_update_data()  # noqa: SLF001
+    data = await coordinator._async_update_data()
 
     assert "unit_of_measure" not in data
     assert "currency" not in data

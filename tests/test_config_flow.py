@@ -1,5 +1,6 @@
 """Test the GasBuddy config flow."""
 
+from types import MappingProxyType
 from unittest.mock import patch
 
 import pytest
@@ -267,8 +268,6 @@ async def test_subentry_reconfigure(hass):
     hub.add_to_hass(hass)
 
     # Initialize subentry
-    from types import MappingProxyType
-
     subentry = config_entries.ConfigSubentry(
         subentry_id="test_subentry_id",
         subentry_type="station",
