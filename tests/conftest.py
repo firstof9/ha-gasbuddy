@@ -45,7 +45,7 @@ def patched_init(self, *args, **kwargs):
     domain = kwargs.get("domain") or (args[0] if args else None)
     if domain == "gasbuddy":
         unique_id = kwargs.get("unique_id")
-        if unique_id not in {"hub", "legacy"}:
+        if unique_id != "hub" and not (unique_id and str(unique_id).startswith("legacy")):
             # Extract legacy data and options
             data = kwargs.get("data", {})
             options = kwargs.get("options", {})

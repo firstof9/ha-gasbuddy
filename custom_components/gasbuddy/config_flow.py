@@ -640,7 +640,7 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
         self._errors = {}
 
         if self._data.get(CONF_CHEAPEST):
-            return await self._async_step_reconfigure_cheapest(user_input)
+            return await self.async_step_reconfigure_cheapest(user_input)
 
         if user_input is not None:
             self._data.update(user_input)
@@ -946,7 +946,9 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
 
     # ── Cheapest reconfigure ───────────────────────────────────────────
 
-    async def _async_step_reconfigure_cheapest(self, user_input) -> SubentryFlowResult:
+    async def async_step_reconfigure_cheapest(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
         """Handle reconfigure for a cheapest gas tracker subentry (Step 1)."""
         if user_input is not None:
             new_data: dict[str, Any] = {

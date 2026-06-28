@@ -6,11 +6,13 @@ from unittest.mock import patch
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.gasbuddy.config_flow import CloudflareBlocked, InvalidStation
 from custom_components.gasbuddy.const import (
     CONF_BRAND_ADJUSTMENTS,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_EXCLUDE_BRANDS,
+    CONF_FETCH_GAS,
     CONF_FUEL_KEY,
     CONF_INCLUDE_STATIONS,
     CONF_NAME,
@@ -344,3 +346,140 @@ async def test_hub_options_flow(hass):
     assert hub.data[CONF_SOLVER] == "http://solver-new"
     assert hub.data[CONF_TIMEOUT] == 30000
     assert hub.data[CONF_BRAND_ADJUSTMENTS] == {"Shell": -0.10}
+
+
+async def test_subentry_reconfigure_edge_cases(hass):
+    """Test various edge cases when reconfiguring a station subentry."""
+    hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub.add_to_hass(hass)
+
+    # 1. Cheapest station reconfiguration
+    subentry_cheapest = config_entries.ConfigSubentry(
+        subentry_id="sub_cheapest",
+        subentry_type="station",
+        title="Cheapest",
+        data=MappingProxyType({
+            CONF_CHEAPEST: True,
+            CONF_NAME: "Cheapest",
+        }),
+        unique_id="cheapest",
+    )
+    hass.config_entries.async_add_subentry(hub, subentry_cheapest)
+
+    result = await hass.config_entries.subentries.async_init(
+        (hub.entry_id, "station"),
+        context={
+            "source": "reconfigure",
+            "unique_id": "cheapest",
+            "subentry_id": "sub_cheapest",
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure_cheapest"
+
+    # 2. Regular station reconfiguration error paths
+    subentry = config_entries.ConfigSubentry(
+        subentry_id="test_subentry_id",
+        subentry_type="station",
+        title="Costco",
+        data=MappingProxyType({
+            CONF_STATION_ID: "999001",
+            CONF_NAME: "Costco",
+        }),
+        unique_id="999001",
+    )
+    hass.config_entries.async_add_subentry(hub, subentry)
+
+    # Check invalid format: _STATION_ID_RE mismatch (non-numeric/alphabetic)
+    result = await hass.config_entries.subentries.async_init(
+        (hub.entry_id, "station"),
+        context={
+            "source": "reconfigure",
+            "unique_id": "999001",
+            "subentry_id": "test_subentry_id",
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_STATION_ID: "abc-def",
+            CONF_NAME: "Costco New",
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"][CONF_STATION_ID] == "station_id"
+
+    # Check CloudflareBlocked exception
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        side_effect=CloudflareBlocked,
+    ):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: "999002",
+                CONF_NAME: "Costco New",
+            },
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["errors"][CONF_STATION_ID] == "cloudflare"
+
+    # Check InvalidStation exception
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        side_effect=InvalidStation,
+    ):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: "999002",
+                CONF_NAME: "Costco New",
+            },
+        )
+        assert result["type"] == FlowResultType.FORM
+        assert result["errors"][CONF_STATION_ID] == "station_id"
+
+    # Check non-dict validation return (returns True)
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value=True,
+    ):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: "999002",
+                CONF_NAME: "Costco New",
+            },
+        )
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "reconfigure_successful"
+        # Subentry updated with defaults for ev_charging/fetch_gas
+        updated_sub = hub.subentries["test_subentry_id"]
+        assert updated_sub.data[CONF_EV_CHARGING] is False
+        assert updated_sub.data[CONF_FETCH_GAS] is True
+
+
+async def test_station_subentry_manual_invalid_format(hass):
+    """Test manual station subentry flow with invalid format."""
+    hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub.add_to_hass(hass)
+
+    result = await hass.config_entries.subentries.async_init(
+        (hub.entry_id, "station"),
+        context={"source": "user"},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"next_step_id": "manual"},
+    )
+    assert result["step_id"] == "manual"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_STATION_ID: "abc-def",
+            CONF_NAME: "Manual",
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"][CONF_STATION_ID] == "station_id"

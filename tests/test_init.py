@@ -219,3 +219,66 @@ async def test_legacy_entry_migration_race_guard(hass, mock_gasbuddy):
 
     # The migrated flag should have remained True (it wasn't cleaned up by another setup because it was skipped)
     assert hass.data[DOMAIN]["_migrating"] is True
+
+
+async def test_legacy_migration_full(hass, mock_gasbuddy):
+    """Test full migration scenario covering options, solver, timeout, brand adjustments, duplicates, etc."""
+    # 1. Create a hub entry
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={},
+        options={},
+        version=CONFIG_VER,
+    )
+    hub_entry.add_to_hass(hass)
+
+    # Another hub entry (to hit entry.unique_id == "hub" continue check)
+    hub_entry_dup = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub 2",
+        unique_id="hub",
+        data={},
+        version=CONFIG_VER,
+    )
+    hub_entry_dup.add_to_hass(hass)
+
+    # 2. Create a legacy entry with station-specific options, solver, timeout, brand_adjustments
+    legacy_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station 1",
+        data={
+            "name": "Gas Station 1",
+            "station_id": 999001,
+            "solver": "http://legacy-solver",
+            "timeout": 45000,
+            "brand_adjustments": {"Shell": 0.05},
+        },
+        options={"ev_charging": True, "fetch_gas": False, "interval": 3600},
+        version=CONFIG_VER,
+        unique_id="legacy_1",
+    )
+    legacy_entry.add_to_hass(hass)
+
+    # Setup legacy_entry when hub already exists (hits L181-182)
+    assert not await hass.config_entries.async_setup(legacy_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Verify values migrated to hub
+    updated_hub = next(e for e in hass.config_entries.async_entries(DOMAIN) if e.unique_id == "hub")
+    assert updated_hub.data.get("solver") == "http://legacy-solver"
+    assert updated_hub.data.get("timeout") == 45000
+    assert updated_hub.data.get("brand_adjustments") == {"Shell": 0.05}
+
+    # Verify subentry exists with options migrated to data
+    assert len(updated_hub.subentries) == 1
+    sub = next(iter(updated_hub.subentries.values()))
+    assert sub.data.get("ev_charging") is True
+    assert sub.data.get("fetch_gas") is False
+    assert sub.data.get("interval") == 3600
+
+    # Run setup again on the legacy entry when it's already migrated (hits duplicate unique_id check)
+    from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
+
+    await _async_migrate_legacy_entries(hass, updated_hub)
