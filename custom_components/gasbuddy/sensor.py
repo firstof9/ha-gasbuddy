@@ -119,7 +119,8 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         self._name = sensor_description.name
         self._type = sensor_description.key
         # Use old_entry_id for unique_id continuity with migrated entries
-        self._unique_id = subentry.data.get("old_entry_id") or subentry.subentry_id
+        old_entry_id = subentry.data.get("old_entry_id")
+        self._unique_id = old_entry_id if old_entry_id is not None else subentry.subentry_id
         self._data = coordinator.data
         self.coordinator = coordinator
         self._state = None

@@ -321,8 +321,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                             f"{matching.get('street_address') or ''}, {matching.get('city') or ''}, {matching.get('state') or ''}"
                         )
                         self._data["ev_distance_miles"] = matching.get("distance_miles")
-            except Exception as ev_ex:  # noqa: BLE001
-                _LOGGER.warning("Failed to fetch EV station data: %s", ev_ex)
+            except Exception as ev_ex:
+                _LOGGER.warning("Failed to fetch EV station data: %s", ev_ex, exc_info=True)
 
         self._data["last_updated"] = datetime.now(UTC)
         _LOGGER.debug("Final coordinator data: %s", _redact(self._data))

@@ -185,16 +185,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
         async def _async_create_hub() -> None:
             await asyncio.sleep(0.1)
-            await hass.config_entries.flow.async_init(
-                DOMAIN,
-                context={"source": "user"},
-                data={
-                    CONF_NAME: "GasBuddy Hub",
-                    CONF_SOLVER: "",
-                    CONF_TIMEOUT: 60000,
-                    CONF_BRAND_ADJUSTMENTS: {},
-                },
-            )
+            try:
+                await hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": "user"},
+                    data={
+                        CONF_NAME: "GasBuddy Hub",
+                        CONF_SOLVER: "",
+                        CONF_TIMEOUT: 60000,
+                        CONF_BRAND_ADJUSTMENTS: {},
+                    },
+                )
+            except Exception:
+                _LOGGER.exception(
+                    "Failed to automatically create GasBuddy Hub. "
+                    "Please create it manually via the Integrations UI."
+                )
 
         hass.async_create_task(_async_create_hub())
         return False
@@ -206,14 +212,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         ISSUE_URL,
     )
 
-    # Migrate any remaining legacy station entries
-    legacy_entries = [
-        e
-        for e in hass.config_entries.async_entries(DOMAIN)
-        if e.entry_id != config_entry.entry_id and e.unique_id != "hub"
-    ]
-    if legacy_entries:
-        await _async_migrate_legacy_entries(hass, config_entry)
+    # Migrate any remaining legacy station entries.
+    # Guard against concurrent migration calls (e.g., multiple legacy entries
+    # loading in parallel during HA restart).
+    domain_data = hass.data[DOMAIN]
+    if not domain_data.get("_migrating"):
+        legacy_entries = [
+            e
+            for e in hass.config_entries.async_entries(DOMAIN)
+            if e.entry_id != config_entry.entry_id and e.unique_id != "hub"
+        ]
+        if legacy_entries:
+            domain_data["_migrating"] = True
+            try:
+                await _async_migrate_legacy_entries(hass, config_entry)
+            finally:
+                domain_data.pop("_migrating", None)
 
     # Create hub device
     device_registry = dr.async_get(hass)
@@ -236,7 +250,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         coordinators[subentry.subentry_id] = coordinator
 
         # Ensure station device exists and is linked to hub
-        station_id = subentry.data.get("old_entry_id") or subentry.subentry_id
+        old_entry_id = subentry.data.get("old_entry_id")
+        station_id = old_entry_id if old_entry_id is not None else subentry.subentry_id
         device_registry.async_get_or_create(
             config_entry_id=config_entry.entry_id,
             config_subentry_id=subentry.subentry_id,
