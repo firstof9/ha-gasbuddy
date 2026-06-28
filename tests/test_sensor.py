@@ -1056,7 +1056,7 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Gas Station",
-        data=config,
+        data={**config, "old_entry_id": "999001"},
         options=options,
         version=9,
     )
@@ -1143,7 +1143,12 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     entry_cad = MockConfigEntry(
         domain=DOMAIN,
         title="Gas Station CAD",
-        data={**config, CONF_NAME: "Gas Station CAD", CONF_STATION_ID: "999002"},
+        data={
+            **config,
+            CONF_NAME: "Gas Station CAD",
+            CONF_STATION_ID: "999002",
+            "old_entry_id": "999002",
+        },
         options=options_cad,
         version=9,
     )
@@ -1199,7 +1204,7 @@ async def test_sensor_device_no_via_device(hass, mock_gasbuddy):
     description = SENSOR_TYPES["regular_gas"]
     sensor = GasBuddySensor(description, coordinator, station_entry)
 
-    assert "via_device" not in sensor.device_info
+    assert sensor.device_info["via_device"] == (DOMAIN, "hub")
 
 
 async def test_sensor_setup_skips_subentry_without_coordinator(hass, mock_gasbuddy):

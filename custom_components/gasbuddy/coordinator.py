@@ -83,6 +83,11 @@ def _redact(data: Any) -> str:
         return str(_redact_recursive(data))
 
 
+def _cache_path(hass: HomeAssistant) -> str:
+    """Return the path to the CSRF token cache file."""
+    return f"{hass.config.config_dir}/{CACHE_FILE_NAME}"
+
+
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
@@ -98,7 +103,7 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self.interval = self._get_interval()
         self._data: dict[Any, Any] = {}
-        self._cache_file = f"{self.hass.config.config_dir}/{CACHE_FILE_NAME}"
+        self._cache_file = _cache_path(hass)
         self._api = GasBuddy(
             solver_url=self._get_hub_setting(CONF_SOLVER),
             station_id=self._subentry.data.get(CONF_STATION_ID),

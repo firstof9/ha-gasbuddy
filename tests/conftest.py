@@ -90,7 +90,8 @@ def patched_init(self, *args, **kwargs):
             sub_data.setdefault(CONF_STATION_ID, 999001)
 
             sub_unique_id = str(data.get(CONF_STATION_ID, 999001))
-            sub_data["old_entry_id"] = sub_unique_id
+            if "old_entry_id" in data:
+                sub_data["old_entry_id"] = data["old_entry_id"]
 
             # Hub data
             hub_data = {
@@ -98,7 +99,8 @@ def patched_init(self, *args, **kwargs):
                 CONF_SOLVER: data.get(CONF_SOLVER),
                 CONF_TIMEOUT: data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
                 CONF_BRAND_ADJUSTMENTS: options.get(CONF_BRAND_ADJUSTMENTS)
-                or data.get(CONF_BRAND_ADJUSTMENTS, {}),
+                if options.get(CONF_BRAND_ADJUSTMENTS) is not None
+                else data.get(CONF_BRAND_ADJUSTMENTS, {}),
             }
 
             sub_title = data.get(CONF_NAME, "Gas Station")

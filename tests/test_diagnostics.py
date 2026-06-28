@@ -24,7 +24,7 @@ async def test_diagnostics(
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Gas Station",
-        data=CONFIG_DATA,
+        data={**CONFIG_DATA, "old_entry_id": "999001"},
         version=6,
     )
 

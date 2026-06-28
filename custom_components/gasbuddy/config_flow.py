@@ -621,6 +621,19 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
         self._data: dict[str, Any] = {}
         self._errors: dict[str, str] = {}
         self._station_list: dict[str, Any] = {}
+        self._unique_id: str | None = None
+
+    async def async_set_unique_id(self, unique_id: str) -> None:
+        """Set unique ID for the subentry flow."""
+        self._unique_id = unique_id
+
+    def _abort_if_unique_id_configured(self) -> None:
+        """Abort if the unique ID is already configured as a subentry."""
+        from homeassistant.data_entry_flow import AbortFlow  # noqa: PLC0415
+
+        hub_entry = self._get_entry()
+        if any(sub.unique_id == self._unique_id for sub in hub_entry.subentries.values()):
+            raise AbortFlow("already_configured")
 
     @property
     def _is_new(self) -> bool:
@@ -650,7 +663,11 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                 return await self._show_reconfig_form(user_input)
 
             try:
-                validate = await validate_station(self.hass, user_input[CONF_STATION_ID])
+                validate = await validate_station(
+                    self.hass,
+                    user_input[CONF_STATION_ID],
+                    self._get_entry().data.get(CONF_SOLVER),
+                )
             except CloudflareBlocked:
                 self._errors[CONF_STATION_ID] = "cloudflare"
                 validate = False
@@ -703,7 +720,11 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                 return await self._show_config_manual(user_input)
 
             try:
-                validate = await validate_station(self.hass, user_input[CONF_STATION_ID])
+                validate = await validate_station(
+                    self.hass,
+                    user_input[CONF_STATION_ID],
+                    self._get_entry().data.get(CONF_SOLVER),
+                )
             except CloudflareBlocked:
                 self._errors[CONF_STATION_ID] = "cloudflare"
                 validate = False
@@ -732,6 +753,8 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                     CONF_EV_CHARGING: ev_charging,
                     CONF_FETCH_GAS: not ev_charging,
                 }
+                await self.async_set_unique_id(str(subentry_data[CONF_STATION_ID]))
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=subentry_data[CONF_NAME],
                     data=subentry_data,
@@ -1083,6 +1106,8 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
             CONF_EV_CHARGING: ev_charging,
             CONF_FETCH_GAS: not ev_charging,
         }
+        await self.async_set_unique_id(str(subentry_data[CONF_STATION_ID]))
+        self._abort_if_unique_id_configured()
         return self.async_create_entry(
             title=subentry_data[CONF_NAME],
             data=subentry_data,

@@ -8,12 +8,12 @@
         },
         "step": {
             "user": {
-                "description": "Veuillez sélectionner soit l'ID de station manuel, soit rechercher une station.",
+                "description": "Configurez le Hub Virtuel pour gérer les paramètres globalement sur toutes les stations. Les ajustements de prix de la marque sont saisis au format YAML.",
                 "data": {
-                    "name": "Name",
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "brand_adjustments": "Brand Price Adjustments"
+                    "name": "Nom",
+                    "solver": "URL FlareSolverr (optionnel)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
+                    "brand_adjustments": "Ajustements de prix de la marque"
                 }
             }
         }
@@ -53,7 +53,8 @@
                 "station_id": "ID de station invalide",
                 "no_results": "Aucune station trouvée dans cette zone.",
                 "invalid_url": "URL non valide.",
-                "cloudflare": "Impossible d'obtenir un jeton CSRF auprès de GasBuddy (Cloudflare bloque les requêtes). Configurez une URL FlareSolverr dans le champ optionnel et réessayez."
+                "cloudflare": "Impossible d'obtenir un jeton CSRF auprès de GasBuddy (Cloudflare bloque les requêtes). Configurez une URL FlareSolverr dans le champ optionnel et réessayez.",
+                "invalid_postal": "Format de code postal invalide (code postal américain ou canadien)."
             },
             "initiate_flow": {
                 "reconfigure": "Reconfigurer la station-service",
@@ -65,7 +66,8 @@
                     "menu_options": {
                         "manual": "Saisir manuellement l'ID de la station",
                         "search": "Rechercher une station à proximité",
-                        "cheapest": "Suivre le carburant le moins cher à proximité"
+                        "cheapest": "Suivre le carburant le moins cher à proximité",
+                        "hub": "Configurer le Hub Virtuel (Paramètres globaux)"
                     }
                 },
                 "manual": {

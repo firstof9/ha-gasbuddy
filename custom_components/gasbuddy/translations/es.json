@@ -8,12 +8,12 @@
         },
         "step": {
             "user": {
-                "description": "Por favor, seleccione un ID de estación manualmente o busque una estación.",
+                "description": "Configure el Virtual Hub para gestionar la configuración de forma global para todas las estaciones. Los ajustes de precio de la marca se introducen en formato YAML.",
                 "data": {
-                    "name": "Name",
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "brand_adjustments": "Brand Price Adjustments"
+                    "name": "Nombre",
+                    "solver": "URL FlareSolverr (opcional)",
+                    "timeout": "Tiempo de espera de FlareSolverr (ms)",
+                    "brand_adjustments": "Ajustes de precio de la marca"
                 }
             }
         }
@@ -53,7 +53,8 @@
                 "station_id": "ID de estación inválido",
                 "no_results": "No se encontraron estaciones en esta área.",
                 "invalid_url": "URL no válida.",
-                "cloudflare": "No se pudo obtener un token CSRF de GasBuddy (Cloudflare está bloqueando las solicitudes). Configure una URL de FlareSolverr en el campo opcional e inténtelo de nuevo."
+                "cloudflare": "No se pudo obtener un token CSRF de GasBuddy (Cloudflare está bloqueando las solicitudes). Configure una URL de FlareSolverr en el campo opcional e inténtelo de nuevo.",
+                "invalid_postal": "Formato de código postal no válido (código ZIP de EE. UU. o código postal canadiense)."
             },
             "initiate_flow": {
                 "reconfigure": "Configurar estación de servicio",
@@ -65,7 +66,8 @@
                     "menu_options": {
                         "manual": "Ingresar ID de estación manualmente",
                         "search": "Buscar una estación cercana",
-                        "cheapest": "Rastrear el combustible más barato cercano"
+                        "cheapest": "Rastrear el combustible más barato cercano",
+                        "hub": "Configurar Virtual Hub (Ajustes globales)"
                     }
                 },
                 "manual": {

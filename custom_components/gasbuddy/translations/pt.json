@@ -8,12 +8,12 @@
         },
         "step": {
             "user": {
-                "description": "Por favor, selecione manualmente o ID da estação ou pesquise por uma estação.",
+                "description": "Configure o Virtual Hub para gerenciar as configurações globalmente em todas as estações. Os ajustes de preço da marca são inseridos no formato YAML.",
                 "data": {
-                    "name": "Name",
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "brand_adjustments": "Brand Price Adjustments"
+                    "name": "Nome",
+                    "solver": "URL FlareSolverr (opcional)",
+                    "timeout": "Tempo limite do FlareSolverr (ms)",
+                    "brand_adjustments": "Ajustes de preço da marca"
                 }
             }
         }
@@ -53,7 +53,8 @@
                 "station_id": "ID de estação inválido",
                 "no_results": "Nenhuma estação encontrada nesta área.",
                 "invalid_url": "URL inválida.",
-                "cloudflare": "Não foi possível obter um token CSRF do GasBuddy (Cloudflare está bloqueando as requisições). Configure uma URL FlareSolverr no campo opcional e tente novamente."
+                "cloudflare": "Não foi possível obter um token CSRF do GasBuddy (Cloudflare está bloqueando as requisições). Configure uma URL FlareSolverr no campo opcional e tente novamente.",
+                "invalid_postal": "Formato de código postal inválido (ZIP dos EUA ou código postal canadense)."
             },
             "initiate_flow": {
                 "reconfigure": "Reconfigurar posto de gasolina",
@@ -65,7 +66,8 @@
                     "menu_options": {
                         "manual": "Inserir ID da estação manualmente",
                         "search": "Pesquisar por uma estação próxima",
-                        "cheapest": "Rastrear o combustível mais barato próximo"
+                        "cheapest": "Rastrear o combustível mais barato próximo",
+                        "hub": "Configurar Virtual Hub (Configurações globais)"
                     }
                 },
                 "manual": {

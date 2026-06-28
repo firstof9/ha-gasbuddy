@@ -10,6 +10,7 @@
             "user": {
                 "description": "Configure the Virtual Hub to manage settings globally across all stations. Brand price adjustments are entered in YAML format.",
                 "data": {
+                    "name": "Name",
                     "solver": "FlareSolverr URL (optional)",
                     "timeout": "FlareSolverr timeout (ms)",
                     "brand_adjustments": "Brand Price Adjustments"
