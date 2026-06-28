@@ -99,6 +99,8 @@ async def async_setup_entry(
 class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-many-instance-attributes
     """Implementation of a GasBuddy sensor."""
 
+    coordinator: GasBuddyUpdateCoordinator
+
     def __init__(
         self,
         sensor_description: GasBuddySensorEntityDescription,
@@ -111,7 +113,8 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         self._config = config
         if subentry is None and config.subentries:
             subentry = next(iter(config.subentries.values()))
-        self._subentry = subentry
+        assert subentry is not None
+        self._subentry: ConfigSubentry = subentry
         self.entity_description = sensor_description
         self._name = sensor_description.name
         self._type = sensor_description.key

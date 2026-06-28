@@ -23,6 +23,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     ObjectSelector,
+    SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -388,7 +389,7 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
 
 def _get_schema_station_list(
     hass: Any,  # pylint: disable=unused-argument
-    user_input: dict[str, Any],
+    user_input: dict[str, Any] | None,
     default_dict: dict[str, Any],
     station_list: dict[str, Any],
 ) -> Any:
@@ -430,7 +431,7 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
             CONF_FUEL_KEY, default=_get_default(CONF_FUEL_KEY, "regular_gas")
         ): SelectSelector(
             SelectSelectorConfig(
-                options=[{"value": k, "label": v} for k, v in FUEL_KEY_CHOICES.items()],
+                options=[SelectOptionDict(value=k, label=v) for k, v in FUEL_KEY_CHOICES.items()],
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
@@ -438,7 +439,7 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
             CONF_PRICE_TYPE, default=_get_default(CONF_PRICE_TYPE, "best")
         ): SelectSelector(
             SelectSelectorConfig(
-                options=[{"value": k, "label": v} for k, v in PRICE_TYPE_CHOICES.items()],
+                options=[SelectOptionDict(value=k, label=v) for k, v in PRICE_TYPE_CHOICES.items()],
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
@@ -460,8 +461,8 @@ def _get_schema_cheapest_filters(
         """Get default value for key."""
         return user_input.get(key, default_dict.get(key, fallback_default))
 
-    brand_options = [{"value": k, "label": v} for k, v in brands.items()]
-    station_options = [{"value": k, "label": v} for k, v in stations.items()]
+    brand_options = [SelectOptionDict(value=k, label=v) for k, v in brands.items()]
+    station_options = [SelectOptionDict(value=k, label=v) for k, v in stations.items()]
 
     return vol.Schema({
         vol.Optional(

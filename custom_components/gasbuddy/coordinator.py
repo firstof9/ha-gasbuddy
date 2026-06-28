@@ -93,7 +93,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         self._config = config
         if subentry is None and config.subentries:
             subentry = next(iter(config.subentries.values()))
-        self._subentry = subentry
+        assert subentry is not None
+        self._subentry: ConfigSubentry = subentry
         self.hass = hass
         self.interval = self._get_interval()
         self._data: dict[Any, Any] = {}
