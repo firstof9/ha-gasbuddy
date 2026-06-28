@@ -1020,7 +1020,7 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
     async def _show_reconfig_cheapest_form(self, user_input) -> SubentryFlowResult:
         """Show the cheapest reconfigure form pre-filled with current subentry data."""
         return self.async_show_form(
-            step_id="reconfigure",
+            step_id="reconfigure_cheapest",
             data_schema=_get_schema_cheapest(self.hass, user_input, self._data),
             errors=self._errors,
         )
