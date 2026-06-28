@@ -43,12 +43,14 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
+from tests.conftest import _make_hub_entry, _make_station_subentry
 
 from .const import (
     CONFIG_DATA,
     CONFIG_DATA_CHEAPEST,
     CONFIG_DATA_NO_UOM,
     COORDINATOR_DATA,
+    HUB_DATA,
     OPTIONS_CHEAPEST,
     OPTIONS_NO_UOM,
 )
@@ -1198,3 +1200,52 @@ async def test_sensor_device_no_via_device(hass, mock_gasbuddy):
     sensor = GasBuddySensor(description, coordinator, station_entry)
 
     assert "via_device" not in sensor.device_info
+
+
+async def test_sensor_setup_skips_subentry_without_coordinator(hass, mock_gasbuddy):
+    """Test that async_setup_entry skips subentries that have no coordinator (sensor.py L52)."""
+
+    # Build a hub entry with one station subentry
+    sub = _make_station_subentry(subentry_id="orphan_sub", unique_id="999099")
+    entry = _make_hub_entry(hass, subentries=[sub])
+
+    # Set up the integration, but then zero out the coordinator dict before the sensor
+    # platform is registered so the subentry has no coordinator
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Clear the coordinator dict and re-trigger sensor platform setup directly
+    from custom_components.gasbuddy.const import COORDINATOR  # noqa: PLC0415
+    from custom_components.gasbuddy.sensor import async_setup_entry  # noqa: PLC0415
+
+    hass.data[DOMAIN][entry.entry_id][COORDINATOR] = {}  # empty — no coordinators
+
+    sensors_added = []
+
+    async def mock_add(entities, update_before_add=False, config_subentry_id=None):
+        sensors_added.extend(entities)
+
+    await async_setup_entry(hass, entry, mock_add)
+
+    # Since coordinator dict is empty, the subentry is skipped — no sensors added
+    assert len(sensors_added) == 0
+
+
+async def test_get_setting_falls_back_to_config_data(hass, mock_gasbuddy):
+    """Test _get_setting returns value from config.data when not in options or subentry data (sensor.py L146)."""
+
+    from custom_components.gasbuddy.const import CONF_SOLVER, COORDINATOR  # noqa: PLC0415
+
+    # Hub with CONF_SOLVER in data but not in options or subentry data
+    hub_data = {**HUB_DATA, CONF_SOLVER: "http://hub-solver:8191"}
+    sub = _make_station_subentry()
+    entry = _make_hub_entry(hass, hub_data=hub_data, subentries=[sub])
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = next(iter(hass.data[DOMAIN][entry.entry_id][COORDINATOR].values()))
+    sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, entry, sub)
+
+    # CONF_SOLVER is in config.data, not in options (empty) and not in subentry data
+    assert sensor._get_setting(CONF_SOLVER) == "http://hub-solver:8191"

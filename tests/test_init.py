@@ -10,15 +10,23 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.gasbuddy import async_remove_config_entry_device
 from custom_components.gasbuddy.const import (
     CONF_BRAND_ADJUSTMENTS,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
+    CONF_GPS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
     CONF_NAME,
     CONF_SOLVER,
     CONF_TIMEOUT,
+    CONF_UOM,
     CONFIG_VER,
     COORDINATOR,
     DEFAULT_TIMEOUT,
     DOMAIN,
+    CoordinatorsDict,
 )
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.config_entries import ConfigSubentry
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from tests.conftest import _make_hub_entry, _make_station_subentry
 from tests.const import COORDINATOR_DATA, STATION_SUBENTRY_DATA
@@ -318,3 +326,302 @@ async def test_subentry_removal_cleanup(hass, mock_gasbuddy):
     entities_post = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
     sub_entities_post = [e for e in entities_post if e.config_subentry_id == subentry.subentry_id]
     assert len(sub_entities_post) == 0
+
+
+async def test_migrate_entry_from_v1(hass):
+    """Test async_migrate_entry migrates from version 1 (missing UOM + GPS + solver + timeout + lists + brand_adj)."""
+    from custom_components.gasbuddy import async_migrate_entry  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={"name": "Gas Station", "station_id": 999001},
+        unique_id="hub",
+        version=1,
+    )
+    entry.add_to_hass(hass)
+
+    result = await async_migrate_entry(hass, entry)
+    assert result is True
+
+    updated = hass.config_entries.async_get_entry(entry.entry_id)
+    assert updated.version == CONFIG_VER
+    assert updated.data.get(CONF_UOM) is True
+    assert updated.data.get(CONF_GPS) is True
+    assert CONF_SOLVER in updated.data
+    assert updated.data.get(CONF_TIMEOUT) == 60000
+    assert updated.data.get(CONF_EXCLUDE_BRANDS) == []
+    assert updated.data.get(CONF_INCLUDE_BRANDS) == []
+    assert updated.data.get(CONF_EXCLUDE_STATIONS) == []
+    assert updated.data.get(CONF_INCLUDE_STATIONS) == []
+    assert updated.data.get(CONF_BRAND_ADJUSTMENTS) == {}
+
+
+async def test_migrate_entry_from_v5(hass):
+    """Test async_migrate_entry migrates from version 5 (missing solver + timeout + lists + brand_adj)."""
+    from custom_components.gasbuddy import async_migrate_entry  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={"name": "Gas Station", "station_id": 999001, CONF_UOM: True, CONF_GPS: True},
+        unique_id="hub",
+        version=5,
+    )
+    entry.add_to_hass(hass)
+
+    result = await async_migrate_entry(hass, entry)
+    assert result is True
+
+    updated = hass.config_entries.async_get_entry(entry.entry_id)
+    assert updated.version == CONFIG_VER
+    assert CONF_SOLVER in updated.data
+    assert updated.data.get(CONF_TIMEOUT) == 60000
+    assert updated.data.get(CONF_EXCLUDE_BRANDS) == []
+    assert updated.data.get(CONF_BRAND_ADJUSTMENTS) == {}
+
+
+async def test_migrate_entry_from_v8(hass):
+    """Test async_migrate_entry migrates from version 8 (only missing brand_adjustments)."""
+    from custom_components.gasbuddy import async_migrate_entry  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={
+            "name": "Gas Station",
+            "station_id": 999001,
+            CONF_UOM: True,
+            CONF_GPS: True,
+            CONF_SOLVER: None,
+            CONF_TIMEOUT: 60000,
+            CONF_EXCLUDE_BRANDS: [],
+            CONF_INCLUDE_BRANDS: [],
+            CONF_EXCLUDE_STATIONS: [],
+            CONF_INCLUDE_STATIONS: [],
+        },
+        unique_id="hub",
+        version=8,
+    )
+    entry.add_to_hass(hass)
+
+    result = await async_migrate_entry(hass, entry)
+    assert result is True
+
+    updated = hass.config_entries.async_get_entry(entry.entry_id)
+    assert updated.version == CONFIG_VER
+    assert updated.data.get(CONF_BRAND_ADJUSTMENTS) == {}
+
+
+async def test_migrate_entry_already_current(hass):
+    """Test async_migrate_entry when entry is already at current version — no update needed."""
+    from custom_components.gasbuddy import async_migrate_entry  # noqa: PLC0415
+
+    full_data = {
+        "name": "Gas Station",
+        "station_id": 999001,
+        CONF_UOM: True,
+        CONF_GPS: True,
+        CONF_SOLVER: None,
+        CONF_TIMEOUT: 60000,
+        CONF_EXCLUDE_BRANDS: [],
+        CONF_INCLUDE_BRANDS: [],
+        CONF_EXCLUDE_STATIONS: [],
+        CONF_INCLUDE_STATIONS: [],
+        CONF_BRAND_ADJUSTMENTS: {},
+    }
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=full_data,
+        unique_id="hub",
+        version=CONFIG_VER,
+    )
+    entry.add_to_hass(hass)
+
+    result = await async_migrate_entry(hass, entry)
+    assert result is True
+    updated = hass.config_entries.async_get_entry(entry.entry_id)
+    assert updated.version == CONFIG_VER
+
+
+async def test_non_station_subentry_skipped(hass, mock_gasbuddy):
+    """Test that non-station subentries are skipped and no coordinator is created for them."""
+    # Create a hub with a subentry that has subentry_type != "station"
+    non_station_sub = ConfigSubentry(
+        data=MappingProxyType({"name": "My Cheapest Tracker"}),
+        subentry_type="cheapest",
+        title="Cheapest Gas",
+        unique_id="cheapest_001",
+        subentry_id="cheapest_sub_id",
+    )
+    station_sub = _make_station_subentry()
+    entry = _make_hub_entry(hass, subentries=[station_sub, non_station_sub])
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Only the station subentry should have a coordinator
+    coordinators = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    assert len(coordinators) == 1
+    assert station_sub.subentry_id in coordinators
+    assert "cheapest_sub_id" not in coordinators
+
+
+async def test_legacy_entry_unload(hass):
+    """Test that unloading a legacy (non-hub) entry returns True immediately."""
+    from custom_components.gasbuddy import async_unload_entry  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={"name": "Gas Station", "station_id": 999001},
+        unique_id="legacy_unload_999",
+        version=CONFIG_VER,
+    )
+    entry.add_to_hass(hass)
+
+    # Call async_unload_entry directly for a non-hub entry — it should return True
+    result = await async_unload_entry(hass, entry)
+    assert result is True
+
+
+async def test_entity_registry_cleanup_on_removed_subentry(hass, mock_gasbuddy):
+    """Test that entity registry entries for removed subentries are cleaned up."""
+    sub1 = _make_station_subentry(subentry_id="sub_keep", unique_id="999001")
+    sub2 = _make_station_subentry(
+        data=MappingProxyType({**STATION_SUBENTRY_DATA, "station_id": 999002}),
+        title="Station 2",
+        subentry_id="sub_remove",
+        unique_id="999002",
+    )
+    entry = _make_hub_entry(hass, subentries=[sub1, sub2])
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    sub2_entities = [
+        e
+        for e in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+        if e.config_subentry_id == "sub_remove"
+    ]
+    assert len(sub2_entities) > 0
+
+    # Remove sub2
+    hass.config_entries.async_remove_subentry(entry, "sub_remove")
+    await hass.async_block_till_done()
+
+    # Reload to trigger async_setup_entry cleanup
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # sub_remove entities should be gone
+    remaining = [
+        e
+        for e in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+        if e.config_subentry_id == "sub_remove"
+    ]
+    assert len(remaining) == 0
+
+    # sub_keep entities should still exist
+    kept = [
+        e
+        for e in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+        if e.config_subentry_id == "sub_keep"
+    ]
+    assert len(kept) > 0
+
+
+async def test_migrate_legacy_entries_duplicate_unique_id(hass, mock_gasbuddy):
+    """Test that _async_migrate_legacy_entries skips legacy entries whose unique_id already exists in the hub."""
+    from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
+
+    # Create a hub entry that already has a subentry with unique_id "999001"
+    existing_sub = _make_station_subentry(subentry_id="existing_sub", unique_id="999001")
+    hub_entry = _make_hub_entry(hass, subentries=[existing_sub])
+
+    # Create a legacy station entry with station_id 999001 (same unique_id as existing sub)
+    legacy_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data={"name": "Gas Station", "station_id": 999001},
+        version=CONFIG_VER,
+        unique_id="legacy_dup",
+    )
+    legacy_entry.add_to_hass(hass)
+
+    # Run migration — the legacy entry's unique_id "999001" is already present so it should be skipped (L143)
+    await _async_migrate_legacy_entries(hass, hub_entry)
+    await hass.async_block_till_done()
+
+    # Hub should still have only the original subentry (no new one added)
+    updated_hub = hass.config_entries.async_get_entry(hub_entry.entry_id)
+    assert len(updated_hub.subentries) == 1
+    assert next(iter(updated_hub.subentries.values())).subentry_id == "existing_sub"
+
+
+async def test_entity_only_orphan_cleanup(hass, mock_gasbuddy):
+    """Test that orphaned entity registry entries (no device) with stale subentry ids are cleaned up.
+
+    Simulates the case where an entity ends up in the registry with a config_subentry_id
+    that no longer exists in the parent config entry (lines 254-259 in __init__.py).
+    """
+    import attr  # noqa: PLC0415
+
+    entry = _make_hub_entry(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    ent_reg = er.async_get(hass)
+    subentry = next(iter(entry.subentries.values()))
+
+    # Get an existing entity registered under the subentry
+    existing_entities = [
+        e
+        for e in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+        if e.config_subentry_id == subentry.subentry_id
+    ]
+    assert existing_entities, "Expected at least one entity under the subentry"
+
+    # Clone the entity with a completely stale subentry id (bypassing HA validation)
+    stale_subentry_id = "orphan_stale_subentry_id"
+    stale_entity = attr.evolve(
+        existing_entities[0],
+        entity_id="sensor.gasbuddy_orphan_stale",
+        unique_id="gasbuddy_orphan_stale_unique",
+        config_subentry_id=stale_subentry_id,
+        device_id=None,  # no device so device cascade won't clean it up
+        id=None,  # generate a fresh registry id to avoid collision
+    )
+
+    # Inject the stale entity into the registry's internal data, bypassing subentry validation
+    ent_reg.entities._index_entry(stale_entity.entity_id, stale_entity)
+    ent_reg.entities.data[stale_entity.entity_id] = stale_entity
+
+    # Confirm the stale entity is visible in the registry
+    assert ent_reg.async_get(stale_entity.entity_id) is not None
+
+    # Remove the real subentry so the hub entry no longer has subentry_id in its subentries
+    hass.config_entries.async_remove_subentry(entry, subentry.subentry_id)
+    await hass.async_block_till_done()
+
+    # Reload to trigger async_setup_entry cleanup (lines 249-259)
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # The stale entity should have been removed by the cleanup
+    assert ent_reg.async_get(stale_entity.entity_id) is None
+
+
+async def test_coordinators_dict_empty():
+    """Test CoordinatorsDict behavior when empty (covers lines 406 and 422 in const.py)."""
+    empty_dict = CoordinatorsDict()
+    # Test data property getter when empty (covers L406)
+    assert empty_dict.data == {}
+
+    # Test __getattr__ delegation when empty raises AttributeError (covers L422)
+    with pytest.raises(
+        AttributeError, match="'CoordinatorsDict' object has no attribute 'some_attribute'"
+    ):
+        _ = empty_dict.some_attribute
