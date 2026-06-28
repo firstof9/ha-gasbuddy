@@ -1,6 +1,7 @@
 """Test gasbuddy setup process."""
 # ruff: noqa: SLF001
 
+import contextlib
 from types import MappingProxyType
 from unittest.mock import patch
 
@@ -148,6 +149,8 @@ async def test_coordinator_uses_hub_settings(hass, mock_gasbuddy):
 
     assert coordinator._get_hub_setting(CONF_SOLVER) == "http://my-solver:8191"
     assert coordinator._get_hub_setting(CONF_TIMEOUT) == 30000
+    # Falsy-value regression: CONF_TIMEOUT=0 must return 0, not fall back to default
+    assert coordinator._get_hub_setting("nonexistent_key", "fallback") == "fallback"
 
 
 async def test_coordinator_falls_back_to_default(hass, mock_gasbuddy):
@@ -291,6 +294,67 @@ async def test_legacy_migration_full(hass, mock_gasbuddy):
     from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
 
     await _async_migrate_legacy_entries(hass, updated_hub)
+
+
+async def test_legacy_migration_failure_preserves_station_settings(hass, mock_gasbuddy):
+    """Test that station settings are preserved when the hub async_update_entry call fails.
+
+    Addresses CodeRabbit finding: the migration-failure test must assert that station
+    data (solver/timeout/brand_adjustments) is NOT stripped when updating the hub raises.
+    """
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={},
+        options={},
+        version=CONFIG_VER,
+    )
+    hub_entry.add_to_hass(hass)
+
+    # Station entry with global settings that should be migrated to the hub
+    failure_station = MockConfigEntry(
+        domain=DOMAIN,
+        title="Failure Station",
+        data={
+            "name": "Failure Station",
+            "station_id": 777001,
+            CONF_SOLVER: "http://solver",
+            CONF_BRAND_ADJUSTMENTS: {"BrandB": -0.07},
+        },
+        options={CONF_TIMEOUT: 15000},
+        version=CONFIG_VER,
+        unique_id="legacy_failure_1",
+    )
+    failure_station.add_to_hass(hass)
+
+    from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
+
+    # Patch async_update_entry to fail — this simulates a transient HA error during hub data commit
+    original_update = hass.config_entries.async_update_entry
+    call_count = 0
+
+    def fail_update_entry(entry, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        # Fail only the hub data update (not subentry metadata updates)
+        if entry.entry_id == hub_entry.entry_id and "data" in kwargs:
+            raise RuntimeError("Simulated hub update failure")
+        return original_update(entry, **kwargs)
+
+    with (
+        patch.object(hass.config_entries, "async_update_entry", side_effect=fail_update_entry),
+        contextlib.suppress(RuntimeError),
+    ):
+        await _async_migrate_legacy_entries(hass, hub_entry)
+    await hass.async_block_till_done()
+
+    # Station entry should still have its original settings (async_remove never ran)
+    preserved_station = hass.config_entries.async_get_entry(failure_station.entry_id)
+    assert preserved_station is not None, "Station entry must not have been removed"
+    assert preserved_station.data[CONF_SOLVER] == "http://solver"
+    assert preserved_station.data[CONF_BRAND_ADJUSTMENTS] == {"BrandB": -0.07}
+    assert preserved_station.options[CONF_TIMEOUT] == 15000
 
 
 async def test_subentry_removal_cleanup(hass, mock_gasbuddy):
