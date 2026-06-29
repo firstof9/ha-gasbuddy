@@ -392,3 +392,33 @@ async def test_lookup_gps_missing_coordinates(hass, mock_gasbuddy, mock_aioclien
 
     assert response[entity_id] == {}
     assert "lacks latitude/longitude coordinates" in caplog.text
+
+
+async def test_clear_cache_no_coordinator(hass, mock_gasbuddy, mock_aioclient, caplog):
+    """clear_cache raises ValueError when the config entry has no coordinator in hass.data."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a device entry associated with this config entry
+    mock_device = MagicMock()
+    mock_device.config_entries = {entry.entry_id}
+
+    # Remove coordinator from hass.data
+    hass.data[DOMAIN].pop(entry.entry_id, None)
+
+    with patch("custom_components.gasbuddy.services.dr.async_get") as mock_reg:
+        mock_reg.return_value.async_get.return_value = mock_device
+        with pytest.raises(ValueError, match="No coordinator found"):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CLEAR_CACHE,
+                {ATTR_DEVICE_ID: "fake_device_id"},
+                blocking=True,
+                return_response=False,
+            )
