@@ -1261,16 +1261,21 @@ async def test_get_setting_falls_back_to_config_data(hass, mock_gasbuddy):
 
     from custom_components.gasbuddy.const import CONF_SOLVER, COORDINATOR  # noqa: PLC0415
 
-    # Hub with CONF_SOLVER in data but not in options or subentry data
-    hub_data = {**HUB_DATA, CONF_SOLVER: "http://hub-solver:8191"}
-    sub = _make_station_subentry()
-    entry = _make_hub_entry(hass, hub_data=hub_data, subentries=[sub])
+    for solver_value in ("http://hub-solver:8191", ""):
+        # Hub with CONF_SOLVER in data but not in options or subentry data
+        hub_data = {**HUB_DATA, CONF_SOLVER: solver_value}
+        sub = _make_station_subentry()
+        entry = _make_hub_entry(hass, hub_data=hub_data, subentries=[sub])
 
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
 
-    coordinator = next(iter(hass.data[DOMAIN][entry.entry_id][COORDINATOR].values()))
-    sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, entry, sub)
+        coordinator = next(iter(hass.data[DOMAIN][entry.entry_id][COORDINATOR].values()))
+        sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, entry, sub)
 
-    # CONF_SOLVER is in config.data, not in options (empty) and not in subentry data
-    assert sensor._get_setting(CONF_SOLVER) == "http://hub-solver:8191"  # noqa: SLF001
+        # CONF_SOLVER is in config.data, not in options (empty) and not in subentry data
+        assert sensor._get_setting(CONF_SOLVER) == solver_value  # noqa: SLF001
+
+        # Clean up for the next loop iteration
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()

@@ -11,6 +11,7 @@ from custom_components.gasbuddy.const import (
     ATTR_LIMIT,
     ATTR_POSTAL_CODE,
     ATTR_SOLVER,
+    COORDINATOR,
     DOMAIN,
 )
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
@@ -410,7 +411,7 @@ async def test_clear_cache_no_coordinator(hass, mock_gasbuddy, mock_aioclient, c
     mock_device.config_entries = {entry.entry_id}
 
     # Remove coordinator from hass.data
-    hass.data[DOMAIN].pop(entry.entry_id, None)
+    hass.data[DOMAIN][entry.entry_id].pop(COORDINATOR, None)
 
     with patch("custom_components.gasbuddy.services.dr.async_get") as mock_reg:
         mock_reg.return_value.async_get.return_value = mock_device
