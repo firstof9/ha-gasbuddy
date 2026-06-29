@@ -1,5 +1,4 @@
 """Test gasbuddy sensors."""
-# ruff: noqa: SLF001
 
 import copy
 import json
@@ -23,6 +22,7 @@ from custom_components.gasbuddy.const import (
     CONF_POSTAL,
     CONF_PRICE_TYPE,
     CONF_SHOW_DISCOUNTED,
+    CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
@@ -283,7 +283,7 @@ async def test_coordinator_success(hass, mock_aioclient):
     )
 
     # This will call _async_update_data UNPATCHED
-    data = await coordinator._async_update_data()
+    data = await coordinator._async_update_data()  # noqa: SLF001
     assert "last_updated" in data
     assert data["station_id"] == "32394"
 
@@ -576,11 +576,11 @@ async def test_coordinator_cheapest_gps(hass):
     )
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": _CHEAPEST_STATIONS},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
 
     assert data["station_id"] == "222"
     assert "last_updated" in data
@@ -599,8 +599,8 @@ async def test_coordinator_cheapest_postal(hass):
             "regular_gas": {"price": 3.10, "cash_price": None, "deal_price": None},
         }
     ]
-    with patch.object(coordinator._api, "price_lookup_service", return_value={"results": stations}):
-        data = await coordinator._async_update_data()
+    with patch.object(coordinator._api, "price_lookup_service", return_value={"results": stations}):  # noqa: SLF001
+        data = await coordinator._async_update_data()  # noqa: SLF001
 
     assert data["station_id"] == "333"
 
@@ -613,10 +613,10 @@ async def test_coordinator_cheapest_no_stations(hass):
     )
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with (
-        patch.object(coordinator._api, "price_lookup_service", return_value={"results": []}),
+        patch.object(coordinator._api, "price_lookup_service", return_value={"results": []}),  # noqa: SLF001
         pytest.raises(UpdateFailed),
     ):
-        await coordinator._async_update_data()
+        await coordinator._async_update_data()  # noqa: SLF001
 
 
 async def test_coordinator_cheapest_api_error(hass):
@@ -627,10 +627,10 @@ async def test_coordinator_cheapest_api_error(hass):
     )
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with (
-        patch.object(coordinator._api, "price_lookup_service", side_effect=APIError("boom")),
+        patch.object(coordinator._api, "price_lookup_service", side_effect=APIError("boom")),  # noqa: SLF001
         pytest.raises(UpdateFailed),
     ):
-        await coordinator._async_update_data()
+        await coordinator._async_update_data()  # noqa: SLF001
 
 
 async def test_coordinator_cheapest_sort_deal(hass):
@@ -640,11 +640,11 @@ async def test_coordinator_cheapest_sort_deal(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": _CHEAPEST_STATIONS},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
 
 
@@ -655,11 +655,11 @@ async def test_coordinator_cheapest_sort_cash(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": _CHEAPEST_STATIONS},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
 
 
@@ -670,11 +670,11 @@ async def test_coordinator_cheapest_sort_credit(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=2)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": _CHEAPEST_STATIONS},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
 
 
@@ -704,11 +704,11 @@ async def test_coordinator_cheapest_filtering(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "111"
 
     # Test 2: Include only the expensive brand (should select Expensive)
@@ -719,11 +719,11 @@ async def test_coordinator_cheapest_filtering(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "111"
 
     # Test 3: Exclude the cheapest station (should select Expensive)
@@ -734,11 +734,11 @@ async def test_coordinator_cheapest_filtering(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "111"
 
     # Test 4: Include only the expensive station (should select Expensive)
@@ -749,11 +749,11 @@ async def test_coordinator_cheapest_filtering(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=8)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "111"
 
 
@@ -778,13 +778,13 @@ async def test_coordinator_cheapest_filtering_no_stations(hass):
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with (
         patch.object(
-            coordinator._api,
+            coordinator._api,  # noqa: SLF001
             "price_lookup_service",
             return_value={"results": stations},
         ),
         pytest.raises(UpdateFailed),
     ):
-        await coordinator._async_update_data()
+        await coordinator._async_update_data()  # noqa: SLF001
 
 
 async def test_fuels_list_enables_sensors(hass, entity_registry: er.EntityRegistry):
@@ -826,13 +826,13 @@ async def test_coordinator_cheapest_no_valid_prices(hass):
     ]
     with (
         patch.object(
-            coordinator._api,
+            coordinator._api,  # noqa: SLF001
             "price_lookup_service",
             return_value={"results": stations_no_price},
         ),
         pytest.raises(UpdateFailed),
     ):
-        await coordinator._async_update_data()
+        await coordinator._async_update_data()  # noqa: SLF001
 
 
 async def test_price_lookup_gps_no_coordinates(hass, integration, caplog):
@@ -876,11 +876,11 @@ async def test_coordinator_cheapest_brand_adjustments(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
 
     # With brand adjustments by ID matching, give Expensive Station a $0.60 discount
@@ -892,11 +892,11 @@ async def test_coordinator_cheapest_brand_adjustments(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "111"
 
     # With brand adjustments by name matching (case-insensitive), give Expensive Station $0.60 discount
@@ -907,11 +907,11 @@ async def test_coordinator_cheapest_brand_adjustments(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "111"
 
 
@@ -940,11 +940,11 @@ async def test_coordinator_cheapest_brand_adjustments_edge_cases(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
 
     # Test ValueError/TypeError in brand Name lookup (invalid strings/types)
@@ -955,11 +955,11 @@ async def test_coordinator_cheapest_brand_adjustments_edge_cases(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
 
     # Test val is None in adjust (when price type is deal but deal_price is None/missing)
@@ -984,11 +984,11 @@ async def test_coordinator_cheapest_brand_adjustments_edge_cases(hass):
     entry = MockConfigEntry(domain=DOMAIN, data=config, options=OPTIONS_CHEAPEST, version=9)
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
     with patch.object(
-        coordinator._api,
+        coordinator._api,  # noqa: SLF001
         "price_lookup_service",
         return_value={"results": stations_missing_deal},
     ):
-        data = await coordinator._async_update_data()
+        data = await coordinator._async_update_data()  # noqa: SLF001
     assert data["station_id"] == "222"
 
 
@@ -1040,26 +1040,28 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
         repeat=True,
     )
 
-    config = {
+    sub_data = {
         CONF_NAME: "Gas Station",
         CONF_STATION_ID: "999001",
-    }
-    options = {
         CONF_INTERVAL: 3600,
         CONF_UOM: True,
         CONF_GPS: True,
         CONF_FETCH_GAS: True,
         CONF_SHOW_DISCOUNTED: False,
+    }
+    sub = _make_station_subentry(
+        data=sub_data,
+        title="Gas Station",
+        unique_id="999001",
+        subentry_id="test_subentry_id",
+    )
+    hub_data = {
+        CONF_NAME: "GasBuddy Hub",
+        CONF_SOLVER: "",
+        CONF_TIMEOUT: DEFAULT_TIMEOUT,
         CONF_BRAND_ADJUSTMENTS: {"brand_cheap": -0.10},
     }
-
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Gas Station",
-        data={**config, "old_entry_id": "999001"},
-        options=options,
-        version=9,
-    )
+    entry = _make_hub_entry(hass, hub_data=hub_data, subentries=[sub])
     entry.add_to_hass(hass)
 
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -1073,12 +1075,13 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     assert state.attributes.get("discounted_price") == 2.90
 
     # 2. Test with show_discounted=True
-    # Update options to enable show_discounted
-    options_discounted = {
-        **options,
-        CONF_SHOW_DISCOUNTED: True,
-    }
-    hass.config_entries.async_update_entry(entry, options=options_discounted)
+    # Update subentry to enable show_discounted
+    sub = next(iter(entry.subentries.values()))
+    hass.config_entries.async_update_subentry(
+        entry,
+        sub,
+        data={**sub.data, CONF_SHOW_DISCOUNTED: True},
+    )
     await hass.async_block_till_done()
 
     # The regular gas state should now show the discounted price (2.90)
@@ -1135,23 +1138,28 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
         repeat=True,
     )
 
-    options_cad = {
-        **options,
+    sub_cad_data = {
+        CONF_NAME: "Gas Station CAD",
+        CONF_STATION_ID: "999002",
+        CONF_INTERVAL: 3600,
+        CONF_UOM: True,
+        CONF_GPS: True,
+        CONF_FETCH_GAS: True,
         CONF_SHOW_DISCOUNTED: True,
+    }
+    sub_cad = _make_station_subentry(
+        data=sub_cad_data,
+        title="Gas Station CAD",
+        unique_id="999002",
+        subentry_id="test_subentry_id_cad",
+    )
+    hub_cad_data = {
+        CONF_NAME: "GasBuddy Hub",
+        CONF_SOLVER: "",
+        CONF_TIMEOUT: DEFAULT_TIMEOUT,
         CONF_BRAND_ADJUSTMENTS: {"Brand Cheap": -5.0},  # Matching by name
     }
-    entry_cad = MockConfigEntry(
-        domain=DOMAIN,
-        title="Gas Station CAD",
-        data={
-            **config,
-            CONF_NAME: "Gas Station CAD",
-            CONF_STATION_ID: "999002",
-            "old_entry_id": "999002",
-        },
-        options=options_cad,
-        version=9,
-    )
+    entry_cad = _make_hub_entry(hass, hub_data=hub_cad_data, subentries=[sub_cad])
     entry_cad.add_to_hass(hass)
 
     assert await hass.config_entries.async_setup(entry_cad.entry_id)
@@ -1172,8 +1180,10 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     coordinator.data = original_data
 
 
-async def test_sensor_device_no_via_device(hass, mock_gasbuddy):
-    """Test that station sensor device registry entry is standalone and does not link to a virtual hub device."""
+async def test_sensor_device_via_device(hass, mock_gasbuddy):
+    """Test that station sensor device registry entry is nested under a virtual hub device."""
+    from homeassistant.helpers import device_registry as dr  # noqa: PLC0415
+
     hub_entry = MockConfigEntry(
         domain=DOMAIN,
         title="Custom GasBuddy Hub Name",
@@ -1205,6 +1215,16 @@ async def test_sensor_device_no_via_device(hass, mock_gasbuddy):
     sensor = GasBuddySensor(description, coordinator, station_entry)
 
     assert sensor.device_info["via_device"] == (DOMAIN, "hub")
+
+    # Retrieve actual device registry entries
+    device_registry = dr.async_get(hass)
+    station_device = device_registry.async_get_device(identifiers={(DOMAIN, "test_subentry_id")})
+    assert station_device is not None
+
+    hub_device = device_registry.async_get_device(identifiers={(DOMAIN, "hub")})
+    assert hub_device is not None
+
+    assert station_device.via_device_id == hub_device.id
 
 
 async def test_sensor_setup_skips_subentry_without_coordinator(hass, mock_gasbuddy):
@@ -1253,4 +1273,4 @@ async def test_get_setting_falls_back_to_config_data(hass, mock_gasbuddy):
     sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, entry, sub)
 
     # CONF_SOLVER is in config.data, not in options (empty) and not in subentry data
-    assert sensor._get_setting(CONF_SOLVER) == "http://hub-solver:8191"
+    assert sensor._get_setting(CONF_SOLVER) == "http://hub-solver:8191"  # noqa: SLF001

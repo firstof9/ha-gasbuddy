@@ -149,7 +149,15 @@ async def test_coordinator_uses_hub_settings(hass, mock_gasbuddy):
 
     assert coordinator._get_hub_setting(CONF_SOLVER) == "http://my-solver:8191"
     assert coordinator._get_hub_setting(CONF_TIMEOUT) == 30000
+
     # Falsy-value regression: CONF_TIMEOUT=0 must return 0, not fall back to default
+    hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_TIMEOUT: 0})
+    await hass.async_block_till_done()
+
+    coordinators = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = next(iter(coordinators.values()))
+    assert coordinator._get_hub_setting(CONF_TIMEOUT) == 0
+
     assert coordinator._get_hub_setting("nonexistent_key", "fallback") == "fallback"
 
 
@@ -333,12 +341,14 @@ async def test_legacy_migration_failure_preserves_station_settings(hass, mock_ga
     # Patch async_update_entry to fail — this simulates a transient HA error during hub data commit
     original_update = hass.config_entries.async_update_entry
     call_count = 0
+    hub_update_called = False
 
     def fail_update_entry(entry, **kwargs):
-        nonlocal call_count
+        nonlocal call_count, hub_update_called
         call_count += 1
         # Fail only the hub data update (not subentry metadata updates)
         if entry.entry_id == hub_entry.entry_id and "data" in kwargs:
+            hub_update_called = True
             raise RuntimeError("Simulated hub update failure")
         return original_update(entry, **kwargs)
 
@@ -348,6 +358,8 @@ async def test_legacy_migration_failure_preserves_station_settings(hass, mock_ga
     ):
         await _async_migrate_legacy_entries(hass, hub_entry)
     await hass.async_block_till_done()
+
+    assert hub_update_called is True
 
     # Station entry should still have its original settings (async_remove never ran)
     preserved_station = hass.config_entries.async_get_entry(failure_station.entry_id)
