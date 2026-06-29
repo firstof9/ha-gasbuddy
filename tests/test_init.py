@@ -690,6 +690,23 @@ async def test_entity_only_orphan_cleanup(hass, mock_gasbuddy):
     assert ent_reg.async_get(stale_entity.entity_id) is None
 
 
+async def test_setup_ignores_hub_subentry(hass, mock_gasbuddy, caplog):
+    """Test that a subentry with unique_id or subentry_id 'hub' is ignored during setup."""
+    sub_real = _make_station_subentry(unique_id="999001", subentry_id="test_subentry_id")
+    sub_hub = _make_station_subentry(unique_id="hub", subentry_id="hub")
+
+    entry = _make_hub_entry(hass, subentries=[sub_real, sub_hub])
+    entry.add_to_hass(hass)
+
+    import logging  # noqa: PLC0415
+
+    with caplog.at_level(logging.WARNING):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert "Ignoring invalid station subentry: hub" in caplog.text
+
+
 async def test_coordinators_dict_empty():
     """Test CoordinatorsDict behavior when empty (covers lines 406 and 422 in const.py)."""
     empty_dict = CoordinatorsDict()

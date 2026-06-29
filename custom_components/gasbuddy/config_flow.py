@@ -137,6 +137,9 @@ async def validate_station(
     lon: float | None = None,
 ) -> dict[str, Any] | bool:
     """Validate station ID."""
+    if str(station).strip().lower() == "hub":
+        raise InvalidStation("Station ID cannot be 'hub'")
+
     price_error = None
     gb = py_gasbuddy.GasBuddy(
         solver_url=solver,

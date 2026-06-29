@@ -274,6 +274,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     for subentry in config_entry.subentries.values():
         if subentry.subentry_type != "station":
             continue
+        if subentry.unique_id == "hub" or subentry.subentry_id == "hub":
+            _LOGGER.warning("Ignoring invalid station subentry: %s", subentry.subentry_id)
+            continue
 
         coordinator = GasBuddyUpdateCoordinator(hass, config_entry, subentry)
         await coordinator.async_config_entry_first_refresh()

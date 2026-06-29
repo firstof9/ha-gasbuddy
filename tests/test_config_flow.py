@@ -1117,6 +1117,10 @@ async def test_validate_station_success_and_collision(hass):
         res = await validate_station(hass, 999001)
         assert res == {"type": "gas", "latitude": 40.0, "longitude": -80.0}
 
+    # Station ID cannot be 'hub'
+    with pytest.raises(InvalidStation, match="Station ID cannot be 'hub'"):
+        await validate_station(hass, "hub")
+
     # Station ID collision check (distance > 1.0)
     with (
         patch(
