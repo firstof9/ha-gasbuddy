@@ -718,3 +718,73 @@ async def test_coordinators_dict_empty():
         AttributeError, match="'CoordinatorsDict' object has no attribute 'some_attribute'"
     ):
         _ = empty_dict.some_attribute
+
+
+async def test_legacy_migration_entry_exception_skipped(hass, mock_gasbuddy, caplog):
+    """Test migration loop skips a bad legacy entry and continues with remaining stations.
+
+    Covers __init__.py lines 154-155: the except-block in _async_migrate_legacy_entries
+    that logs a warning and moves on when a single station fails to build its subentry.
+    """
+    from unittest.mock import patch  # noqa: PLC0415
+
+    from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
+    from homeassistant.config_entries import ConfigSubentry  # noqa: PLC0415
+
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="GasBuddy Hub",
+        unique_id="hub",
+        data={},
+        options={},
+        version=CONFIG_VER,
+    )
+    hub_entry.add_to_hass(hass)
+
+    # First legacy entry — will fail during subentry construction.
+    bad_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Bad Station",
+        data={"name": "Bad Station", "station_id": 111001},
+        version=CONFIG_VER,
+        unique_id="legacy_bad",
+    )
+    bad_entry.add_to_hass(hass)
+
+    # Second legacy entry — should migrate successfully despite bad_entry failing.
+    good_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Good Station",
+        data={"name": "Good Station", "station_id": 111002},
+        version=CONFIG_VER,
+        unique_id="legacy_good",
+    )
+    good_entry.add_to_hass(hass)
+
+    call_count = 0
+    original_subentry_init = ConfigSubentry.__init__
+
+    def _patched_subentry_init(self, *args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        # Raise on the first ConfigSubentry construction (bad_entry), succeed on the second.
+        if call_count == 1:
+            raise ValueError("Simulated corrupt subentry data")
+        return original_subentry_init(self, *args, **kwargs)
+
+    import logging  # noqa: PLC0415
+
+    with (
+        patch.object(ConfigSubentry, "__init__", _patched_subentry_init),
+        caplog.at_level(logging.WARNING),
+    ):
+        await _async_migrate_legacy_entries(hass, hub_entry)
+    await hass.async_block_till_done()
+
+    # The warning must mention the failing entry.
+    assert "Migration failed for legacy entry" in caplog.text
+
+    # The good entry must have been migrated as a subentry.
+    updated_hub = hass.config_entries.async_get_entry(hub_entry.entry_id)
+    sub_unique_ids = {sub.unique_id for sub in updated_hub.subentries.values()}
+    assert "111002" in sub_unique_ids

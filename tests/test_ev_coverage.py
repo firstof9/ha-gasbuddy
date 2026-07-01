@@ -872,3 +872,66 @@ async def test_coordinator_fallback_omits_unit_when_unknown(hass):
 async def test_coordinator_lon_delta(a, b, expected):
     """Coordinator longitude delta wraps across the antimeridian."""
     assert _lon_delta(a, b) == pytest.approx(expected)
+
+
+async def test_coordinator_api_error_no_ev_raises_update_failed(hass):
+    """APIError on price_lookup with EV charging disabled raises UpdateFailed immediately.
+
+    Covers coordinator.py line 264: the else-branch that raises UpdateFailed when
+    ev_charging is False and price_lookup fails with APIError/LibraryError.
+    """
+    from py_gasbuddy.exceptions import LibraryError  # noqa: PLC0415
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "999001",
+            CONF_NAME: "Gas Only Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={CONF_EV_CHARGING: False, CONF_FETCH_GAS: True},
+    )
+    entry.add_to_hass(hass)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    mock_api.price_lookup = AsyncMock(side_effect=LibraryError("API gone"))
+    coordinator._api = mock_api
+
+    with pytest.raises(UpdateFailed, match="Error retrieving data"):
+        await coordinator._async_update_data()
+
+
+async def test_coordinator_unexpected_exception_raises_update_failed(hass, caplog):
+    """An unexpected non-APIError exception from price_lookup is caught and re-raised as UpdateFailed.
+
+    Covers coordinator.py lines 265-267: the outer except-Exception block that logs
+    a warning and wraps arbitrary exceptions in UpdateFailed.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_STATION_ID: "999001",
+            CONF_NAME: "Gas Station",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+        },
+        options={CONF_EV_CHARGING: False, CONF_FETCH_GAS: True},
+    )
+    entry.add_to_hass(hass)
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+
+    mock_api = MagicMock()
+    # RuntimeError is not caught by the inner (APIError, LibraryError, CSRFTokenMissing) handler,
+    # so it bubbles to the outer `except Exception as exception` block on line 265.
+    mock_api.price_lookup = AsyncMock(side_effect=RuntimeError("unexpected boom"))
+    coordinator._api = mock_api
+
+    import logging  # noqa: PLC0415
+
+    with (
+        pytest.raises(UpdateFailed),
+        caplog.at_level(logging.WARNING),
+    ):
+        await coordinator._async_update_data()
+
+    assert "Unexpected error updating gasbuddy" in caplog.text
