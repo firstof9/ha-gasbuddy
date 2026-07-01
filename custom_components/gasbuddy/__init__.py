@@ -129,27 +129,34 @@ async def _async_migrate_legacy_entries(hass: HomeAssistant, hub_entry: ConfigEn
             brand_adjustments.update(legacy_brand_adj)
             updated_hub_data[CONF_BRAND_ADJUSTMENTS] = brand_adjustments
 
-        subentry_data = _build_subentry_data_from_entry(entry)
-        station_name = entry.data.get(CONF_NAME, entry.title or "Gas Station")
+        try:
+            subentry_data = _build_subentry_data_from_entry(entry)
+            station_name = entry.data.get(CONF_NAME, entry.title or "Gas Station")
 
-        subentry = ConfigSubentry(
-            data=MappingProxyType(subentry_data),
-            subentry_type="station",
-            title=station_name,
-            unique_id=str(entry.data.get(CONF_STATION_ID, entry.unique_id)),
-        )
+            subentry = ConfigSubentry(
+                data=MappingProxyType(subentry_data),
+                subentry_type="station",
+                title=station_name,
+                unique_id=str(entry.data.get(CONF_STATION_ID, entry.unique_id)),
+            )
 
-        if subentry.unique_id in {sub.unique_id for sub in hub_entry.subentries.values()}:
-            continue
+            if subentry.unique_id in {sub.unique_id for sub in hub_entry.subentries.values()}:
+                continue
 
-        hass.config_entries.async_add_subentry(hub_entry, subentry)
-        _LOGGER.info(
-            "Migrated station '%s' (entry %s) to subentry %s",
-            station_name,
-            entry.entry_id,
-            subentry.subentry_id,
-        )
-        entries_to_remove.append(entry.entry_id)
+            hass.config_entries.async_add_subentry(hub_entry, subentry)
+            _LOGGER.info(
+                "Migrated station '%s' (entry %s) to subentry %s",
+                station_name,
+                entry.entry_id,
+                subentry.subentry_id,
+            )
+            entries_to_remove.append(entry.entry_id)
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning(
+                "Migration failed for legacy entry %s (station: %s); skipping",
+                entry.entry_id,
+                entry.data.get(CONF_NAME, entry.unique_id),
+            )
 
     if updated_hub_data:
         hass.config_entries.async_update_entry(
