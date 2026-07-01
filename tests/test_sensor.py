@@ -22,6 +22,7 @@ from custom_components.gasbuddy.const import (
     CONF_POSTAL,
     CONF_PRICE_TYPE,
     CONF_SHOW_DISCOUNTED,
+    CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
@@ -42,12 +43,14 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
+from tests.conftest import _make_hub_entry, _make_station_subentry
 
 from .const import (
     CONFIG_DATA,
     CONFIG_DATA_CHEAPEST,
     CONFIG_DATA_NO_UOM,
     COORDINATOR_DATA,
+    HUB_DATA,
     OPTIONS_CHEAPEST,
     OPTIONS_NO_UOM,
 )
@@ -1037,26 +1040,28 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
         repeat=True,
     )
 
-    config = {
+    sub_data = {
         CONF_NAME: "Gas Station",
         CONF_STATION_ID: "999001",
-    }
-    options = {
         CONF_INTERVAL: 3600,
         CONF_UOM: True,
         CONF_GPS: True,
         CONF_FETCH_GAS: True,
         CONF_SHOW_DISCOUNTED: False,
+    }
+    sub = _make_station_subentry(
+        data=sub_data,
+        title="Gas Station",
+        unique_id="999001",
+        subentry_id="test_subentry_id",
+    )
+    hub_data = {
+        CONF_NAME: "GasBuddy Hub",
+        CONF_SOLVER: "",
+        CONF_TIMEOUT: DEFAULT_TIMEOUT,
         CONF_BRAND_ADJUSTMENTS: {"brand_cheap": -0.10},
     }
-
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Gas Station",
-        data=config,
-        options=options,
-        version=9,
-    )
+    entry = _make_hub_entry(hass, hub_data=hub_data, subentries=[sub])
     entry.add_to_hass(hass)
 
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -1070,12 +1075,13 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     assert state.attributes.get("discounted_price") == 2.90
 
     # 2. Test with show_discounted=True
-    # Update options to enable show_discounted
-    options_discounted = {
-        **options,
-        CONF_SHOW_DISCOUNTED: True,
-    }
-    hass.config_entries.async_update_entry(entry, options=options_discounted)
+    # Update subentry to enable show_discounted
+    sub = next(iter(entry.subentries.values()))
+    hass.config_entries.async_update_subentry(
+        entry,
+        sub,
+        data={**sub.data, CONF_SHOW_DISCOUNTED: True},
+    )
     await hass.async_block_till_done()
 
     # The regular gas state should now show the discounted price (2.90)
@@ -1132,18 +1138,28 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
         repeat=True,
     )
 
-    options_cad = {
-        **options,
+    sub_cad_data = {
+        CONF_NAME: "Gas Station CAD",
+        CONF_STATION_ID: "999002",
+        CONF_INTERVAL: 3600,
+        CONF_UOM: True,
+        CONF_GPS: True,
+        CONF_FETCH_GAS: True,
         CONF_SHOW_DISCOUNTED: True,
+    }
+    sub_cad = _make_station_subentry(
+        data=sub_cad_data,
+        title="Gas Station CAD",
+        unique_id="999002",
+        subentry_id="test_subentry_id_cad",
+    )
+    hub_cad_data = {
+        CONF_NAME: "GasBuddy Hub",
+        CONF_SOLVER: "",
+        CONF_TIMEOUT: DEFAULT_TIMEOUT,
         CONF_BRAND_ADJUSTMENTS: {"Brand Cheap": -5.0},  # Matching by name
     }
-    entry_cad = MockConfigEntry(
-        domain=DOMAIN,
-        title="Gas Station CAD",
-        data={**config, CONF_NAME: "Gas Station CAD", CONF_STATION_ID: "999002"},
-        options=options_cad,
-        version=9,
-    )
+    entry_cad = _make_hub_entry(hass, hub_data=hub_cad_data, subentries=[sub_cad])
     entry_cad.add_to_hass(hass)
 
     assert await hass.config_entries.async_setup(entry_cad.entry_id)
@@ -1162,3 +1178,104 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     coordinator.data = None
     assert coordinator.get_brand_adjustment(None) == 0.0
     coordinator.data = original_data
+
+
+async def test_sensor_device_via_device(hass, mock_gasbuddy):
+    """Test that station sensor device registry entry is nested under a virtual hub device."""
+    from homeassistant.helpers import device_registry as dr  # noqa: PLC0415
+
+    hub_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Custom GasBuddy Hub Name",
+        unique_id="hub",
+        data={CONF_NAME: "Custom GasBuddy Hub Name"},
+        options={},
+        version=9,
+    )
+    hub_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(hub_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Now setup the station
+    station_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+        options={},
+        version=9,
+    )
+    station_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(station_entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Retrieve coordinator and sensors
+    coordinator = hass.data[DOMAIN][station_entry.entry_id][COORDINATOR]
+
+    description = SENSOR_TYPES["regular_gas"]
+    sensor = GasBuddySensor(description, coordinator, station_entry)
+
+    assert sensor.device_info["via_device"] == (DOMAIN, "hub")
+
+    # Retrieve actual device registry entries
+    device_registry = dr.async_get(hass)
+    station_device = device_registry.async_get_device(identifiers={(DOMAIN, "test_subentry_id")})
+    assert station_device is not None
+
+    hub_device = device_registry.async_get_device(identifiers={(DOMAIN, "hub")})
+    assert hub_device is not None
+
+    assert station_device.via_device_id == hub_device.id
+
+
+async def test_sensor_setup_skips_subentry_without_coordinator(hass, mock_gasbuddy):
+    """Test that async_setup_entry skips subentries that have no coordinator (sensor.py L52)."""
+
+    # Build a hub entry with one station subentry
+    sub = _make_station_subentry(subentry_id="orphan_sub", unique_id="999099")
+    entry = _make_hub_entry(hass, subentries=[sub])
+
+    # Set up the integration, but then zero out the coordinator dict before the sensor
+    # platform is registered so the subentry has no coordinator
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Clear the coordinator dict and re-trigger sensor platform setup directly
+    from custom_components.gasbuddy.const import COORDINATOR  # noqa: PLC0415
+    from custom_components.gasbuddy.sensor import async_setup_entry  # noqa: PLC0415
+
+    hass.data[DOMAIN][entry.entry_id][COORDINATOR] = {}  # empty — no coordinators
+
+    sensors_added = []
+
+    async def mock_add(entities, update_before_add=False, config_subentry_id=None):
+        sensors_added.extend(entities)
+
+    await async_setup_entry(hass, entry, mock_add)
+
+    # Since coordinator dict is empty, the subentry is skipped — no sensors added
+    assert len(sensors_added) == 0
+
+
+async def test_get_setting_falls_back_to_config_data(hass, mock_gasbuddy):
+    """Test _get_setting returns value from config.data when not in options or subentry data (sensor.py L146)."""
+
+    from custom_components.gasbuddy.const import CONF_SOLVER, COORDINATOR  # noqa: PLC0415
+
+    for solver_value in ("http://hub-solver:8191", ""):
+        # Hub with CONF_SOLVER in data but not in options or subentry data
+        hub_data = {**HUB_DATA, CONF_SOLVER: solver_value}
+        sub = _make_station_subentry()
+        entry = _make_hub_entry(hass, hub_data=hub_data, subentries=[sub])
+
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        coordinator = next(iter(hass.data[DOMAIN][entry.entry_id][COORDINATOR].values()))
+        sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, entry, sub)
+
+        # CONF_SOLVER is in config.data, not in options (empty) and not in subentry data
+        assert sensor._get_setting(CONF_SOLVER) == solver_value  # noqa: SLF001
+
+        # Clean up for the next loop iteration
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()

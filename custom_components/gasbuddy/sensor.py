@@ -7,9 +7,10 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util.dt import as_utc, parse_datetime
 
@@ -34,70 +35,92 @@ from .entity import GasBuddySensorEntityDescription
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(
+    hass, entry: ConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
+):
     """Set up the GasBuddy sensors."""
-    coordinator: GasBuddyUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    ev_charging = entry.options.get(CONF_EV_CHARGING, False)
-    fetch_gas = entry.options.get(CONF_FETCH_GAS, True)
+    coordinators: dict[str, GasBuddyUpdateCoordinator] = hass.data[DOMAIN][entry.entry_id][
+        COORDINATOR
+    ]
 
-    data = coordinator.data or {}
-    fuels_available: set[str] = set()
-    for fk in FUEL_KEY_CHOICES:
-        if fk in data:
-            fuels_available.add(fk)
-    if isinstance(data.get("fuels"), list):
-        fuels_available.update(data["fuels"])
-
-    sensors = []
-    for sensor_type, description in SENSOR_TYPES.items():
-        if sensor_type.startswith("ev_") and not ev_charging:
-            continue
-        if (
-            not sensor_type.startswith("ev_")
-            and sensor_type not in {"last_updated", "open_status", "station_name"}
-            and not fetch_gas
-        ):
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type != "station":
             continue
 
-        enabled = description.entity_registry_enabled_default
-        fuel_key = description.key
+        coordinator = coordinators.get(subentry.subentry_id)
+        if coordinator is None:
+            continue
 
-        if fuel_key in FUEL_KEY_CHOICES and data:
-            if description.deal:
-                enabled = (
-                    fuel_key in fuels_available
-                    and (data.get(fuel_key) or {}).get("deal_price") is not None
-                )
-            elif description.cash:
-                enabled = (
-                    fuel_key in fuels_available
-                    and (data.get(fuel_key) or {}).get("cash_price") is not None
-                )
-            else:
-                enabled = fuel_key in fuels_available
+        ev_charging = subentry.data.get(CONF_EV_CHARGING, False)
+        fetch_gas = subentry.data.get(CONF_FETCH_GAS, True)
 
-        mod_desc = dataclasses.replace(description, entity_registry_enabled_default=enabled)
-        sensors.append(GasBuddySensor(mod_desc, coordinator, entry))
+        data = coordinator.data or {}
+        fuels_available: set[str] = set()
+        for fk in FUEL_KEY_CHOICES:
+            if fk in data:
+                fuels_available.add(fk)
+        if isinstance(data.get("fuels"), list):
+            fuels_available.update(data["fuels"])
 
-    async_add_entities(sensors, False)
+        sensors = []
+        for sensor_type, description in SENSOR_TYPES.items():
+            if sensor_type.startswith("ev_") and not ev_charging:
+                continue
+            if (
+                not sensor_type.startswith("ev_")
+                and sensor_type not in {"last_updated", "open_status", "station_name"}
+                and not fetch_gas
+            ):
+                continue
+
+            enabled = description.entity_registry_enabled_default
+            fuel_key = description.key
+
+            if fuel_key in FUEL_KEY_CHOICES and data:
+                if description.deal:
+                    enabled = (
+                        fuel_key in fuels_available
+                        and (data.get(fuel_key) or {}).get("deal_price") is not None
+                    )
+                elif description.cash:
+                    enabled = (
+                        fuel_key in fuels_available
+                        and (data.get(fuel_key) or {}).get("cash_price") is not None
+                    )
+                else:
+                    enabled = fuel_key in fuels_available
+
+            mod_desc = dataclasses.replace(description, entity_registry_enabled_default=enabled)
+            sensors.append(GasBuddySensor(mod_desc, coordinator, entry, subentry))
+
+        async_add_entities(sensors, False, config_subentry_id=subentry.subentry_id)
 
 
 class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-many-instance-attributes
     """Implementation of a GasBuddy sensor."""
+
+    coordinator: GasBuddyUpdateCoordinator
 
     def __init__(
         self,
         sensor_description: GasBuddySensorEntityDescription,
         coordinator: GasBuddyUpdateCoordinator,
         config: ConfigEntry,
+        subentry: ConfigSubentry | None = None,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._config = config
+        if subentry is None and config.subentries:
+            subentry = next(iter(config.subentries.values()))
+        assert subentry is not None
+        self._subentry: ConfigSubentry = subentry
         self.entity_description = sensor_description
         self._name = sensor_description.name
         self._type = sensor_description.key
-        self._unique_id = config.entry_id
+        # Use old_entry_id for unique_id continuity with migrated entries
+        old_entry_id = subentry.data.get("old_entry_id")
+        self._unique_id = old_entry_id if old_entry_id is not None else subentry.subentry_id
         self._data = coordinator.data
         self.coordinator = coordinator
         self._state = None
@@ -106,23 +129,31 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         self._price = sensor_description.price
 
         self._attr_icon = sensor_description.icon
-        self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
+        self._attr_name = f"{self._subentry.data.get(CONF_NAME, subentry.title)} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
+
+    def _get_setting(self, key: str, default: Any = None) -> Any:
+        """Get a setting from the subentry, falling back to the hub options/data."""
+        if (
+            self._config.options
+            and key in self._config.options
+            and self._config.options[key] is not None
+        ):
+            return self._config.options[key]
+        if self._subentry and key in self._subentry.data and self._subentry.data[key] is not None:
+            return self._subentry.data[key]
+        if self._config.data and key in self._config.data and self._config.data[key] is not None:
+            return self._config.data[key]
+        return default
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return a port description for device registry."""
         return DeviceInfo(
             manufacturer="GasBuddy",
-            name=self._config.data[CONF_NAME],
-            # `identifiers` is the correct field for application-defined
-            # device keys; `connections` is reserved for hardware
-            # connection tuples (mac/bluetooth/etc.). The `connections`
-            # entry below is kept for one release so existing
-            # installations keep matching their already-registered
-            # device entry; it can be removed once users have migrated.
+            name=self._subentry.data.get(CONF_NAME, self._subentry.title),
             identifiers={(DOMAIN, self._unique_id)},
-            connections={(DOMAIN, self._unique_id)},
+            via_device=(DOMAIN, "hub"),
         )
 
     @property
@@ -156,7 +187,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
 
         adjustment = self.coordinator.get_brand_adjustment()
         display_price = price
-        if self._config.options.get(CONF_SHOW_DISCOUNTED, False):
+        if self._get_setting(CONF_SHOW_DISCOUNTED, False):
             display_price = price + adjustment
 
         if data.get("unit_of_measure") == "cents_per_liter":
@@ -176,7 +207,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         uom = data.get("unit_of_measure")
         currency = data.get("currency")
 
-        if self._config.options.get(CONF_UOM):
+        if self._get_setting(CONF_UOM):
             if uom is not None and currency is not None:
                 return f"{currency}/{UNIT_OF_MEASURE.get(uom, uom)}"
         elif currency is not None:
@@ -209,7 +240,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
                 attrs["pricing"] = data.get("ev_pricing")
             if data.get("ev_access_hours") is not None:
                 attrs["access_hours"] = data.get("ev_access_hours")
-            if self._config.options.get(CONF_GPS):
+            if self._get_setting(CONF_GPS):
                 attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
                 attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
             return attrs
@@ -238,7 +269,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         if amenities := data.get("amenities"):
             attrs["amenities"] = ", ".join(a["name"] for a in amenities if a.get("name"))
 
-        if self._config.options.get(CONF_GPS):
+        if self._get_setting(CONF_GPS):
             attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
             attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
 

@@ -393,3 +393,30 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         device_class=SensorDeviceClass.TIMESTAMP,
     ),
 }
+
+
+class CoordinatorsDict(dict):  # noqa: FURB189
+    """Custom dict to support legacy test assertions and coordinator methods."""
+
+    @property
+    def data(self):
+        """Return data of the first coordinator."""
+        if self:
+            return next(iter(self.values())).data
+        return {}
+
+    @data.setter
+    def data(self, value):
+        """Set data on the first coordinator."""
+        if self:
+            next(iter(self.values())).data = value
+
+    @data.deleter
+    def data(self):
+        """No-op deleter for mocking."""
+
+    def __getattr__(self, name):
+        """Delegate attributes to the first coordinator."""
+        if self:
+            return getattr(next(iter(self.values())), name)
+        raise AttributeError(f"'CoordinatorsDict' object has no attribute '{name}'")

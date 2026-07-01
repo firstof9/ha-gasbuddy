@@ -1,101 +1,19 @@
 {
     "config": {
         "abort": {
-            "reconfigure_successful": "Reconfiguration réussie"
+            "single_instance_allowed": "Un seul concentrateur virtuel GasBuddy est autorisé."
         },
         "error": {
-            "station_id": "ID de station invalide",
-            "no_results": "Aucune station trouvée dans cette zone.",
-            "invalid_url": "URL non valide.",
-            "cloudflare": "Impossible d'obtenir un jeton CSRF auprès de GasBuddy (Cloudflare bloque les requêtes). Configurez une URL FlareSolverr dans le champ optionnel et réessayez."
+            "invalid_url": "URL non valide."
         },
         "step": {
             "user": {
-                "description": "Veuillez sélectionner soit l'ID de station manuel, soit rechercher une station.",
-                "menu_options": {
-                    "manual": "Saisir manuellement l'ID de la station",
-                    "search": "Rechercher une station à proximité",
-                    "cheapest": "Suivre le carburant le moins cher à proximité"
-                }
-            },
-            "manual": {
-                "description": "Veuillez saisir l'ID de la station",
-                "data": {
-                    "solver": "URL FlareSolverr (optionnel)",
-                    "timeout": "Délai d'attente FlareSolverr (ms)",
-                    "station_id": "Identifiant de la station"
-                }
-            },
-            "search": {
-                "description": "Recherchez par votre position GPS configurée ou par code postal",
-                "menu_options": {
-                    "home": "Utiliser les coordonnées configurées par Home Assistant",
-                    "postal": "Utiliser le code postal"
-                }
-            },
-            "home": {
-                "description": "Veuillez sélectionner une station",
-                "data": {
-                    "solver": "URL FlareSolverr (optionnel)",
-                    "timeout": "Délai d'attente FlareSolverr (ms)",
-                    "station_id": "Station"
-                }
-            },
-            "postal": {
-                "description": "Veuillez entrer un code postal",
-                "data": {
-                    "solver": "URL FlareSolverr (optionnel)",
-                    "timeout": "Délai d'attente FlareSolverr (ms)",
-                    "zipcode": "Code postal"
-                }
-            },
-            "station_list": {
-                "description": "Veuillez sélectionner une station",
-                "data": {
-                    "station_id": "Station"
-                }
-            },
-            "cheapest": {
-                "description": "Suivez la station-service la moins chère à proximité. Utilise vos coordonnées domicile ou un code postal. À chaque actualisation, le coordinateur réévalue et met à jour la station la moins chère du moment.",
+                "description": "Configurez le Hub Virtuel pour gérer les paramètres globalement sur toutes les stations. Les ajustements de prix de la marque sont saisis au format YAML.",
                 "data": {
                     "name": "Nom",
-                    "zipcode": "Code postal (optionnel — laisser vide pour utiliser les coordonnées HA)",
-                    "fuel_key": "Type de carburant",
-                    "price_type": "Type de prix",
-                    "solver": "URL FlareSolverr (optionnel)",
-                    "timeout": "Délai d'attente FlareSolverr (ms)"
-                }
-            },
-            "reconfigure": {
-                "description": "Veuillez entrer l'identifiant de la station",
-                "data": {
                     "solver": "URL FlareSolverr (optionnel)",
                     "timeout": "Délai d'attente FlareSolverr (ms)",
-                    "station_id": "Identifiant de la station",
-                    "name": "Nom",
-                    "zipcode": "Code postal (optionnel — laisser vide pour utiliser les coordonnées HA)",
-                    "fuel_key": "Type de carburant",
-                    "price_type": "Type de prix"
-                }
-            },
-            "cheapest_filters": {
-                "description": "Configurez les filtres de marques et de stations pour limiter les stations suivies. Consultez la [documentation]({brand_adjustments_url}) pour des exemples d'ajustements de prix par marque.",
-                "data": {
-                    "exclude_brands": "Marques exclues",
-                    "include_brands": "Marques incluses",
-                    "exclude_stations": "Stations exclues",
-                    "include_stations": "Stations incluses",
-                    "brand_adjustments": "Ajustements de prix des marques"
-                }
-            },
-            "reconfigure_cheapest_filters": {
-                "description": "Configurez les filtres de marques et de stations pour limiter les stations suivies. Consultez la [documentation]({brand_adjustments_url}) pour des exemples d'ajustements de prix par marque.",
-                "data": {
-                    "exclude_brands": "Marques exclues",
-                    "include_brands": "Marques incluses",
-                    "exclude_stations": "Stations exclues",
-                    "include_stations": "Stations incluses",
-                    "brand_adjustments": "Ajustements de prix des marques"
+                    "brand_adjustments": "Ajustements de prix de la marque"
                 }
             }
         }
@@ -103,15 +21,12 @@
     "options": {
         "step": {
             "init": {
-                "description": "Configurez les options de GasBuddy. Consultez la [documentation]({brand_adjustments_url}) pour des exemples d'ajustement de prix des marques.",
+                "description": "Configurer les options du Hub Virtuel. Les ajustements de prix de la marque sont saisis au format YAML.",
                 "data": {
-                    "interval": "Intervalle d'interrogation",
-                    "uom": "Afficher par litre/gallon en unité de mesure",
-                    "gps": "Afficher les stations sur la carte (désactiver les attributs lat/long)",
-                    "ev_charging": "Activer les capteurs de recharge VE",
-                    "fetch_gas": "Récupérer les prix de l'essence",
-                    "show_discounted": "Afficher le prix réduit",
-                    "brand_adjustments": "Ajustements de prix des marques"
+                    "name": "Nom",
+                    "solver": "URL FlareSolverr (optionnel)",
+                    "timeout": "Délai d'attente FlareSolverr (ms)",
+                    "brand_adjustments": "Ajustements de prix de la marque"
                 }
             }
         }
@@ -123,6 +38,119 @@
                     "public": "Public",
                     "private": "Privé",
                     "none": "Aucun"
+                }
+            }
+        }
+    },
+    "config_subentries": {
+        "station": {
+            "title": "Station-service",
+            "entry_type": "Station-service",
+            "abort": {
+                "reconfigure_successful": "Reconfiguration réussie"
+            },
+            "error": {
+                "station_id": "ID de station invalide",
+                "no_results": "Aucune station trouvée dans cette zone.",
+                "invalid_url": "URL non valide.",
+                "cloudflare": "Impossible d'obtenir un jeton CSRF auprès de GasBuddy (Cloudflare bloque les requêtes). Configurez une URL FlareSolverr dans le champ optionnel et réessayez.",
+                "invalid_postal": "Format de code postal invalide (code postal américain ou canadien)."
+            },
+            "initiate_flow": {
+                "reconfigure": "Reconfigurer la station-service",
+                "user": "Ajouter une station-service"
+            },
+            "step": {
+                "user": {
+                    "description": "Veuillez sélectionner soit l'ID de station manuel, soit rechercher une station.",
+                    "menu_options": {
+                        "manual": "Saisir manuellement l'ID de la station",
+                        "search": "Rechercher une station à proximité",
+                        "cheapest": "Suivre le carburant le moins cher à proximité",
+                        "hub": "Configurer le Hub Virtuel (Paramètres globaux)"
+                    }
+                },
+                "manual": {
+                    "description": "Veuillez saisir l'ID de la station",
+                    "data": {
+                        "station_id": "Identifiant de la station",
+                        "name": "Nom"
+                    }
+                },
+                "search": {
+                    "description": "Recherchez par votre position GPS configurée ou par code postal",
+                    "menu_options": {
+                        "home": "Utiliser les coordonnées configurées par Home Assistant",
+                        "postal": "Utiliser le code postal"
+                    }
+                },
+                "home": {
+                    "description": "Veuillez sélectionner une station"
+                },
+                "home2": {
+                    "description": "Veuillez sélectionner une station",
+                    "data": {
+                        "station_id": "Station",
+                        "name": "Nom"
+                    }
+                },
+                "postal": {
+                    "description": "Veuillez entrer un code postal",
+                    "data": {
+                        "zipcode": "Code postal"
+                    }
+                },
+                "station_list": {
+                    "description": "Veuillez sélectionner une station",
+                    "data": {
+                        "station_id": "Station",
+                        "name": "Nom"
+                    }
+                },
+                "cheapest": {
+                    "description": "Suivez la station-service la moins chère à proximité. Utilise vos coordonnées domicile ou un code postal. À chaque actualisation, le coordinateur réévalue et met à jour la station la moins chère du moment.",
+                    "data": {
+                        "name": "Nom",
+                        "zipcode": "Code postal (optionnel — laisser vide pour utiliser les coordonnées HA)",
+                        "fuel_key": "Type de carburant",
+                        "price_type": "Type de prix"
+                    }
+                },
+                "cheapest_filters": {
+                    "description": "Configurez les filtres de marques et de stations pour limiter les stations suivies. Consultez la [documentation]({brand_adjustments_url}) pour des exemples d'ajustements de prix par marque.",
+                    "data": {
+                        "exclude_brands": "Marques exclues",
+                        "include_brands": "Marques incluses",
+                        "exclude_stations": "Stations exclues",
+                        "include_stations": "Stations incluses",
+                        "brand_adjustments": "Ajustements de prix des marques"
+                    }
+                },
+                "reconfigure": {
+                    "description": "Veuillez entrer l'identifiant de la station",
+                    "data": {
+                        "station_id": "Identifiant de la station",
+                        "name": "Nom"
+                    }
+                },
+                "reconfigure_cheapest_filters": {
+                    "description": "Configurez les filtres de marques et de stations pour limiter les stations suivies. Consultez la [documentation]({brand_adjustments_url}) pour des exemples d'ajustements de prix par marque.",
+                    "data": {
+                        "exclude_brands": "Marques exclues",
+                        "include_brands": "Marques incluses",
+                        "exclude_stations": "Stations exclues",
+                        "include_stations": "Stations incluses",
+                        "brand_adjustments": "Ajustements de prix des marques"
+                    }
+                },
+                "reconfigure_cheapest": {
+                    "description": "Suivez la station-service la moins chère à proximité. Utilise vos coordonnées domicile ou un code postal. À chaque actualisation, le coordinateur réévalue et met à jour la station la moins chère du moment.",
+                    "data": {
+                        "name": "Nom",
+                        "zipcode": "Code postal (optionnel — laisser vide pour utiliser les coordonnées HA)",
+                        "fuel_key": "Type de carburant",
+                        "price_type": "Type de prix"
+                    }
                 }
             }
         }

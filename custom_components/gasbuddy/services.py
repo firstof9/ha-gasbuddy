@@ -320,5 +320,12 @@ class GasBuddyServices:
             if not config_id:
                 raise ValueError(f"No config entry found for device {device_id}")
             _LOGGER.debug("Config ID: %s", config_id)
-            manager = self.hass.data[DOMAIN][config_id][COORDINATOR]
-            await manager.clear_cache()
+            if (
+                config_id not in self.hass.data.get(DOMAIN, {})
+                or COORDINATOR not in self.hass.data[DOMAIN][config_id]
+            ):
+                raise ValueError(f"No coordinator found for config entry {config_id}")
+            coordinators = self.hass.data[DOMAIN][config_id][COORDINATOR]
+            if coordinators:
+                coordinator = next(iter(coordinators.values()))
+                await coordinator.clear_cache()
