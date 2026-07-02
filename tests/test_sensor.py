@@ -1180,51 +1180,33 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     coordinator.data = original_data
 
 
-async def test_sensor_device_via_device(hass, mock_gasbuddy):
-    """Test that station sensor device registry entry is nested under a virtual hub device."""
+async def test_sensor_device_registered_under_hub_entry(hass, mock_gasbuddy):
+    """Test that station devices are registered under the hub config entry.
+
+    With the ConfigSubentry model, station devices are scoped to their subentry_id
+    and live under the hub config entry. No phantom hub device or via_device nesting
+    is created — HA groups them via the integration card natively.
+    """
     from homeassistant.helpers import device_registry as dr  # noqa: PLC0415
+    from tests.conftest import _make_hub_entry  # noqa: PLC0415
 
-    hub_entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Custom GasBuddy Hub Name",
-        unique_id="hub",
-        data={CONF_NAME: "Custom GasBuddy Hub Name"},
-        options={},
-        version=9,
-    )
-    hub_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(hub_entry.entry_id)
+    entry = _make_hub_entry(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    # Now setup the station
-    station_entry = MockConfigEntry(
-        domain=DOMAIN,
-        title="Gas Station",
-        data=CONFIG_DATA,
-        options={},
-        version=9,
-    )
-    station_entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(station_entry.entry_id)
-    await hass.async_block_till_done()
-
-    # Retrieve coordinator and sensors
-    coordinator = hass.data[DOMAIN][station_entry.entry_id][COORDINATOR]
-
-    description = SENSOR_TYPES["regular_gas"]
-    sensor = GasBuddySensor(description, coordinator, station_entry)
-
-    assert sensor.device_info["via_device"] == (DOMAIN, "hub")
-
-    # Retrieve actual device registry entries
     device_registry = dr.async_get(hass)
+
+    # Station device must exist, scoped to the subentry
     station_device = device_registry.async_get_device(identifiers={(DOMAIN, "test_subentry_id")})
     assert station_device is not None
+    assert station_device.manufacturer == "GasBuddy"
 
+    # No phantom hub device should exist
     hub_device = device_registry.async_get_device(identifiers={(DOMAIN, "hub")})
-    assert hub_device is not None
+    assert hub_device is None
 
-    assert station_device.via_device_id == hub_device.id
+    # Station device has no via_device parent
+    assert station_device.via_device_id is None
 
 
 async def test_sensor_setup_skips_subentry_without_coordinator(hass, mock_gasbuddy):

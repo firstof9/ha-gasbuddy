@@ -244,8 +244,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     for device_entry in dr.async_entries_for_config_entry(device_registry, config_entry.entry_id):
-        if device_entry.identifiers == {(DOMAIN, "hub")}:
-            continue
         subentry_ids = device_entry.config_entries_subentries.get(config_entry.entry_id)
         if subentry_ids and any(sub_id not in config_entry.subentries for sub_id in subentry_ids):
             _LOGGER.debug(
@@ -266,15 +264,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
                 entity_entry.config_subentry_id,
             )
             entity_registry.async_remove(entity_entry.entity_id)
-
-    # Ensure hub device exists
-    device_registry.async_get_or_create(
-        config_entry_id=config_entry.entry_id,
-        identifiers={(DOMAIN, "hub")},
-        name=config_entry.data.get(CONF_NAME, config_entry.title or "GasBuddy Hub"),
-        manufacturer="GasBuddy",
-        model="Virtual Hub",
-    )
 
     # Set up coordinators for each station subentry
     coordinators: dict[str, GasBuddyUpdateCoordinator] = {}
@@ -298,7 +287,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             identifiers={(DOMAIN, station_id)},
             name=subentry.title,
             manufacturer="GasBuddy",
-            via_device=(DOMAIN, "hub"),
         )
 
     hass.data[DOMAIN][config_entry.entry_id] = {
