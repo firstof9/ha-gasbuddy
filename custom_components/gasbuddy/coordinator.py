@@ -417,6 +417,16 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             )
         cheapest = min(finite, key=operator.itemgetter(1))[0]
         cheapest["last_updated"] = datetime.now(UTC)
+        if addr := cheapest.get("address"):
+            cheapest["station_address"] = ", ".join(
+                part
+                for part in (
+                    addr.get("line1", ""),
+                    addr.get("locality", ""),
+                    addr.get("region", ""),
+                )
+                if part
+            )
         _LOGGER.debug("Cheapest gas station: %s", _redact(cheapest))
         return cheapest
 

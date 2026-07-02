@@ -992,6 +992,86 @@ async def test_coordinator_cheapest_brand_adjustments_edge_cases(hass):
     assert data["station_id"] == "222"
 
 
+async def test_coordinator_cheapest_station_address(hass):
+    """Cheapest coordinator flattens the address dict into station_address.
+
+    Covers coordinator.py: the if-addr block in _async_update_cheapest that produces
+    a formatted station_address string from the raw address dict.
+    """
+    stations = [
+        {
+            "station_id": "400",
+            "name": "Address Station",
+            "address": {
+                "line1": "123 Main St",
+                "locality": "Springfield",
+                "region": "IL",
+                "postalCode": "62701",
+                "country": "US",
+            },
+            "regular_gas": {"price": 3.10, "cash_price": None, "deal_price": None},
+        }
+    ]
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=9
+    )
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data["station_address"] == "123 Main St, Springfield, IL"
+
+
+async def test_cheapest_station_address_sensor_state(hass, mock_gasbuddy_cheapest):
+    """station_address sensor appears on cheapest subentries with correct state.
+
+    Also verifies the sensor is absent on regular (non-cheapest) station subentries.
+    """
+    from tests.conftest import _make_cheapest_subentry, _make_hub_entry  # noqa: PLC0415
+
+    cheapest_sub = _make_cheapest_subentry()
+    entry = _make_hub_entry(hass, subentries=[cheapest_sub])
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # station_address is disabled by default — verify it exists in the entity registry
+    entity_registry = er.async_get(hass)
+    address_entries = [
+        e
+        for e in entity_registry.entities.values()
+        if e.config_subentry_id == "cheapest_subentry_id"
+        and e.domain == "sensor"
+        and "station_address" in e.entity_id
+    ]
+    assert len(address_entries) == 1, (
+        "station_address sensor must be registered for cheapest subentry"
+    )
+    assert address_entries[0].disabled_by is not None, "sensor must be disabled by default"
+
+    # Enable the sensor and verify its state
+    entity_registry.async_update_entity(address_entries[0].entity_id, disabled_by=None)
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(address_entries[0].entity_id)
+    assert state is not None
+    assert state.state == "400 4th St SE, Rochester, MN"
+
+    # station_address must NOT be registered for any non-cheapest subentry
+    regular_address = [
+        e
+        for e in entity_registry.entities.values()
+        if e.domain == "sensor"
+        and "station_address" in e.entity_id
+        and e.config_subentry_id != "cheapest_subentry_id"
+    ]
+    assert regular_address == [], "station_address sensor should not appear on regular stations"
+
+
 async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
     """Test sensor behavior with brand adjustments, discounted_price attribute and state toggle."""
     graphql_response_usd = {

@@ -14,3 +14,4 @@ class GasBuddySensorEntityDescription(SensorEntityDescription):
     cash: bool | None = None
     deal: bool | None = None
     price: bool | None = True
+    cheapest_only: bool = False

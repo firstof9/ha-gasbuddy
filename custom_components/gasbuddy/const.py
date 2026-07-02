@@ -260,6 +260,14 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         price=False,
         entity_registry_enabled_default=False,
     ),
+    "station_address": GasBuddySensorEntityDescription(
+        key="station_address",
+        name="Station Address",
+        icon="mdi:map-marker",
+        price=False,
+        cheapest_only=True,
+        entity_registry_enabled_default=False,
+    ),
     # EV Charging Sensors
     "ev_level1": GasBuddySensorEntityDescription(
         key="ev_level1",

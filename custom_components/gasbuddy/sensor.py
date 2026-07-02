@@ -16,6 +16,7 @@ from homeassistant.util.dt import as_utc, parse_datetime
 
 from .const import (
     ATTR_IMAGEURL,
+    CONF_CHEAPEST,
     CONF_EV_CHARGING,
     CONF_FETCH_GAS,
     CONF_GPS,
@@ -68,9 +69,12 @@ async def async_setup_entry(
                 continue
             if (
                 not sensor_type.startswith("ev_")
-                and sensor_type not in {"last_updated", "open_status", "station_name"}
+                and sensor_type
+                not in {"last_updated", "open_status", "station_name", "station_address"}
                 and not fetch_gas
             ):
+                continue
+            if description.cheapest_only and not subentry.data.get(CONF_CHEAPEST):
                 continue
 
             enabled = description.entity_registry_enabled_default
@@ -222,9 +226,13 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         attrs: dict[str, Any] = {}
 
         if not self._price:
-            if not self._type.startswith("ev_") and self._type not in {"open_status", "name"}:
+            if not self._type.startswith("ev_") and self._type not in {
+                "open_status",
+                "name",
+                "station_address",
+            }:
                 return None
-            if self._type in {"open_status", "name"}:
+            if self._type in {"open_status", "name", "station_address"}:
                 return None
             attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
             attrs["station_name"] = data.get("ev_station_name")
@@ -304,6 +312,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             or self._type not in data
             or data[self._type] is None
         ):
+            # station_address may be absent (station has no address data) — treat as unavailable
             return False
 
         if self._price:

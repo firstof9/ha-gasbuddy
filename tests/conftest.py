@@ -35,7 +35,14 @@ from custom_components.gasbuddy.const import (
     DOMAIN,
 )
 from homeassistant.config_entries import ConfigSubentry
-from tests.const import COORDINATOR_DATA, COORDINATOR_DATA_CAD, HUB_DATA, STATION_SUBENTRY_DATA
+from tests.const import (
+    CHEAPEST_SUBENTRY_DATA,
+    COORDINATOR_DATA,
+    COORDINATOR_DATA_CAD,
+    COORDINATOR_DATA_CHEAPEST,
+    HUB_DATA,
+    STATION_SUBENTRY_DATA,
+)
 
 original_init = common.MockConfigEntry.__init__
 
@@ -169,6 +176,27 @@ def _make_station_subentry(
     )
 
 
+def _make_cheapest_subentry(
+    *,
+    title: str = "Cheapest Gas",
+    unique_id: str = "cheapest_subentry_id",
+    subentry_id: str = "cheapest_subentry_id",
+    data: dict | MappingProxyType | None = None,
+) -> ConfigSubentry:
+    """Return a cheapest-gas ConfigSubentry (pass it to _make_hub_entry's subentries list)."""
+    if data is None:
+        data = CHEAPEST_SUBENTRY_DATA
+    if not isinstance(data, MappingProxyType):
+        data = MappingProxyType(data)
+    return ConfigSubentry(
+        data=data,
+        subentry_type="station",
+        title=title,
+        unique_id=unique_id,
+        subentry_id=subentry_id,
+    )
+
+
 def _make_hub_entry(
     hass,
     hub_data: dict | None = None,
@@ -220,6 +248,16 @@ def mock_gasbuddy_cad():
         "custom_components.gasbuddy.GasBuddyUpdateCoordinator._async_update_data"
     ) as mock_value:
         mock_value.return_value = COORDINATOR_DATA_CAD
+        yield
+
+
+@pytest.fixture
+def mock_gasbuddy_cheapest():
+    """Mock cheapest-gas coordinator data."""
+    with patch(
+        "custom_components.gasbuddy.GasBuddyUpdateCoordinator._async_update_data"
+    ) as mock_value:
+        mock_value.return_value = COORDINATOR_DATA_CHEAPEST
         yield
 
 
