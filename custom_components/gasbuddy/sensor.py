@@ -30,7 +30,7 @@ from .const import (
     SENSOR_TYPES,
     UNIT_OF_MEASURE,
 )
-from .coordinator import GasBuddyUpdateCoordinator
+from .coordinator import GasBuddyUpdateCoordinator, format_address
 from .entity import GasBuddySensorEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -217,40 +217,45 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             return currency
         return None
 
+    def _ev_attributes(self, data: dict) -> dict[str, Any] | None:
+        """Return EV and non-price sensor attributes."""
+        if not self._type.startswith("ev_") and self._type not in {
+            "open_status",
+            "name",
+            "station_address",
+        }:
+            return None
+        if self._type in {"open_status", "name", "station_address"}:
+            return None
+        attrs: dict[str, Any] = {}
+        attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
+        attrs["station_name"] = data.get("ev_station_name")
+        attrs["station_address"] = data.get("ev_station_address")
+        if data.get("ev_distance_miles") is not None:
+            attrs["distance_miles"] = data.get("ev_distance_miles")
+        if data.get("ev_network") is not None:
+            attrs["network"] = data.get("ev_network")
+        if self._type == "ev_network" and data.get("ev_network_web") is not None:
+            attrs["website"] = data.get("ev_network_web")
+        if data.get("ev_pricing") is not None:
+            attrs["pricing"] = data.get("ev_pricing")
+        if data.get("ev_access_hours") is not None:
+            attrs["access_hours"] = data.get("ev_access_hours")
+        if self._get_setting(CONF_GPS):
+            attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
+            attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
+        return attrs
+
     @property
     def extra_state_attributes(self) -> dict | None:
         """Return sesnsor attributes."""
         if not (data := self.coordinator.data):
             return None
 
-        attrs: dict[str, Any] = {}
-
         if not self._price:
-            if not self._type.startswith("ev_") and self._type not in {
-                "open_status",
-                "name",
-                "station_address",
-            }:
-                return None
-            if self._type in {"open_status", "name", "station_address"}:
-                return None
-            attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
-            attrs["station_name"] = data.get("ev_station_name")
-            attrs["station_address"] = data.get("ev_station_address")
-            if data.get("ev_distance_miles") is not None:
-                attrs["distance_miles"] = data.get("ev_distance_miles")
-            if data.get("ev_network") is not None:
-                attrs["network"] = data.get("ev_network")
-            if self._type == "ev_network" and data.get("ev_network_web") is not None:
-                attrs["website"] = data.get("ev_network_web")
-            if data.get("ev_pricing") is not None:
-                attrs["pricing"] = data.get("ev_pricing")
-            if data.get("ev_access_hours") is not None:
-                attrs["access_hours"] = data.get("ev_access_hours")
-            if self._get_setting(CONF_GPS):
-                attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
-                attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
-            return attrs
+            return self._ev_attributes(data)
+
+        attrs: dict[str, Any] = {}
 
         if self._type not in data:
             return None
@@ -270,9 +275,8 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         if rating := data.get("star_rating"):
             attrs["star_rating"] = rating
         if addr := data.get("address"):
-            attrs["address"] = (
-                f"{addr.get('line1', '')}, {addr.get('locality', '')}, {addr.get('region', '')}"
-            )
+            if formatted := format_address(addr):
+                attrs["address"] = formatted
         if amenities := data.get("amenities"):
             attrs["amenities"] = ", ".join(a["name"] for a in amenities if a.get("name"))
 

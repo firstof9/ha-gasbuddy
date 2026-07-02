@@ -88,6 +88,22 @@ def _cache_path(hass: HomeAssistant) -> str:
     return f"{hass.config.config_dir}/{CACHE_FILE_NAME}"
 
 
+def format_address(addr: dict | None) -> str | None:
+    """Format an address dict into a string with only non-empty parts."""
+    if not addr:
+        return None
+    parts = [
+        part.strip()
+        for part in (
+            addr.get("line1") or addr.get("line2") or "",
+            addr.get("locality") or "",
+            addr.get("region") or "",
+        )
+        if part and part.strip()
+    ]
+    return ", ".join(parts) if parts else None
+
+
 class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
@@ -418,15 +434,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         cheapest = min(finite, key=operator.itemgetter(1))[0]
         cheapest["last_updated"] = datetime.now(UTC)
         if addr := cheapest.get("address"):
-            cheapest["station_address"] = ", ".join(
-                part
-                for part in (
-                    addr.get("line1", ""),
-                    addr.get("locality", ""),
-                    addr.get("region", ""),
-                )
-                if part
-            )
+            if formatted := format_address(addr):
+                cheapest["station_address"] = formatted
         _LOGGER.debug("Cheapest gas station: %s", _redact(cheapest))
         return cheapest
 

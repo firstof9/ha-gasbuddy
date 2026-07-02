@@ -1026,6 +1026,60 @@ async def test_coordinator_cheapest_station_address(hass):
     assert data["station_address"] == "123 Main St, Springfield, IL"
 
 
+async def test_coordinator_cheapest_station_address_empty(hass):
+    """Cheapest coordinator leaves station_address key unset if address fields are empty/None."""
+    # Test 1: Empty strings inside address dict
+    stations_empty_fields = [
+        {
+            "station_id": "400",
+            "name": "Empty Address Station",
+            "address": {
+                "line1": "",
+                "locality": "",
+                "region": "",
+            },
+            "regular_gas": {"price": 3.10, "cash_price": None, "deal_price": None},
+        }
+    ]
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_CHEAPEST, options=OPTIONS_CHEAPEST, version=9
+    )
+    coordinator = GasBuddyUpdateCoordinator(hass, entry)
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations_empty_fields},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert "station_address" not in data
+
+    # Test 2: Address is None/missing entirely
+    stations_no_address = [
+        {
+            "station_id": "400",
+            "name": "Empty Address Station",
+            "address": None,
+            "regular_gas": {"price": 3.10, "cash_price": None, "deal_price": None},
+        }
+    ]
+    with patch.object(
+        coordinator._api,  # noqa: SLF001
+        "price_lookup_service",
+        return_value={"results": stations_no_address},
+    ):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+    assert "station_address" not in data
+
+
+def test_format_address_helper():
+    """Verify that format_address helper handles None and empty values correctly."""
+    from custom_components.gasbuddy.coordinator import format_address  # noqa: PLC0415
+
+    assert format_address(None) is None
+    assert format_address({}) is None
+    assert format_address({"line1": "  ", "locality": ""}) is None
+
+
 async def test_cheapest_station_address_sensor_state(hass, mock_gasbuddy_cheapest):
     """station_address sensor appears on cheapest subentries with correct state.
 
