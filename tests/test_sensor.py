@@ -35,6 +35,7 @@ from custom_components.gasbuddy.const import (
 from custom_components.gasbuddy.coordinator import (
     GasBuddyUpdateCoordinator,
     _redact,  # noqa: PLC2701
+    format_address,
 )
 from custom_components.gasbuddy.sensor import GasBuddySensor
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
@@ -43,7 +44,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util.dt import as_utc, parse_datetime
 from tests.common import load_fixture
-from tests.conftest import _make_hub_entry, _make_station_subentry
+from tests.conftest import _make_cheapest_subentry, _make_hub_entry, _make_station_subentry
 
 from .const import (
     CONFIG_DATA,
@@ -1073,8 +1074,6 @@ async def test_coordinator_cheapest_station_address_empty(hass):
 
 def test_format_address_helper():
     """Verify that format_address helper handles None and empty values correctly."""
-    from custom_components.gasbuddy.coordinator import format_address  # noqa: PLC0415
-
     assert format_address(None) is None
     assert format_address({}) is None
     assert format_address({"line1": "  ", "locality": ""}) is None
@@ -1085,8 +1084,6 @@ async def test_cheapest_station_address_sensor_state(hass, mock_gasbuddy_cheapes
 
     Also verifies the sensor is absent on regular (non-cheapest) station subentries.
     """
-    from tests.conftest import _make_cheapest_subentry, _make_hub_entry  # noqa: PLC0415
-
     cheapest_sub = _make_cheapest_subentry()
     entry = _make_hub_entry(hass, subentries=[cheapest_sub])
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -1322,7 +1319,6 @@ async def test_sensor_device_registered_under_hub_entry(hass, mock_gasbuddy):
     is created — HA groups them via the integration card natively.
     """
     from homeassistant.helpers import device_registry as dr  # noqa: PLC0415
-    from tests.conftest import _make_hub_entry  # noqa: PLC0415
 
     entry = _make_hub_entry(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
