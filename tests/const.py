@@ -198,7 +198,7 @@ COORDINATOR_DATA_CHEAPEST = {
         "postalCode": "55904",
         "country": "US",
     },
-    "station_address": "400 4th St SE, Rochester, MN",
+    "station_address": "400 4th St SE, Rochester, MN, 55904, US",
     "regular_gas": {
         "credit": "user99",
         "price": 2.89,

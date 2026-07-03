@@ -500,7 +500,7 @@ async def test_extra_attrs_richer(hass, mock_gasbuddy, integration):
     assert attrs.get("deal_price") == 2.78
     assert attrs.get("phone") == "555-555-5555"
     assert attrs.get("star_rating") == 4.2
-    assert attrs.get("address") == "100 Test Blvd, Springfield, IL"
+    assert attrs.get("address") == "100 Test Blvd, Springfield, IL, 62701, US"
     assert attrs.get("amenities") == "ATM, Restrooms"
 
 
@@ -1024,7 +1024,7 @@ async def test_coordinator_cheapest_station_address(hass):
     ):
         data = await coordinator._async_update_data()  # noqa: SLF001
 
-    assert data["station_address"] == "123 Main St, Springfield, IL"
+    assert data["station_address"] == "123 Main St, Springfield, IL, 62701, US"
 
 
 async def test_coordinator_cheapest_station_address_empty(hass):
@@ -1110,7 +1110,7 @@ async def test_cheapest_station_address_sensor_state(hass, mock_gasbuddy_cheapes
 
     state = hass.states.get(address_entries[0].entity_id)
     assert state is not None
-    assert state.state == "400 4th St SE, Rochester, MN"
+    assert state.state == "400 4th St SE, Rochester, MN, 55904, US"
 
     # station_address must NOT be registered for any non-cheapest subentry
     regular_address = [

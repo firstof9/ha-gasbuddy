@@ -98,6 +98,8 @@ def format_address(addr: dict | None) -> str | None:
             addr.get("line1") or addr.get("line2") or "",
             addr.get("locality") or "",
             addr.get("region") or "",
+            addr.get("postalCode") or addr.get("postal_code") or "",
+            addr.get("country") or "",
         )
         if part and part.strip()
     ]
