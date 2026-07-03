@@ -191,6 +191,14 @@ COORDINATOR_DATA_CHEAPEST = {
     "latitude": 41.8800,
     "longitude": -87.6300,
     "distance": 0.5,
+    "address": {
+        "line1": "400 4th St SE",
+        "locality": "Rochester",
+        "region": "MN",
+        "postalCode": "55904",
+        "country": "US",
+    },
+    "station_address": "400 4th St SE, Rochester, MN, 55904, US",
     "regular_gas": {
         "credit": "user99",
         "price": 2.89,
