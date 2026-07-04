@@ -1472,7 +1472,7 @@ async def test_legacy_migration_preserves_show_discounted(hass, mock_gasbuddy):
     legacy_entry = MockConfigEntry(
         domain=DOMAIN,
         title="Legacy Station",
-        data={"name": "Legacy Station", "station_id": 999005},
+        data={"name": "Legacy Station", "station_id": 999005, CONF_UOM: False},
         options={CONF_SHOW_DISCOUNTED: True, CONF_INTERVAL: 1800},
         version=CONFIG_VER,
         unique_id="legacy_migration_test",
@@ -1487,3 +1487,4 @@ async def test_legacy_migration_preserves_show_discounted(hass, mock_gasbuddy):
     sub = next(iter(updated_hub.subentries.values()))
     assert sub.data[CONF_SHOW_DISCOUNTED] is True
     assert sub.data[CONF_INTERVAL] == 1800
+    assert sub.data[CONF_UOM] is False
