@@ -1429,7 +1429,10 @@ async def test_validate_station_ev_cloudflare_blocked(hass):
     with (
         patch("py_gasbuddy.GasBuddy.price_lookup", side_effect=LibraryError("Failed")),
         patch("py_gasbuddy.GasBuddy.ev_stations_nearby", side_effect=LibraryError("CF Block")),
-        patch("custom_components.gasbuddy.config_flow._csrf_blocked_via_state", return_value=True),
+        patch(
+            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
+            side_effect=[False, True],
+        ),
         pytest.raises(CloudflareBlocked),
     ):
         await validate_station(hass, "999001")
@@ -1487,3 +1490,122 @@ async def test_legacy_migration_preserves_show_discounted(hass, mock_gasbuddy):
     sub = next(iter(updated_hub.subentries.values()))
     assert sub.data[CONF_SHOW_DISCOUNTED] is True
     assert sub.data[CONF_INTERVAL] == 1800
+
+
+async def test_validate_station_ev_non_cloudflare_error(hass):
+    """Test validate_station handles non-Cloudflare EV lookup errors."""
+    with (
+        patch("py_gasbuddy.GasBuddy.price_lookup", side_effect=LibraryError("Failed")),
+        patch("py_gasbuddy.GasBuddy.ev_stations_nearby", side_effect=LibraryError("Generic")),
+        patch(
+            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
+            side_effect=[False, False],
+        ),
+        pytest.raises(InvalidStation),
+    ):
+        await validate_station(hass, "999001")
+
+
+async def test_subentry_manual_gas_dict(hass):
+    """Test manual config flow when validation returns a gas station dictionary."""
+    hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub.add_to_hass(hass)
+
+    result = await hass.config_entries.subentries.async_init(
+        (hub.entry_id, "station"),
+        context={"source": "user"},
+    )
+    assert result["type"] == FlowResultType.MENU
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"next_step_id": "manual"},
+    )
+    assert result["type"] == FlowResultType.FORM
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value={"type": "gas", CONF_LATITUDE: 34.0, CONF_LONGITUDE: -118.0},
+    ):
+        res = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: "999001",
+                CONF_NAME: "Manual Gas",
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_GPS: True,
+                CONF_EV_CHARGING: False,
+                CONF_FETCH_GAS: True,
+            },
+        )
+        assert res["type"] == FlowResultType.CREATE_ENTRY
+        assert res["data"][CONF_EV_CHARGING] is False
+        assert res["data"][CONF_FETCH_GAS] is True
+
+
+async def test_subentry_manual_ev_dict(hass):
+    """Test manual config flow when validation returns an EV station dictionary."""
+    hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub.add_to_hass(hass)
+
+    result = await hass.config_entries.subentries.async_init(
+        (hub.entry_id, "station"),
+        context={"source": "user"},
+    )
+    assert result["type"] == FlowResultType.MENU
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"next_step_id": "manual"},
+    )
+    assert result["type"] == FlowResultType.FORM
+
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value={"type": "ev", CONF_LATITUDE: 34.0, CONF_LONGITUDE: -118.0},
+    ):
+        res = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: "999001",
+                CONF_NAME: "Manual EV",
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_GPS: True,
+                CONF_EV_CHARGING: False,
+                CONF_FETCH_GAS: True,
+            },
+        )
+        assert res["type"] == FlowResultType.CREATE_ENTRY
+        assert res["data"][CONF_EV_CHARGING] is True
+        assert res["data"][CONF_FETCH_GAS] is False
+
+
+async def test_coordinator_none_coordinates(hass):
+    """Test coordinator handles missing/None coordinates by falling back to Home Assistant config."""
+    hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub.add_to_hass(hass)
+
+    subentry = config_entries.ConfigSubentry(
+        subentry_id="test_subentry_id_none_coords",
+        subentry_type="station",
+        title="None Coordinates Station",
+        data=MappingProxyType({
+            CONF_STATION_ID: "999001",
+            CONF_NAME: "None Coordinates Station",
+            CONF_LATITUDE: None,
+            CONF_LONGITUDE: None,
+            CONF_EV_CHARGING: True,
+            CONF_FETCH_GAS: False,
+        }),
+        unique_id="999001",
+    )
+    hass.config_entries.async_add_subentry(hub, subentry)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, hub, subentry)
+    with patch("py_gasbuddy.GasBuddy.ev_stations_nearby", return_value={"stations": []}):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data[CONF_LATITUDE] == hass.config.latitude
+    assert data[CONF_LONGITUDE] == hass.config.longitude
