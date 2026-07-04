@@ -6,7 +6,12 @@ from unittest.mock import patch
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.gasbuddy.config_flow import CloudflareBlocked, InvalidStation
+from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC2701
+from custom_components.gasbuddy.config_flow import (
+    CloudflareBlocked,
+    InvalidStation,
+    validate_station,
+)
 from custom_components.gasbuddy.const import (
     CONF_BRAND_ADJUSTMENTS,
     CONF_CHEAPEST,
@@ -30,6 +35,7 @@ from custom_components.gasbuddy.const import (
     CONFIG_VER,
     DOMAIN,
 )
+from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator
 from homeassistant import config_entries
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.data_entry_flow import FlowResultType
@@ -611,7 +617,6 @@ from custom_components.gasbuddy.config_flow import (  # noqa: E402
     _get_schema_options,  # noqa: PLC2701
     _get_station_list,  # noqa: PLC2701
     _lon_delta,  # noqa: PLC2701
-    validate_station,
 )
 
 
@@ -1421,8 +1426,6 @@ async def test_search_flow_success_and_failures(hass):
 
 async def test_validate_station_ev_cloudflare_blocked(hass):
     """Test validate_station raises CloudflareBlocked on EV lookup failure due to CF."""
-    from custom_components.gasbuddy.config_flow import validate_station  # noqa: PLC0415
-
     with (
         patch("py_gasbuddy.GasBuddy.price_lookup", side_effect=LibraryError("Failed")),
         patch("py_gasbuddy.GasBuddy.ev_stations_nearby", side_effect=LibraryError("CF Block")),
@@ -1434,8 +1437,6 @@ async def test_validate_station_ev_cloudflare_blocked(hass):
 
 async def test_coordinator_zero_coordinates(hass):
     """Test coordinator handles valid 0.0 coordinates correctly."""
-    from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator  # noqa: PLC0415
-
     hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
     hub.add_to_hass(hass)
 
@@ -1465,8 +1466,6 @@ async def test_coordinator_zero_coordinates(hass):
 
 async def test_legacy_migration_preserves_show_discounted(hass, mock_gasbuddy):
     """Test _async_migrate_legacy_entries preserves CONF_SHOW_DISCOUNTED."""
-    from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
-
     hub_entry = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
     hub_entry.add_to_hass(hass)
 
