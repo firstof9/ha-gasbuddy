@@ -1424,17 +1424,22 @@ async def test_search_flow_success_and_failures(hass):
         assert res["data"][CONF_EV_CHARGING] is False
 
 
-async def test_validate_station_ev_cloudflare_blocked(hass):
+async def test_validate_station_ev_cloudflare_blocked(hass, mock_aioclient):
     """Test validate_station raises CloudflareBlocked on EV lookup failure due to CF."""
-    with (
-        patch("py_gasbuddy.GasBuddy.price_lookup", side_effect=LibraryError("Failed")),
-        patch("py_gasbuddy.GasBuddy.ev_stations_nearby", side_effect=LibraryError("CF Block")),
-        patch(
-            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
-            side_effect=[False, True],
-        ),
-        pytest.raises(CloudflareBlocked),
-    ):
+    # 1. Price lookup (first client)
+    mock_aioclient.get(
+        "https://www.gasbuddy.com/home", status=200, body='window.gbcsrf = "test_csrf_token"'
+    )
+    mock_aioclient.post(
+        "https://www.gasbuddy.com/graphql",
+        status=200,
+        body='{"errors": [{"message": "Price lookup error"}]}',
+    )
+    # 2. EV lookup (second client) - mocked for both paths (cache hit or refresh)
+    mock_aioclient.get("https://www.gasbuddy.com/home", status=403)
+    mock_aioclient.post("https://www.gasbuddy.com/graphql", status=403)
+
+    with pytest.raises(CloudflareBlocked):
         await validate_station(hass, "999001")
 
 
@@ -1492,17 +1497,28 @@ async def test_legacy_migration_preserves_show_discounted(hass, mock_gasbuddy):
     assert sub.data[CONF_INTERVAL] == 1800
 
 
-async def test_validate_station_ev_non_cloudflare_error(hass):
+async def test_validate_station_ev_non_cloudflare_error(hass, mock_aioclient):
     """Test validate_station handles non-Cloudflare EV lookup errors."""
-    with (
-        patch("py_gasbuddy.GasBuddy.price_lookup", side_effect=LibraryError("Failed")),
-        patch("py_gasbuddy.GasBuddy.ev_stations_nearby", side_effect=LibraryError("Generic")),
-        patch(
-            "custom_components.gasbuddy.config_flow._csrf_blocked_via_state",
-            side_effect=[False, False],
-        ),
-        pytest.raises(InvalidStation),
-    ):
+    # 1. Price lookup (first client)
+    mock_aioclient.get(
+        "https://www.gasbuddy.com/home", status=200, body='window.gbcsrf = "test_csrf_token"'
+    )
+    mock_aioclient.post(
+        "https://www.gasbuddy.com/graphql",
+        status=200,
+        body='{"errors": [{"message": "Price lookup error"}]}',
+    )
+    # 2. EV lookup (second client)
+    mock_aioclient.get(
+        "https://www.gasbuddy.com/home", status=200, body='window.gbcsrf = "test_csrf_token"'
+    )
+    mock_aioclient.post(
+        "https://www.gasbuddy.com/graphql",
+        status=200,
+        body='{"errors": [{"message": "Generic EV lookup error"}]}',
+    )
+
+    with pytest.raises(InvalidStation):
         await validate_station(hass, "999001")
 
 
@@ -1542,6 +1558,7 @@ async def test_subentry_manual_gas_dict(hass):
         assert res["type"] == FlowResultType.CREATE_ENTRY
         assert res["data"][CONF_EV_CHARGING] is False
         assert res["data"][CONF_FETCH_GAS] is True
+        assert res["data"][CONF_SHOW_DISCOUNTED] is False
 
 
 async def test_subentry_manual_ev_dict(hass):
@@ -1580,6 +1597,7 @@ async def test_subentry_manual_ev_dict(hass):
         assert res["type"] == FlowResultType.CREATE_ENTRY
         assert res["data"][CONF_EV_CHARGING] is True
         assert res["data"][CONF_FETCH_GAS] is False
+        assert res["data"][CONF_SHOW_DISCOUNTED] is False
 
 
 async def test_coordinator_none_coordinates(hass):
