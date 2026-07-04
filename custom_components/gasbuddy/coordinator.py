@@ -180,8 +180,12 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed(
                     "Both gas price polling and EV charging are disabled — nothing to fetch."
                 )
-            lat = self._subentry.data.get(CONF_LATITUDE) or self.hass.config.latitude
-            lon = self._subentry.data.get(CONF_LONGITUDE) or self.hass.config.longitude
+            lat = self._subentry.data.get(CONF_LATITUDE)
+            if lat is None:
+                lat = self.hass.config.latitude
+            lon = self._subentry.data.get(CONF_LONGITUDE)
+            if lon is None:
+                lon = self.hass.config.longitude
             self._data = {
                 "station_id": self._subentry.data[CONF_STATION_ID],
                 "name": self._subentry.data.get(CONF_NAME, "EV Station"),

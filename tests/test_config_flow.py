@@ -27,9 +27,11 @@ from custom_components.gasbuddy.const import (
     CONF_STATION_ID,
     CONF_TIMEOUT,
     CONF_UOM,
+    CONFIG_VER,
     DOMAIN,
 )
 from homeassistant import config_entries
+from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.data_entry_flow import FlowResultType
 
 pytestmark = pytest.mark.asyncio
@@ -319,6 +321,7 @@ async def test_subentry_reconfigure(hass):
         assert updated_sub.data[CONF_STATION_ID] == "999002"
         assert updated_sub.data["latitude"] == 34.0
         assert updated_sub.title == "Costco New"
+        assert updated_sub.unique_id == "999002"
 
 
 async def test_subentry_reconfigure_options(hass):
@@ -1414,3 +1417,74 @@ async def test_search_flow_success_and_failures(hass):
         )
         assert res["type"] == FlowResultType.CREATE_ENTRY
         assert res["data"][CONF_EV_CHARGING] is False
+
+
+async def test_validate_station_ev_cloudflare_blocked(hass):
+    """Test validate_station raises CloudflareBlocked on EV lookup failure due to CF."""
+    from custom_components.gasbuddy.config_flow import validate_station  # noqa: PLC0415
+
+    with (
+        patch("py_gasbuddy.GasBuddy.price_lookup", side_effect=LibraryError("Failed")),
+        patch("py_gasbuddy.GasBuddy.ev_stations_nearby", side_effect=LibraryError("CF Block")),
+        patch("custom_components.gasbuddy.config_flow._csrf_blocked_via_state", return_value=True),
+        pytest.raises(CloudflareBlocked),
+    ):
+        await validate_station(hass, "999001")
+
+
+async def test_coordinator_zero_coordinates(hass):
+    """Test coordinator handles valid 0.0 coordinates correctly."""
+    from custom_components.gasbuddy.coordinator import GasBuddyUpdateCoordinator  # noqa: PLC0415
+
+    hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub.add_to_hass(hass)
+
+    subentry = config_entries.ConfigSubentry(
+        subentry_id="test_subentry_id_zero",
+        subentry_type="station",
+        title="Zero Station",
+        data=MappingProxyType({
+            CONF_STATION_ID: "999001",
+            CONF_NAME: "Zero Station",
+            CONF_LATITUDE: 0.0,
+            CONF_LONGITUDE: 0.0,
+            CONF_EV_CHARGING: True,
+            CONF_FETCH_GAS: False,
+        }),
+        unique_id="999001",
+    )
+    hass.config_entries.async_add_subentry(hub, subentry)
+
+    coordinator = GasBuddyUpdateCoordinator(hass, hub, subentry)
+    with patch("py_gasbuddy.GasBuddy.ev_stations_nearby", return_value={"stations": []}):
+        data = await coordinator._async_update_data()  # noqa: SLF001
+
+    assert data[CONF_LATITUDE] == 0.0
+    assert data[CONF_LONGITUDE] == 0.0
+
+
+async def test_legacy_migration_preserves_show_discounted(hass, mock_gasbuddy):
+    """Test _async_migrate_legacy_entries preserves CONF_SHOW_DISCOUNTED."""
+    from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC0415, PLC2701
+
+    hub_entry = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub_entry.add_to_hass(hass)
+
+    legacy_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Legacy Station",
+        data={"name": "Legacy Station", "station_id": 999005},
+        options={CONF_SHOW_DISCOUNTED: True, CONF_INTERVAL: 1800},
+        version=CONFIG_VER,
+        unique_id="legacy_migration_test",
+    )
+    legacy_entry.add_to_hass(hass)
+
+    await _async_migrate_legacy_entries(hass, hub_entry)
+    await hass.async_block_till_done()
+
+    updated_hub = hass.config_entries.async_get_entry(hub_entry.entry_id)
+    assert len(updated_hub.subentries) == 1
+    sub = next(iter(updated_hub.subentries.values()))
+    assert sub.data[CONF_SHOW_DISCOUNTED] is True
+    assert sub.data[CONF_INTERVAL] == 1800

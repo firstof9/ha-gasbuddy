@@ -207,7 +207,9 @@ async def validate_station(
                 CONF_LATITUDE: matching.get("latitude"),
                 CONF_LONGITUDE: matching.get("longitude"),
             }
-    except Exception as ev_ex:  # noqa: BLE001
+    except Exception as ev_ex:
+        if _csrf_blocked_via_state(ev_gb):
+            raise CloudflareBlocked from ev_ex
         _LOGGER.warning("Error validating EV station: %s", ev_ex)
 
     if price_error is not None:
@@ -697,6 +699,7 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                     self._get_reconfigure_subentry(),
                     data=self._data,
                     title=self._data.get(CONF_NAME, subentry.title),
+                    unique_id=str(self._data[CONF_STATION_ID]),
                 )
 
             return await self._show_reconfig_form(user_input)
@@ -743,9 +746,15 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                 if isinstance(validate, dict):
                     self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
                     self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
-                    ev_charging = validate["type"] == "ev"
+                    if validate["type"] == "ev":
+                        self._data[CONF_EV_CHARGING] = True
+                        self._data[CONF_FETCH_GAS] = False
+                    else:
+                        self._data[CONF_EV_CHARGING] = self._data.get(CONF_EV_CHARGING, False)
+                        self._data[CONF_FETCH_GAS] = self._data.get(CONF_FETCH_GAS, True)
                 else:
-                    ev_charging = False
+                    self._data[CONF_EV_CHARGING] = self._data.get(CONF_EV_CHARGING, False)
+                    self._data[CONF_FETCH_GAS] = self._data.get(CONF_FETCH_GAS, True)
 
                 subentry_data = {
                     CONF_STATION_ID: self._data[CONF_STATION_ID],
@@ -755,8 +764,8 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                     CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
                     CONF_UOM: self._data.get(CONF_UOM, True),
                     CONF_GPS: self._data.get(CONF_GPS, True),
-                    CONF_EV_CHARGING: self._data.get(CONF_EV_CHARGING, ev_charging),
-                    CONF_FETCH_GAS: self._data.get(CONF_FETCH_GAS, not ev_charging),
+                    CONF_EV_CHARGING: self._data[CONF_EV_CHARGING],
+                    CONF_FETCH_GAS: self._data[CONF_FETCH_GAS],
                     CONF_SHOW_DISCOUNTED: self._data.get(CONF_SHOW_DISCOUNTED, False),
                 }
                 return self.async_create_entry(

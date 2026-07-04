@@ -29,6 +29,7 @@ from .const import (
     CONF_INCLUDE_STATIONS,
     CONF_INTERVAL,
     CONF_NAME,
+    CONF_SHOW_DISCOUNTED,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -84,6 +85,7 @@ def _build_subentry_data_from_entry(entry: ConfigEntry) -> dict:
         CONF_GPS,
         CONF_EV_CHARGING,
         CONF_FETCH_GAS,
+        CONF_SHOW_DISCOUNTED,
     ):
         if key in entry.options:
             data[key] = entry.options[key]

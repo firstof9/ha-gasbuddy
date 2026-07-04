@@ -133,7 +133,7 @@
                     }
                 },
                 "reconfigure": {
-                    "description": "Veuillez entrer l'identifiant de la station",
+                    "description": "Veuillez entrer les détails de configuration pour cette entrée",
                     "data": {
                         "station_id": "Identifiant de la station",
                         "name": "Nom",
