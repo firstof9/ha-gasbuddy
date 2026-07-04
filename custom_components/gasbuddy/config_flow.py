@@ -17,6 +17,7 @@ from homeassistant.config_entries import (
     ConfigSubentryFlow,
     SubentryFlowResult,
 )
+from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
@@ -160,8 +161,8 @@ async def validate_station(
 
             return {
                 "type": "gas",
-                "latitude": gas_lat,
-                "longitude": gas_lon,
+                CONF_LATITUDE: gas_lat,
+                CONF_LONGITUDE: gas_lon,
             }
     except CSRFTokenMissing as ex:
         # Forward-compat: a future py_gasbuddy release may propagate
@@ -203,8 +204,8 @@ async def validate_station(
         if matching:
             return {
                 "type": "ev",
-                "latitude": matching.get("latitude"),
-                "longitude": matching.get("longitude"),
+                CONF_LATITUDE: matching.get("latitude"),
+                CONF_LONGITUDE: matching.get("longitude"),
             }
     except Exception as ev_ex:  # noqa: BLE001
         _LOGGER.warning("Error validating EV station: %s", ev_ex)
@@ -387,6 +388,16 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
         vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
             cv.string, vol.Strip, vol.Length(max=100)
         ),
+        vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): vol.All(
+            cv.positive_int, vol.Range(min=900, max=14400)
+        ),
+        vol.Optional(CONF_UOM, default=_get_default(CONF_UOM, True)): cv.boolean,
+        vol.Optional(CONF_GPS, default=_get_default(CONF_GPS, True)): cv.boolean,
+        vol.Optional(CONF_EV_CHARGING, default=_get_default(CONF_EV_CHARGING, False)): cv.boolean,
+        vol.Optional(CONF_FETCH_GAS, default=_get_default(CONF_FETCH_GAS, True)): cv.boolean,
+        vol.Optional(
+            CONF_SHOW_DISCOUNTED, default=_get_default(CONF_SHOW_DISCOUNTED, False)
+        ): cv.boolean,
     })
 
 
@@ -668,14 +679,18 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                 self._errors.setdefault(CONF_STATION_ID, "station_id")
 
             if len(self._errors) == 0:
-                if isinstance(validate, dict):
-                    self._data["latitude"] = validate.get("latitude")
-                    self._data["longitude"] = validate.get("longitude")
-                    self._data[CONF_EV_CHARGING] = validate["type"] == "ev"
-                    self._data[CONF_FETCH_GAS] = validate["type"] != "ev"
-                else:
-                    self._data[CONF_EV_CHARGING] = False
-                    self._data[CONF_FETCH_GAS] = True
+                if str(subentry.data.get(CONF_STATION_ID)) != station_id:
+                    if isinstance(validate, dict):
+                        self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+                        self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
+                        self._data[CONF_EV_CHARGING] = validate["type"] == "ev"
+                        self._data[CONF_FETCH_GAS] = validate["type"] != "ev"
+                    else:
+                        self._data[CONF_EV_CHARGING] = False
+                        self._data[CONF_FETCH_GAS] = True
+                elif isinstance(validate, dict):
+                    self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+                    self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
 
                 return self.async_update_and_abort(
                     self._get_entry(),
@@ -726,8 +741,8 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
             else:
                 self._data.update(user_input)
                 if isinstance(validate, dict):
-                    self._data["latitude"] = validate.get("latitude")
-                    self._data["longitude"] = validate.get("longitude")
+                    self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+                    self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
                     ev_charging = validate["type"] == "ev"
                 else:
                     ev_charging = False
@@ -735,13 +750,14 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
                 subentry_data = {
                     CONF_STATION_ID: self._data[CONF_STATION_ID],
                     CONF_NAME: self._data.get(CONF_NAME, DEFAULT_NAME),
-                    "latitude": self._data.get("latitude"),
-                    "longitude": self._data.get("longitude"),
-                    CONF_INTERVAL: 3600,
-                    CONF_UOM: True,
-                    CONF_GPS: True,
-                    CONF_EV_CHARGING: ev_charging,
-                    CONF_FETCH_GAS: not ev_charging,
+                    CONF_LATITUDE: self._data.get(CONF_LATITUDE),
+                    CONF_LONGITUDE: self._data.get(CONF_LONGITUDE),
+                    CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
+                    CONF_UOM: self._data.get(CONF_UOM, True),
+                    CONF_GPS: self._data.get(CONF_GPS, True),
+                    CONF_EV_CHARGING: self._data.get(CONF_EV_CHARGING, ev_charging),
+                    CONF_FETCH_GAS: self._data.get(CONF_FETCH_GAS, not ev_charging),
+                    CONF_SHOW_DISCOUNTED: self._data.get(CONF_SHOW_DISCOUNTED, False),
                 }
                 return self.async_create_entry(
                     title=subentry_data[CONF_NAME],
@@ -752,7 +768,15 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
 
     async def _show_config_manual(self, user_input) -> SubentryFlowResult:
         """Show the configuration form to edit location data."""
-        defaults = {CONF_NAME: DEFAULT_NAME}
+        defaults = {
+            CONF_NAME: DEFAULT_NAME,
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_GPS: True,
+            CONF_EV_CHARGING: False,
+            CONF_FETCH_GAS: True,
+            CONF_SHOW_DISCOUNTED: False,
+        }
         return self.async_show_form(
             step_id="manual",
             data_schema=_get_schema_manual(self.hass, user_input, defaults),
@@ -1076,8 +1100,8 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
             return await self._show_config_manual(None)
 
         if isinstance(validate, dict):
-            self._data["latitude"] = validate.get("latitude")
-            self._data["longitude"] = validate.get("longitude")
+            self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+            self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
             ev_charging = validate["type"] == "ev"
         else:
             ev_charging = False
@@ -1085,8 +1109,8 @@ class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
         subentry_data = {
             CONF_STATION_ID: self._data[CONF_STATION_ID],
             CONF_NAME: self._data.get(CONF_NAME, DEFAULT_NAME),
-            "latitude": self._data.get("latitude"),
-            "longitude": self._data.get("longitude"),
+            CONF_LATITUDE: self._data.get(CONF_LATITUDE),
+            CONF_LONGITUDE: self._data.get(CONF_LONGITUDE),
             CONF_INTERVAL: 3600,
             CONF_UOM: True,
             CONF_GPS: True,

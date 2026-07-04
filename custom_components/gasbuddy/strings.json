@@ -74,7 +74,13 @@
                     "description": "Please enter the Station ID",
                     "data": {
                         "station_id": "Station ID",
-                        "name": "Name"
+                        "name": "Name",
+                        "interval": "Polling interval",
+                        "uom": "Show per liter/gallon in unit of measure",
+                        "gps": "Show stations on map",
+                        "ev_charging": "Enable EV charging sensors",
+                        "fetch_gas": "Fetch Gas Prices",
+                        "show_discounted": "Display discounted price"
                     }
                 },
                 "search": {
@@ -130,7 +136,13 @@
                     "description": "Please enter the configuration details for this entry",
                     "data": {
                         "station_id": "Station ID",
-                        "name": "Name"
+                        "name": "Name",
+                        "interval": "Polling interval",
+                        "uom": "Show per liter/gallon in unit of measure",
+                        "gps": "Show stations on map",
+                        "ev_charging": "Enable EV charging sensors",
+                        "fetch_gas": "Fetch Gas Prices",
+                        "show_discounted": "Display discounted price"
                     }
                 },
                 "reconfigure_cheapest_filters": {

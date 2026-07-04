@@ -7,6 +7,7 @@ import logging
 from types import MappingProxyType
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
+from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     config_validation as cv,
@@ -66,8 +67,8 @@ def _build_subentry_data_from_entry(entry: ConfigEntry) -> dict:
         CONF_STATION_ID,
         CONF_NAME,
         CONF_CHEAPEST,
-        "latitude",
-        "longitude",
+        CONF_LATITUDE,
+        CONF_LONGITUDE,
         CONF_EXCLUDE_BRANDS,
         CONF_INCLUDE_BRANDS,
         CONF_EXCLUDE_STATIONS,

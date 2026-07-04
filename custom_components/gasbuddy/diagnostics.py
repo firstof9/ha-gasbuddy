@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
@@ -14,8 +15,8 @@ from .const import CONF_POSTAL, CONF_SOLVER, COORDINATOR, DOMAIN
 REDACT_KEYS = {
     CONF_SOLVER,
     CONF_POSTAL,
-    "latitude",
-    "longitude",
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
     "street_address",
     "ev_station_address",
     "city",

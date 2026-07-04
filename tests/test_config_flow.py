@@ -22,6 +22,7 @@ from custom_components.gasbuddy.const import (
     CONF_NAME,
     CONF_POSTAL,
     CONF_PRICE_TYPE,
+    CONF_SHOW_DISCOUNTED,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -318,6 +319,107 @@ async def test_subentry_reconfigure(hass):
         assert updated_sub.data[CONF_STATION_ID] == "999002"
         assert updated_sub.data["latitude"] == 34.0
         assert updated_sub.title == "Costco New"
+
+
+async def test_subentry_reconfigure_options(hass):
+    """Test reconfiguring station subentry options (both when ID changes and when it doesn't)."""
+    hub = MockConfigEntry(domain=DOMAIN, unique_id="hub", data={CONF_NAME: "Hub"})
+    hub.add_to_hass(hass)
+
+    # Initialize subentry with custom options
+    subentry = config_entries.ConfigSubentry(
+        subentry_id="test_subentry_id_opts",
+        subentry_type="station",
+        title="Costco Options",
+        data=MappingProxyType({
+            CONF_STATION_ID: "999001",
+            CONF_NAME: "Costco Options",
+            CONF_INTERVAL: 1800,
+            CONF_UOM: False,
+            CONF_GPS: False,
+            CONF_EV_CHARGING: True,
+            CONF_FETCH_GAS: False,
+            CONF_SHOW_DISCOUNTED: True,
+        }),
+        unique_id="999001",
+    )
+    hass.config_entries.async_add_subentry(hub, subentry)
+
+    # 1. Initiate reconfigure flow (without ID change, toggling options)
+    result = await hass.config_entries.subentries.async_init(
+        (hub.entry_id, "station"),
+        context={
+            "source": "reconfigure",
+            "unique_id": "999001",
+            "subentry_id": "test_subentry_id_opts",
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    # Submit updated options (keeping ID same, but toggling other settings)
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value={"type": "gas", "latitude": 33.45, "longitude": -112.50},
+    ):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: "999001",
+                CONF_NAME: "Costco Options Updated",
+                CONF_INTERVAL: 7200,
+                CONF_UOM: True,
+                CONF_GPS: True,
+                CONF_EV_CHARGING: False,
+                CONF_FETCH_GAS: True,
+                CONF_SHOW_DISCOUNTED: False,
+            },
+        )
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "reconfigure_successful"
+        # Subentry updated and options preserved/updated rather than overwritten by validator
+        updated_sub = hub.subentries["test_subentry_id_opts"]
+        assert updated_sub.data[CONF_STATION_ID] == "999001"
+        assert updated_sub.data[CONF_INTERVAL] == 7200
+        assert updated_sub.data[CONF_UOM] is True
+        assert updated_sub.data[CONF_GPS] is True
+        assert updated_sub.data[CONF_EV_CHARGING] is False
+        assert updated_sub.data[CONF_FETCH_GAS] is True
+        assert updated_sub.data[CONF_SHOW_DISCOUNTED] is False
+        assert updated_sub.title == "Costco Options Updated"
+
+    # 2. Reconfigure station ID to a different one (should overwrite EV/gas settings)
+    result = await hass.config_entries.subentries.async_init(
+        (hub.entry_id, "station"),
+        context={
+            "source": "reconfigure",
+            "unique_id": "999001",
+            "subentry_id": "test_subentry_id_opts",
+        },
+    )
+    with patch(
+        "custom_components.gasbuddy.config_flow.validate_station",
+        return_value={"type": "ev", "latitude": 33.5, "longitude": -112.6},
+    ):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"],
+            {
+                CONF_STATION_ID: "999002",
+                CONF_NAME: "EV Station",
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_GPS: True,
+                CONF_EV_CHARGING: False,  # overridden because ID changed
+                CONF_FETCH_GAS: True,  # overridden because ID changed
+                CONF_SHOW_DISCOUNTED: False,
+            },
+        )
+        assert result["type"] == FlowResultType.ABORT
+        updated_sub = hub.subentries["test_subentry_id_opts"]
+        assert updated_sub.data[CONF_STATION_ID] == "999002"
+        # Auto-detected ev station type overwrites values submitted:
+        assert updated_sub.data[CONF_EV_CHARGING] is True
+        assert updated_sub.data[CONF_FETCH_GAS] is False
 
 
 async def test_hub_options_flow(hass):

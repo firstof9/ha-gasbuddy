@@ -74,7 +74,13 @@
                     "description": "Veuillez saisir l'ID de la station",
                     "data": {
                         "station_id": "Identifiant de la station",
-                        "name": "Nom"
+                        "name": "Nom",
+                        "interval": "Intervalle de mise à jour",
+                        "uom": "Afficher par litre/gallon dans l'unité de mesure",
+                        "gps": "Afficher les stations sur la carte",
+                        "ev_charging": "Activer les capteurs de recharge EV",
+                        "fetch_gas": "Récupérer les prix du carburant",
+                        "show_discounted": "Afficher le prix réduit"
                     }
                 },
                 "search": {
@@ -130,7 +136,13 @@
                     "description": "Veuillez entrer l'identifiant de la station",
                     "data": {
                         "station_id": "Identifiant de la station",
-                        "name": "Nom"
+                        "name": "Nom",
+                        "interval": "Intervalle de mise à jour",
+                        "uom": "Afficher par litre/gallon dans l'unité de mesure",
+                        "gps": "Afficher les stations sur la carte",
+                        "ev_charging": "Activer les capteurs de recharge EV",
+                        "fetch_gas": "Récupérer les prix du carburant",
+                        "show_discounted": "Afficher le prix réduit"
                     }
                 },
                 "reconfigure_cheapest_filters": {
