@@ -89,8 +89,6 @@ def _build_subentry_data_from_entry(entry: ConfigEntry) -> dict:
     ):
         if key in entry.options:
             data[key] = entry.options[key]
-        elif key in entry.data:
-            data[key] = entry.data[key]
 
     # Preserve original entry_id for unique_id continuity
     data["old_entry_id"] = entry.entry_id
