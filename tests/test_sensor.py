@@ -278,9 +278,9 @@ async def test_coordinator_success(hass, mock_aioclient):
     )
     coordinator = GasBuddyUpdateCoordinator(hass, entry)
 
-    mock_aioclient.get("https://www.gasbuddy.com/home", status=200, body=load_fixture("index.html"))
+    mock_aioclient.get("https://www.gasbuddy.com/home", status=200, text=load_fixture("index.html"))
     mock_aioclient.post(
-        "https://www.gasbuddy.com/graphql", status=200, body=load_fixture("station.json")
+        "https://www.gasbuddy.com/graphql", status=200, text=load_fixture("station.json")
     )
 
     # This will call _async_update_data UNPATCHED
@@ -1161,14 +1161,11 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
         }
     }
 
-    mock_aioclient.get(
-        "https://www.gasbuddy.com/home", status=200, body=load_fixture("index.html"), repeat=True
-    )
+    mock_aioclient.get("https://www.gasbuddy.com/home", status=200, text=load_fixture("index.html"))
     mock_aioclient.post(
         "https://www.gasbuddy.com/graphql",
         status=200,
-        body=json.dumps(graphql_response_usd),
-        repeat=True,
+        text=json.dumps(graphql_response_usd),
     )
 
     sub_data = {
@@ -1258,15 +1255,12 @@ async def test_sensor_brand_adjustments_options(hass, mock_aioclient):
         }
     }
 
-    mock_aioclient.clear()
-    mock_aioclient.get(
-        "https://www.gasbuddy.com/home", status=200, body=load_fixture("index.html"), repeat=True
-    )
+    mock_aioclient.clear_requests()
+    mock_aioclient.get("https://www.gasbuddy.com/home", status=200, text=load_fixture("index.html"))
     mock_aioclient.post(
         "https://www.gasbuddy.com/graphql",
         status=200,
-        body=json.dumps(graphql_response_cad),
-        repeat=True,
+        text=json.dumps(graphql_response_cad),
     )
 
     sub_cad_data = {

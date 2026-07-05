@@ -4,7 +4,6 @@ import logging
 from types import MappingProxyType
 from unittest.mock import patch
 
-from aioresponses import aioresponses
 import pytest
 
 # Monkeypatch MockConfigEntry to convert non-hub GasBuddy entries to Hub + Subentry
@@ -262,10 +261,9 @@ def mock_gasbuddy_cheapest():
 
 
 @pytest.fixture
-def mock_aioclient():
+def mock_aioclient(aioclient_mock):
     """Fixture to mock aioclient calls."""
-    with aioresponses() as m:
-        yield m
+    return aioclient_mock
 
 
 @pytest.fixture(name="hub_entry")

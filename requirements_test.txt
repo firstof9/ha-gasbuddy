@@ -1,5 +1,5 @@
 -r requirements.txt
-pytest-homeassistant-custom-component==0.13.340
+pytest-homeassistant-custom-component==0.13.344
 black
 flake8
 mypy
@@ -8,7 +8,6 @@ isort
 pylint
 tox
 pytest
-aioresponses
 ruff
 pre-commit==4.6.0
 codespell==2.4.2
