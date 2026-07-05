@@ -56,7 +56,7 @@ You probably do not want to do this! Use the HACS method above unless you know w
 
 Since May 2025, GasBuddy implemented Cloudflare which may lead to blocking of requests to GasBuddy, and cause timeout and log errors. This would lead to the occasional missed data update to obtain the latest gas prices, along with log errors.
 
-To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed via [FlareSolverr standalone installation](https://github.com/FlareSolverr/FlareSolverr) or as a [FlareSolverr Home Assistant add-on](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can re-configure your existing GasBuddy entries by clicking the 3 dots of each gas station entry and entering your FlareSolverr URL, i.e., `http://ip:port/v1`
+To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed via [FlareSolverr standalone installation](https://github.com/FlareSolverr/FlareSolverr) or as a [FlareSolverr Home Assistant add-on](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can configure your FlareSolverr URL and timeout globally on the **GasBuddy Virtual Hub** by clicking **Configure** on the integration card.
 
 <img width="673" height="498" alt="image" src="https://github.com/user-attachments/assets/dbb7f99f-9f4d-4b2b-83c9-8419ba106a97" />
 
@@ -71,11 +71,20 @@ Configuration is done via the Home Assistant UI. When adding the integration, yo
 *   **Search by Postal Code**: Enter a specific Zip or Postal Code to find stations in that area.
 *   **Track Cheapest Nearby Gas**: Instead of a fixed station, follow whichever nearby station is currently cheapest for a fuel type and price type you choose (see [Cheapest gas tracker](#cheapest-gas-tracker)).
 
-You can configure the following options by clicking **Configure** on the integration card:
-*   **Polling interval**: Polling frequency in seconds.
+### Global Options (Virtual Hub)
+By clicking **Configure** on the main **GasBuddy Virtual Hub** integration card, you can manage global settings that apply across all tracked stations:
+*   **FlareSolverr URL**: The URL to your FlareSolverr instance.
+*   **FlareSolverr timeout**: Timeout value in milliseconds.
+*   **Brand Price Adjustments**: YAML or JSON map for per-brand discounts or markups (see [Brand Price Adjustments](#brand-price-adjustments)).
+
+### Station Options (Subentries)
+Tracked gas stations are managed as **subentries** under the GasBuddy Virtual Hub. You can configure station-specific settings by clicking **Reconfigure** next to the specific station subentry under the Virtual Hub device/integration card:
+*   **Polling interval**: Polling frequency in seconds (default is 3600).
 *   **Show per liter/gallon in unit of measure**: Standardizes price representation.
 *   **Show stations on map**: Enables rendering of stations on the Map panel.
 *   **Enable EV charging sensors**: Toggles dedicated EV charging sensors that report connector counts and charging power per connector type (see [Sensors](#sensors) for details).
+*   **Fetch Gas Prices**: Toggles retrieving fuel prices for the station.
+*   **Display discounted price**: Toggles showing the discounted price as the state value of the sensor (applying brand adjustments).
 
 ### Cheapest gas tracker
 
@@ -98,7 +107,7 @@ You can optionally configure inclusion and exclusion filters to restrict trackin
 
 You can configure price adjustments (e.g. discounts or markups) per brand when setting up the cheapest station or configuring the integration options for any tracked station. These adjustments apply when determining which station is cheapest or show up as the `discounted_price` attribute on the price sensors. By default, the reported state remains the actual retail price at the pump.
 
-If you want the sensor state value itself to show the discounted price, you can enable the **Display discounted price** option in the integration configure screen.
+If you want the sensor state value itself to show the discounted price, you can enable the **Display discounted price** option in the station's reconfigure screen.
 
 Specify adjustments as a YAML or JSON map, where the key is either the brand name (case-insensitive) or the brand ID, and the value is the adjustment amount (a negative number for a discount, or positive for a markup).
 

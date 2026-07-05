@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
+from yarl import URL
 
 from custom_components.gasbuddy import _async_migrate_legacy_entries  # noqa: PLC2701
 from custom_components.gasbuddy.config_flow import (
@@ -1426,18 +1428,31 @@ async def test_search_flow_success_and_failures(hass):
 
 async def test_validate_station_ev_cloudflare_blocked(hass, mock_aioclient):
     """Test validate_station raises CloudflareBlocked on EV lookup failure due to CF."""
+    calls = 0
+
+    async def side_effect(method, url, data):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return AiohttpClientMockResponse(
+                method,
+                URL(url),
+                status=200,
+                json={"errors": [{"message": "Price lookup error"}]},
+            )
+        return AiohttpClientMockResponse(
+            method,
+            URL(url),
+            status=403,
+        )
+
     # 1. Price lookup (first client)
     mock_aioclient.get(
-        "https://www.gasbuddy.com/home", status=200, body='window.gbcsrf = "test_csrf_token"'
+        "https://www.gasbuddy.com/home", status=200, text='window.gbcsrf = "test_csrf_token"'
     )
-    mock_aioclient.post(
-        "https://www.gasbuddy.com/graphql",
-        status=200,
-        body='{"errors": [{"message": "Price lookup error"}]}',
-    )
+    mock_aioclient.post("https://www.gasbuddy.com/graphql", side_effect=side_effect)
     # 2. EV lookup (second client) - mocked for both paths (cache hit or refresh)
     mock_aioclient.get("https://www.gasbuddy.com/home", status=403)
-    mock_aioclient.post("https://www.gasbuddy.com/graphql", status=403)
 
     with pytest.raises(CloudflareBlocked):
         await validate_station(hass, "999001")
@@ -1499,23 +1514,33 @@ async def test_legacy_migration_preserves_show_discounted(hass, mock_gasbuddy):
 
 async def test_validate_station_ev_non_cloudflare_error(hass, mock_aioclient):
     """Test validate_station handles non-Cloudflare EV lookup errors."""
+    calls = 0
+
+    async def side_effect(method, url, data):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return AiohttpClientMockResponse(
+                method,
+                URL(url),
+                status=200,
+                json={"errors": [{"message": "Price lookup error"}]},
+            )
+        return AiohttpClientMockResponse(
+            method,
+            URL(url),
+            status=200,
+            json={"errors": [{"message": "Generic EV lookup error"}]},
+        )
+
     # 1. Price lookup (first client)
     mock_aioclient.get(
-        "https://www.gasbuddy.com/home", status=200, body='window.gbcsrf = "test_csrf_token"'
+        "https://www.gasbuddy.com/home", status=200, text='window.gbcsrf = "test_csrf_token"'
     )
-    mock_aioclient.post(
-        "https://www.gasbuddy.com/graphql",
-        status=200,
-        body='{"errors": [{"message": "Price lookup error"}]}',
-    )
+    mock_aioclient.post("https://www.gasbuddy.com/graphql", side_effect=side_effect)
     # 2. EV lookup (second client)
     mock_aioclient.get(
-        "https://www.gasbuddy.com/home", status=200, body='window.gbcsrf = "test_csrf_token"'
-    )
-    mock_aioclient.post(
-        "https://www.gasbuddy.com/graphql",
-        status=200,
-        body='{"errors": [{"message": "Generic EV lookup error"}]}',
+        "https://www.gasbuddy.com/home", status=200, text='window.gbcsrf = "test_csrf_token"'
     )
 
     with pytest.raises(InvalidStation):

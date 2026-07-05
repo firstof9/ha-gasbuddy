@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
+from yarl import URL
 
 from custom_components.gasbuddy.const import (
     ATTR_DEVICE_ID,
@@ -44,22 +46,38 @@ async def test_lookup_gps(
         title="Gas Station",
         data=CONFIG_DATA,
     )
+    calls = 0
+
+    async def side_effect(method, url, data):
+        nonlocal calls
+        calls += 1
+        if calls in {1, 2, 3}:
+            return AiohttpClientMockResponse(
+                method,
+                URL(url),
+                status=200,
+                text=load_fixture("results.json"),
+            )
+        return AiohttpClientMockResponse(
+            method,
+            URL(url),
+            status=400,
+            text=r"¯\_(ツ)_/¯",
+        )
+
     mock_aioclient.get(
         GB_URL,
         status=200,
-        body=load_fixture("index.html"),
-        repeat=True,
+        text=load_fixture("index.html"),
     )
     mock_aioclient.post(
         SOLVER_URL,
         status=200,
-        body=load_fixture("solver_response.json"),
-        repeat=True,
+        text=load_fixture("solver_response.json"),
     )
     mock_aioclient.post(
         TEST_URL,
-        status=200,
-        body=load_fixture("results.json"),
+        side_effect=side_effect,
     )
 
     entry.add_to_hass(hass)
@@ -94,12 +112,6 @@ async def test_lookup_gps(
             == "2024-11-18T21:58:38.859Z"
         )
 
-        mock_aioclient.post(
-            TEST_URL,
-            status=200,
-            body=load_fixture("results.json"),
-        )
-
         response = await hass.services.async_call(
             DOMAIN,
             SERVICE_LOOKUP_GPS,
@@ -110,12 +122,6 @@ async def test_lookup_gps(
 
         assert len(response[entity_id]["results"]) == 10
 
-        mock_aioclient.post(
-            TEST_URL,
-            status=200,
-            body=load_fixture("results.json"),
-        )
-
         response = await hass.services.async_call(
             DOMAIN,
             SERVICE_LOOKUP_GPS,
@@ -125,12 +131,6 @@ async def test_lookup_gps(
         )
 
         assert len(response[entity_id]["results"]) == 10
-
-    mock_aioclient.post(
-        TEST_URL,
-        status=400,
-        body=r"¯\_(ツ)_/¯",
-    )
 
     with caplog.at_level(logging.DEBUG):
         response = await hass.services.async_call(
@@ -155,22 +155,38 @@ async def test_lookup_zip(
         title="Gas Station",
         data=CONFIG_DATA,
     )
+    calls_zip = 0
+
+    async def side_effect_zip(method, url, data):
+        nonlocal calls_zip
+        calls_zip += 1
+        if calls_zip in {1, 2}:
+            return AiohttpClientMockResponse(
+                method,
+                URL(url),
+                status=200,
+                text=load_fixture("results.json"),
+            )
+        return AiohttpClientMockResponse(
+            method,
+            URL(url),
+            status=400,
+            text=r"¯\_(ツ)_/¯",
+        )
+
     mock_aioclient.get(
         GB_URL,
         status=200,
-        body=load_fixture("index.html"),
-        repeat=True,
+        text=load_fixture("index.html"),
     )
     mock_aioclient.post(
         SOLVER_URL,
         status=200,
-        body=load_fixture("solver_response.json"),
-        repeat=True,
+        text=load_fixture("solver_response.json"),
     )
     mock_aioclient.post(
         TEST_URL,
-        status=200,
-        body=load_fixture("results.json"),
+        side_effect=side_effect_zip,
     )
 
     entry.add_to_hass(hass)
@@ -196,12 +212,6 @@ async def test_lookup_zip(
         assert response["trend"][1]["average_price"] == 3.11
         assert response["trend"][1]["lowest_price"] == 0
 
-    mock_aioclient.post(
-        TEST_URL,
-        status=200,
-        body=load_fixture("results.json"),
-    )
-
     with caplog.at_level(logging.DEBUG):
         response = await hass.services.async_call(
             DOMAIN,
@@ -220,12 +230,6 @@ async def test_lookup_zip(
         assert response["trend"][1]["area"] == "United States"
         assert response["trend"][1]["average_price"] == 3.11
         assert response["trend"][1]["lowest_price"] == 0
-
-    mock_aioclient.post(
-        TEST_URL,
-        status=400,
-        body=r"¯\_(ツ)_/¯",
-    )
 
     with caplog.at_level(logging.DEBUG):
         response = await hass.services.async_call(
@@ -254,13 +258,12 @@ async def test_clear_cache(
     mock_aioclient.get(
         GB_URL,
         status=200,
-        body=load_fixture("index.html"),
-        repeat=True,
+        text=load_fixture("index.html"),
     )
     mock_aioclient.post(
         TEST_URL,
         status=200,
-        body=load_fixture("results.json"),
+        text=load_fixture("results.json"),
     )
 
     entry.add_to_hass(hass)
@@ -372,8 +375,8 @@ async def test_clear_cache_no_config_entry(hass, mock_gasbuddy, mock_aioclient, 
 async def test_lookup_gps_missing_coordinates(hass, mock_gasbuddy, mock_aioclient, caplog):
     """lookup_gps warns and returns an empty result for an entity without coordinates."""
     entry = MockConfigEntry(domain=DOMAIN, title="Gas Station", data=CONFIG_DATA)
-    mock_aioclient.get(GB_URL, status=200, body=load_fixture("index.html"), repeat=True)
-    mock_aioclient.post(TEST_URL, status=200, body=load_fixture("results.json"))
+    mock_aioclient.get(GB_URL, status=200, text=load_fixture("index.html"))
+    mock_aioclient.post(TEST_URL, status=200, text=load_fixture("results.json"))
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
