@@ -28,96 +28,6 @@
                     "timeout": "FlareSolverr timeout (ms)",
                     "brand_adjustments": "Brand Price Adjustments"
                 }
-            },
-            "user": {
-                "description": "Please select either manual station ID or search for a station.",
-                "menu_options": {
-                    "manual": "Enter Station ID Manually",
-                    "search": "Search for a station nearby",
-                    "cheapest": "Track cheapest nearby gas",
-                    "hub": "Configure Virtual Hub (Global Settings)"
-                }
-            },
-            "manual": {
-                "description": "Please enter the Station ID",
-                "data": {
-                    "station_id": "Station ID",
-                    "name": "Name"
-                }
-            },
-            "hub": {
-                "description": "Configure the Virtual Hub to manage settings globally across all stations. Brand price adjustments are entered in YAML format.",
-                "data": {
-                    "solver": "FlareSolverr URL (optional)",
-                    "timeout": "FlareSolverr timeout (ms)",
-                    "brand_adjustments": "Brand Price Adjustments"
-                }
-            },
-            "search": {
-                "description": "Search by your configured GPS location or by Postal Code",
-                "menu_options": {
-                    "home": "Use Home Assistant configured coordinates",
-                    "postal": "Use postal code (zip code)"
-                }
-            },
-            "home": {
-                "description": "Please select a station"
-            },
-            "postal": {
-                "description": "Please enter a postal code (zip code)",
-                "data": {
-                    "zipcode": "Postal Code (zip code)"
-                }
-            },
-            "station_list": {
-                "description": "Please select a station",
-                "data": {
-                    "station_id": "Station",
-                    "name": "Name"
-                }
-            },
-            "cheapest": {
-                "description": "Track the cheapest nearby gas station. Uses your home coordinates or a postal code. On every refresh the coordinator re-checks and updates to the current cheapest station.",
-                "data": {
-                    "name": "Name",
-                    "zipcode": "Postal Code (optional — leave blank to use HA home coordinates)",
-                    "fuel_key": "Fuel type",
-                    "price_type": "Price type"
-                }
-            },
-            "reconfigure": {
-                "description": "Please enter the Station ID",
-                "data": {
-                    "station_id": "Station ID",
-                    "name": "Name"
-                }
-            },
-            "cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
-                "data": {
-                    "exclude_brands": "Excluded Brands",
-                    "include_brands": "Included Brands",
-                    "exclude_stations": "Excluded Stations",
-                    "include_stations": "Included Stations",
-                    "brand_adjustments": "Brand Price Adjustments"
-                }
-            },
-            "reconfigure_cheapest_filters": {
-                "description": "Configure brand and station filters to restrict which stations are tracked. See [documentation]({brand_adjustments_url}) for brand price adjustment examples.",
-                "data": {
-                    "exclude_brands": "Excluded Brands",
-                    "include_brands": "Included Brands",
-                    "exclude_stations": "Excluded Stations",
-                    "include_stations": "Included Stations",
-                    "brand_adjustments": "Brand Price Adjustments"
-                }
-            },
-            "home2": {
-                "description": "Please select a station",
-                "data": {
-                    "station_id": "Station",
-                    "name": "Name"
-                }
             }
         }
     },
@@ -164,7 +74,13 @@
                     "description": "Please enter the Station ID",
                     "data": {
                         "station_id": "Station ID",
-                        "name": "Name"
+                        "name": "Name",
+                        "interval": "Polling interval",
+                        "uom": "Show per liter/gallon in unit of measure",
+                        "gps": "Show stations on map",
+                        "ev_charging": "Enable EV charging sensors",
+                        "fetch_gas": "Fetch Gas Prices",
+                        "show_discounted": "Display discounted price"
                     }
                 },
                 "search": {
@@ -217,10 +133,16 @@
                     }
                 },
                 "reconfigure": {
-                    "description": "Please enter the Station ID",
+                    "description": "Please enter the configuration details for this entry",
                     "data": {
                         "station_id": "Station ID",
-                        "name": "Name"
+                        "name": "Name",
+                        "interval": "Polling interval",
+                        "uom": "Show per liter/gallon in unit of measure",
+                        "gps": "Show stations on map",
+                        "ev_charging": "Enable EV charging sensors",
+                        "fetch_gas": "Fetch Gas Prices",
+                        "show_discounted": "Display discounted price"
                     }
                 },
                 "reconfigure_cheapest_filters": {

@@ -74,7 +74,13 @@
                     "description": "Por favor, insira o ID da estação",
                     "data": {
                         "station_id": "ID da Estação",
-                        "name": "Nome"
+                        "name": "Nome",
+                        "interval": "Intervalo de atualização",
+                        "uom": "Mostrar por litro/galão na unidade de medida",
+                        "gps": "Mostrar estações no mapa",
+                        "ev_charging": "Ativar sensores de recarga EV",
+                        "fetch_gas": "Buscar preços de combustível",
+                        "show_discounted": "Exibir preço com desconto"
                     }
                 },
                 "search": {
@@ -130,7 +136,13 @@
                     "description": "Por favor, preencha os detalhes de configuração desta entrada",
                     "data": {
                         "station_id": "ID da Estação",
-                        "name": "Nome"
+                        "name": "Nome",
+                        "interval": "Intervalo de atualização",
+                        "uom": "Mostrar por litro/galão na unidade de medida",
+                        "gps": "Mostrar estações no mapa",
+                        "ev_charging": "Ativar sensores de recarga EV",
+                        "fetch_gas": "Buscar preços de combustível",
+                        "show_discounted": "Exibir preço com desconto"
                     }
                 },
                 "reconfigure_cheapest_filters": {

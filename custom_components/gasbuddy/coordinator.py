@@ -13,6 +13,7 @@ from py_gasbuddy import GasBuddy
 from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
+from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -51,8 +52,8 @@ def _lon_delta(a: float, b: float) -> float:
 def _redact(data: Any) -> str:
     """Redact sensitive data for logging."""
     sensitive_keys = {
-        "latitude",
-        "longitude",
+        CONF_LATITUDE,
+        CONF_LONGITUDE,
         "street_address",
         "ev_station_address",
         "city",
@@ -179,13 +180,17 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed(
                     "Both gas price polling and EV charging are disabled — nothing to fetch."
                 )
-            lat = self._subentry.data.get("latitude") or self.hass.config.latitude
-            lon = self._subentry.data.get("longitude") or self.hass.config.longitude
+            lat = self._subentry.data.get(CONF_LATITUDE)
+            if lat is None:
+                lat = self.hass.config.latitude
+            lon = self._subentry.data.get(CONF_LONGITUDE)
+            if lon is None:
+                lon = self.hass.config.longitude
             self._data = {
                 "station_id": self._subentry.data[CONF_STATION_ID],
                 "name": self._subentry.data.get(CONF_NAME, "EV Station"),
-                "latitude": lat,
-                "longitude": lon,
+                CONF_LATITUDE: lat,
+                CONF_LONGITUDE: lon,
             }
             _LOGGER.debug(
                 "fetch_gas disabled — bootstrapping EV-only data: %s",
@@ -195,11 +200,11 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
             try:
                 self._data = await self._api.price_lookup()
                 _LOGGER.debug("Gas station data: %s", _redact(self._data))
-                config_lat = self._subentry.data.get("latitude")
-                config_lon = self._subentry.data.get("longitude")
+                config_lat = self._subentry.data.get(CONF_LATITUDE)
+                config_lon = self._subentry.data.get(CONF_LONGITUDE)
                 if config_lat is not None and config_lon is not None:
-                    gas_lat = self._data.get("latitude")
-                    gas_lon = self._data.get("longitude")
+                    gas_lat = self._data.get(CONF_LATITUDE)
+                    gas_lon = self._data.get(CONF_LONGITUDE)
                     if gas_lat is not None and gas_lon is not None:
                         if abs(gas_lat - config_lat) > 1.0 or _lon_delta(gas_lon, config_lon) > 1.0:
                             raise APIError("Station ID collision detected")  # noqa: TRY301
@@ -208,8 +213,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                     _LOGGER.warning("Price lookup failed, trying EV station fallback: %s", ex)
                     try:
                         # Use coordinates from subentry if available, otherwise home coordinates
-                        lat = self._subentry.data.get("latitude")
-                        lon = self._subentry.data.get("longitude")
+                        lat = self._subentry.data.get(CONF_LATITUDE)
+                        lon = self._subentry.data.get(CONF_LONGITUDE)
                         if lat is None:
                             lat = self.hass.config.latitude
                         if lon is None:
@@ -250,19 +255,19 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                             self._data = {
                                 "station_id": matching["station_id"],
                                 "name": matching["name"],
-                                "latitude": matching["latitude"],
-                                "longitude": matching["longitude"],
+                                CONF_LATITUDE: matching["latitude"],
+                                CONF_LONGITUDE: matching["longitude"],
                                 **carried,
                             }
                             # Update subentry data if coordinates are new or changed
                             if (
-                                self._subentry.data.get("latitude") != matching["latitude"]
-                                or self._subentry.data.get("longitude") != matching["longitude"]
+                                self._subentry.data.get(CONF_LATITUDE) != matching["latitude"]
+                                or self._subentry.data.get(CONF_LONGITUDE) != matching["longitude"]
                             ):
                                 new_data = {
                                     **self._subentry.data,
-                                    "latitude": matching["latitude"],
-                                    "longitude": matching["longitude"],
+                                    CONF_LATITUDE: matching["latitude"],
+                                    CONF_LONGITUDE: matching["longitude"],
                                 }
                                 self.hass.config_entries.async_update_subentry(
                                     self._config, self._subentry, data=new_data
@@ -271,8 +276,8 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                             self._data = {
                                 "station_id": self._subentry.data[CONF_STATION_ID],
                                 "name": self._subentry.data.get(CONF_NAME, "EV Station"),
-                                "latitude": lat,
-                                "longitude": lon,
+                                CONF_LATITUDE: lat,
+                                CONF_LONGITUDE: lon,
                                 **carried,
                             }
                     except Exception as fallback_ex:  # noqa: BLE001
@@ -285,11 +290,11 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed from exception
 
         # Query EV station details if enabled
-        if ev_charging_enabled and "latitude" in self._data and "longitude" in self._data:
+        if ev_charging_enabled and CONF_LATITUDE in self._data and CONF_LONGITUDE in self._data:
             try:
                 ev_res = await self._api.ev_stations_nearby(
-                    lat=self._data["latitude"],
-                    lon=self._data["longitude"],
+                    lat=self._data[CONF_LATITUDE],
+                    lon=self._data[CONF_LONGITUDE],
                     radius=5,
                     limit=10,
                 )
@@ -363,9 +368,9 @@ class GasBuddyUpdateCoordinator(DataUpdateCoordinator):
         lat: float | None = None
         lon: float | None = None
         if not postal:
-            config_lat = self._subentry.data.get("latitude")
+            config_lat = self._subentry.data.get(CONF_LATITUDE)
             lat = config_lat if config_lat is not None else self.hass.config.latitude
-            config_lon = self._subentry.data.get("longitude")
+            config_lon = self._subentry.data.get(CONF_LONGITUDE)
             lon = config_lon if config_lon is not None else self.hass.config.longitude
 
         try:
