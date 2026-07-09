@@ -228,6 +228,33 @@ Service | Description | Arguments
 `gasbuddy.ev_lookup_zip` | Lookup nearby EV stations via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
 `gasbuddy.clear_cache` | Clear the cache for specific device(s). | `device_id` (Required)
 
+## National Average Price / Trends
+
+Although the integration's standard sensors track specific physical stations, you can create a template sensor to track the national average gas price (or other regional trends) using the `gasbuddy.lookup_zip` service.
+
+To do this, add a trigger-based template sensor to your `configuration.yaml` (adjusting the postal code and polling interval to your preference):
+
+```yaml
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: "/6" # Fetch data every 6 hours
+    action:
+      - action: gasbuddy.lookup_zip
+        data:
+          postal_code: "12345" # Replace with your postal code
+        response_variable: gasbuddy_data
+    sensor:
+      - name: "National Average Gas Price"
+        unique_id: national_average_gas_price
+        state: >
+          {{ (gasbuddy_data.trend | selectattr('area', 'eq', 'United States') | first).average_price }}
+        unit_of_measurement: "USD/gal"
+        attributes:
+          lowest_price: >
+            {{ (gasbuddy_data.trend | selectattr('area', 'eq', 'United States') | first).lowest_price }}
+```
+
 ## Contributions are welcome!
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
