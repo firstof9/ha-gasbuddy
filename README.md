@@ -234,6 +234,7 @@ Although the integration's standard sensors track specific physical stations, yo
 
 To do this, add a trigger-based template sensor to your `configuration.yaml` (adjusting the postal code and polling interval to your preference):
 
+### United States Example
 ```yaml
 template:
   - trigger:
@@ -242,7 +243,7 @@ template:
     action:
       - action: gasbuddy.lookup_zip
         data:
-          postal_code: "12345" # Replace with your postal code
+          postal_code: "12345" # Replace with your US zip code
         response_variable: gasbuddy_data
     sensor:
       - name: "National Average Gas Price"
@@ -253,6 +254,28 @@ template:
         attributes:
           lowest_price: >
             {{ (gasbuddy_data.trend | selectattr('area', 'eq', 'United States') | first).lowest_price }}
+```
+
+### Canada Example
+```yaml
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: "/6" # Fetch data every 6 hours
+    action:
+      - action: gasbuddy.lookup_zip
+        data:
+          postal_code: "M5V 2T6" # Replace with your Canadian postal code
+        response_variable: gasbuddy_data
+    sensor:
+      - name: "Canada National Average Gas Price"
+        unique_id: canada_national_average_gas_price
+        state: >
+          {{ ((gasbuddy_data.trend | selectattr('area', 'eq', 'Canada') | first).average_price / 100) | round(3) }}
+        unit_of_measurement: "CAD/L"
+        attributes:
+          lowest_price: >
+            {{ ((gasbuddy_data.trend | selectattr('area', 'eq', 'Canada') | first).lowest_price / 100) | round(3) }}
 ```
 
 ## Contributions are welcome!
