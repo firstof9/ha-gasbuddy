@@ -243,7 +243,7 @@ template:
     action:
       - action: gasbuddy.lookup_zip
         data:
-          postal_code: "12345" # Replace with your US zip code
+          zipcode: "12345" # Replace with your US zip code
         response_variable: gasbuddy_data
     sensor:
       - name: "National Average Gas Price"
@@ -265,7 +265,7 @@ template:
     action:
       - action: gasbuddy.lookup_zip
         data:
-          postal_code: "M5V 2T6" # Replace with your Canadian postal code
+          zipcode: "M5V 2T6" # Replace with your Canadian postal code
         response_variable: gasbuddy_data
     sensor:
       - name: "Canada National Average Gas Price"
