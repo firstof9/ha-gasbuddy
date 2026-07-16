@@ -10,6 +10,6 @@ tox
 pytest
 ruff
 pre-commit==4.6.0
-codespell==2.4.2
+codespell==2.4.3
 types-PyYAML
 pycares
