@@ -9,7 +9,7 @@ pylint
 tox
 pytest
 ruff
-pre-commit==4.6.0
+pre-commit==4.6.1
 codespell==2.4.3
 types-PyYAML
 pycares
