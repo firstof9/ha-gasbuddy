@@ -1,0 +1,46 @@
+name: Check Issue Title
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  validate-title:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Validate Issue Title
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = context.payload.issue.title.trim();
+
+            // List of exact default prefixes or pattern checks
+            const defaultTitles = [
+              "[Bug]:",
+              "[Feature Request]:",
+              "[Bug]",
+              "[Feature Request]"
+            ];
+
+            const isInvalid = defaultTitles.some(prefix => title === prefix) || title === "";
+
+            if (isInvalid) {
+              // Add comment explaining why the issue is being marked invalid
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                body: "Thank you for opening an issue! However, the issue title was left as default or empty. Please edit the title to provide a descriptive summary of your report."
+              });
+
+              // Add 'invalid' label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                labels: ['invalid']
+              });
+            }
