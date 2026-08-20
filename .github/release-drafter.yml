@@ -1,140 +1,17 @@
-name-template: "$RESOLVED_VERSION"
-tag-template: "$RESOLVED_VERSION"
-change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
-sort-direction: ascending
 categories:
-  - title: "💥 Breaking Change 💥"
-    labels:
-      - "breaking-change"
-  - title: "✨ New Features ✨"
-    labels:
-      - "enhancement"
-      - "feature"
-  - title: "🐛 Bug Fixes 🐛"
-    labels:
-      - "fix"
-      - "bugfix"
-      - "bug"
-  - title: "⚡ Performance ⚡"
-    labels:
-      - "performance"
-  - title: "🔧 Maintenance 🔧"
-    labels:
-      - "chore"
-      - "documentation"
-      - "maintenance"
-      - "repo"
-      - "dependencies"
-      - "github_actions"
-      - "refactor"
-      - "style"
-      - "build"
-      - "revert"
-      - "translations"
-    collapse-after: 1
-  - title: "🎓 Code Quality 🎓"
-    labels:
-      - "code-quality"
-      - "CI"
-      - "test"
-      - "has-tests"
-autolabeler:
-  - label: "breaking-change"
-    title:
-      - '/^[a-z]+(\([^)]+\))?!:/i'
-  - label: "feature"
-    branch:
-      - "feat-*"
-      - "feature-*"
-    title:
-      - '/^feat(\([^)]+\))?:/i'
-  - label: "bugfix"
-    branch:
-      - "fix-*"
-      - "bugfix-*"
-    title:
-      - '/^fix(\([^)]+\))?:/i'
-  - label: "refactor"
-    branch:
-      - "refactor-*"
-    title:
-      - '/^refactor(\([^)]+\))?:/i'
-  - label: "code-quality"
-    branch:
-      - "test-*"
-    title:
-      - '/^test(\([^)]+\))?:/i'
-  - label: "CI"
-    title:
-      - '/^ci(\([^)]+\))?:/i'
-  - label: "chore"
-    branch:
-      - "chore-*"
-    title:
-      - '/^chore(\([^)]+\))?:/i'
-  - label: "documentation"
-    branch:
-      - "docs-*"
-    title:
-      - '/^docs(\([^)]+\))?:/i'
-    files:
-      - "README.md"
-      - "CONTRIBUTING.md"
-      - "LICENSE"
-      - "docs/**/*"
-  - label: "style"
-    title:
-      - '/^style(\([^)]+\))?:/i'
-  - label: "performance"
-    title:
-      - '/^perf(\([^)]+\))?:/i'
-  - label: "revert"
-    title:
-      - '/^revert(\([^)]+\))?:/i'
-  - label: "build"
-    title:
-      - '/^build(\([^)]+\))?:/i'
-  - label: "dependencies"
-    branch:
-      - "deps-*"
-      - "dependabot/*"
-    title:
-      - "/^build\\(deps\\):/i"
-      - "/^chore\\(deps\\):/i"
-  - label: "has-tests"
-    files:
-      - "tests/**/*"
-  - label: "translations"
-    files:
-      - "custom_components/gasbuddy/translations/**/*"
-version-resolver:
-  major:
-    labels:
-      - "breaking-change"
-  minor:
-    labels:
-      - "feature"
-      - "enhancement"
-  patch:
-    labels:
-      - "bug"
-      - "fix"
-      - "bugfix"
-      - "performance"
-      - "refactor"
-      - "style"
-      - "build"
-      - "chore"
-      - "documentation"
-      - "CI"
-      - "test"
-      - "code-quality"
-      - "revert"
-  default: patch
-template: |
-  [![Downloads for this release](https://img.shields.io/github/downloads/firstof9/ha-gasbuddy/$RESOLVED_VERSION/total.svg)](https://github.com/firstof9/ha-gasbuddy/releases/$RESOLVED_VERSION)
-
-  $CHANGES
-
-  ## Links
-  - [Submit bugs/feature requests](https://github.com/firstof9/ha-gasbuddy/issues)
+  - title: "Features"
+    semver-increment: "minor"
+    when:
+      label: "feature"
+  - title: "Bug Fixes"
+    semver-increment: "patch"
+    when:
+      label: "fix"
+  - type: "version-resolver"
+    semverincrement: "major"
+    when:
+      label: "major"
+  - type: "version-resolver"
+    semverincrement: "patch"
+    when:
+      label: "fix"

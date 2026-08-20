@@ -32,3 +32,5 @@ jobs:
 
       # yamllint disable-line rule:line-length
       - uses: release-drafter/release-drafter@139054aeaa9adc52ab36ddf67437541f039b88e2 # v7.1.1
+        with:
+          config-file: .github/release-drafter.yml
