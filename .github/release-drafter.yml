@@ -89,7 +89,7 @@ categories:
 autolabeler:
   - label: "breaking-change"
     title:
-      - '/^[^\\s!]+!(\\( [^)]+ \\))?:/i'
+      - '/^[^\\s!]+!(\\([^)]+\\))?:/i'
   - label: "feature"
     branch:
       - "feat-*"
