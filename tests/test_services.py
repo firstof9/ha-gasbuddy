@@ -1,18 +1,23 @@
 """Test gasbuddy services."""
 
 import logging
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
+from yarl import URL
 
 from custom_components.gasbuddy.const import (
     ATTR_DEVICE_ID,
     ATTR_LIMIT,
     ATTR_POSTAL_CODE,
     ATTR_SOLVER,
+    COORDINATOR,
     DOMAIN,
 )
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 from tests.common import load_fixture
 
@@ -41,22 +46,38 @@ async def test_lookup_gps(
         title="Gas Station",
         data=CONFIG_DATA,
     )
+    calls = 0
+
+    async def side_effect(method, url, data):
+        nonlocal calls
+        calls += 1
+        if calls in {1, 2, 3}:
+            return AiohttpClientMockResponse(
+                method,
+                URL(url),
+                status=200,
+                text=load_fixture("results.json"),
+            )
+        return AiohttpClientMockResponse(
+            method,
+            URL(url),
+            status=400,
+            text=r"¯\_(ツ)_/¯",
+        )
+
     mock_aioclient.get(
         GB_URL,
         status=200,
-        body=load_fixture("index.html"),
-        repeat=True,
+        text=load_fixture("index.html"),
     )
     mock_aioclient.post(
         SOLVER_URL,
         status=200,
-        body=load_fixture("solver_response.json"),
-        repeat=True,
+        text=load_fixture("solver_response.json"),
     )
     mock_aioclient.post(
         TEST_URL,
-        status=200,
-        body=load_fixture("results.json"),
+        side_effect=side_effect,
     )
 
     entry.add_to_hass(hass)
@@ -91,12 +112,6 @@ async def test_lookup_gps(
             == "2024-11-18T21:58:38.859Z"
         )
 
-        mock_aioclient.post(
-            TEST_URL,
-            status=200,
-            body=load_fixture("results.json"),
-        )
-
         response = await hass.services.async_call(
             DOMAIN,
             SERVICE_LOOKUP_GPS,
@@ -107,12 +122,6 @@ async def test_lookup_gps(
 
         assert len(response[entity_id]["results"]) == 10
 
-        mock_aioclient.post(
-            TEST_URL,
-            status=200,
-            body=load_fixture("results.json"),
-        )
-
         response = await hass.services.async_call(
             DOMAIN,
             SERVICE_LOOKUP_GPS,
@@ -122,12 +131,6 @@ async def test_lookup_gps(
         )
 
         assert len(response[entity_id]["results"]) == 10
-
-    mock_aioclient.post(
-        TEST_URL,
-        status=400,
-        body=r"¯\_(ツ)_/¯",
-    )
 
     with caplog.at_level(logging.DEBUG):
         response = await hass.services.async_call(
@@ -152,22 +155,38 @@ async def test_lookup_zip(
         title="Gas Station",
         data=CONFIG_DATA,
     )
+    calls_zip = 0
+
+    async def side_effect_zip(method, url, data):
+        nonlocal calls_zip
+        calls_zip += 1
+        if calls_zip in {1, 2}:
+            return AiohttpClientMockResponse(
+                method,
+                URL(url),
+                status=200,
+                text=load_fixture("results.json"),
+            )
+        return AiohttpClientMockResponse(
+            method,
+            URL(url),
+            status=400,
+            text=r"¯\_(ツ)_/¯",
+        )
+
     mock_aioclient.get(
         GB_URL,
         status=200,
-        body=load_fixture("index.html"),
-        repeat=True,
+        text=load_fixture("index.html"),
     )
     mock_aioclient.post(
         SOLVER_URL,
         status=200,
-        body=load_fixture("solver_response.json"),
-        repeat=True,
+        text=load_fixture("solver_response.json"),
     )
     mock_aioclient.post(
         TEST_URL,
-        status=200,
-        body=load_fixture("results.json"),
+        side_effect=side_effect_zip,
     )
 
     entry.add_to_hass(hass)
@@ -193,12 +212,6 @@ async def test_lookup_zip(
         assert response["trend"][1]["average_price"] == 3.11
         assert response["trend"][1]["lowest_price"] == 0
 
-    mock_aioclient.post(
-        TEST_URL,
-        status=200,
-        body=load_fixture("results.json"),
-    )
-
     with caplog.at_level(logging.DEBUG):
         response = await hass.services.async_call(
             DOMAIN,
@@ -217,12 +230,6 @@ async def test_lookup_zip(
         assert response["trend"][1]["area"] == "United States"
         assert response["trend"][1]["average_price"] == 3.11
         assert response["trend"][1]["lowest_price"] == 0
-
-    mock_aioclient.post(
-        TEST_URL,
-        status=400,
-        body=r"¯\_(ツ)_/¯",
-    )
 
     with caplog.at_level(logging.DEBUG):
         response = await hass.services.async_call(
@@ -251,13 +258,12 @@ async def test_clear_cache(
     mock_aioclient.get(
         GB_URL,
         status=200,
-        body=load_fixture("index.html"),
-        repeat=True,
+        text=load_fixture("index.html"),
     )
     mock_aioclient.post(
         TEST_URL,
         status=200,
-        body=load_fixture("results.json"),
+        text=load_fixture("results.json"),
     )
 
     entry.add_to_hass(hass)
@@ -315,7 +321,6 @@ async def test_clear_cache(
 
 async def test_lookup_gps_invalid_solver(hass, mock_gasbuddy, mock_aioclient):
     """lookup_gps raises ServiceValidationError for invalid solver URL (services.py line 53)."""
-    from homeassistant.exceptions import ServiceValidationError  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -342,7 +347,6 @@ async def test_lookup_gps_invalid_solver(hass, mock_gasbuddy, mock_aioclient):
 
 async def test_clear_cache_no_config_entry(hass, mock_gasbuddy, mock_aioclient, caplog):
     """clear_cache raises ValueError when device has no config entry (services.py line 295)."""
-    from unittest.mock import MagicMock, patch  # noqa: PLC0415
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -371,8 +375,8 @@ async def test_clear_cache_no_config_entry(hass, mock_gasbuddy, mock_aioclient, 
 async def test_lookup_gps_missing_coordinates(hass, mock_gasbuddy, mock_aioclient, caplog):
     """lookup_gps warns and returns an empty result for an entity without coordinates."""
     entry = MockConfigEntry(domain=DOMAIN, title="Gas Station", data=CONFIG_DATA)
-    mock_aioclient.get(GB_URL, status=200, body=load_fixture("index.html"), repeat=True)
-    mock_aioclient.post(TEST_URL, status=200, body=load_fixture("results.json"))
+    mock_aioclient.get(GB_URL, status=200, text=load_fixture("index.html"))
+    mock_aioclient.post(TEST_URL, status=200, text=load_fixture("results.json"))
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -392,3 +396,33 @@ async def test_lookup_gps_missing_coordinates(hass, mock_gasbuddy, mock_aioclien
 
     assert response[entity_id] == {}
     assert "lacks latitude/longitude coordinates" in caplog.text
+
+
+async def test_clear_cache_no_coordinator(hass, mock_gasbuddy, mock_aioclient, caplog):
+    """clear_cache raises ValueError when the config entry has no coordinator in hass.data."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Gas Station",
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a device entry associated with this config entry
+    mock_device = MagicMock()
+    mock_device.config_entries = {entry.entry_id}
+
+    # Remove coordinator from hass.data
+    hass.data[DOMAIN][entry.entry_id].pop(COORDINATOR, None)
+
+    with patch("custom_components.gasbuddy.services.dr.async_get") as mock_reg:
+        mock_reg.return_value.async_get.return_value = mock_device
+        with pytest.raises(ValueError, match="No coordinator found"):
+            await hass.services.async_call(
+                DOMAIN,
+                SERVICE_CLEAR_CACHE,
+                {ATTR_DEVICE_ID: "fake_device_id"},
+                blocking=True,
+                return_response=False,
+            )

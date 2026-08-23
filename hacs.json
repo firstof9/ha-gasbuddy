@@ -1,6 +1,6 @@
 {
     "name": "GasBuddy",
-    "homeassistant": "2023.1.0",
+    "homeassistant": "2025.3.0",
     "zip_release": true,
     "filename": "ha-gasbuddy.zip",
     "render_readme": true,

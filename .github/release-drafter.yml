@@ -89,42 +89,42 @@ categories:
 autolabeler:
   - label: "breaking-change"
     title:
-      - '/^[^\\s!]+!(\\([^)]+\\))?:/i'
+      - '/^[^\\\\s!]+!(\\\\([^)]+\\\\))?:/i'
   - label: "feature"
     branch:
       - "feat-*"
       - "feature-*"
     title:
-      - '/^feat(\\([^)]+\\))?:/i'
+      - '/^feat(\\\\([^)]+\\\\))?:/i'
   - label: "bugfix"
     branch:
       - "fix-*"
       - "bugfix-*"
     title:
-      - '/^fix(\\([^)]+\\))?:/i'
+      - '/^fix(\\\\([^)]+\\\\))?:/i'
   - label: "refactor"
     branch:
       - "refactor-*"
     title:
-      - '/^refactor(\\([^)]+\\))?:/i'
+      - '/^refactor(\\\\([^)]+\\\\))?:/i'
   - label: "code-quality"
     branch:
       - "test-*"
     title:
-      - '/^test(\\([^)]+\\))?:/i'
+      - '/^test(\\\\([^)]+\\\\))?:/i'
   - label: "CI"
     title:
-      - '/^ci(\\([^)]+\\))?:/i'
+      - '/^ci(\\\\([^)]+\\\\))?:/i'
   - label: "chore"
     branch:
       - "chore-*"
     title:
-      - '/^chore(\\([^)]+\\))?:/i'
+      - '/^chore(\\\\([^)]+\\\\))?:/i'
   - label: "documentation"
     branch:
       - "docs-*"
     title:
-      - '/^docs(\\([^)]+\\))?:/i'
+      - '/^docs(\\\\([^)]+\\\\))?:/i'
     files:
       - "README.md"
       - "CONTRIBUTING.md"
@@ -132,23 +132,23 @@ autolabeler:
       - "docs/**/*"
   - label: "style"
     title:
-      - '/^style(\\([^)]+\\))?:/i'
+      - '/^style(\\\\([^)]+\\\\))?:/i'
   - label: "performance"
     title:
-      - '/^perf(\\([^)]+\\))?:/i'
+      - '/^perf(\\\\([^)]+\\\\))?:/i'
   - label: "revert"
     title:
-      - '/^revert(\\([^)]+\\))?:/i'
+      - '/^revert(\\\\([^)]+\\\\))?:/i'
   - label: "build"
     title:
-      - '/^build(\\([^)]+\\))?:/i'
+      - '/^build(\\\\([^)]+\\\\))?:/i'
   - label: "dependencies"
     branch:
       - "deps-*"
       - "dependabot/*"
     title:
-      - "/^build\\(deps\\):/i"
-      - "/^chore\\(deps\\):/i"
+      - "/^build\\\\(deps\\\\):/i"
+      - "/^chore\\\\(deps\\\\):/i"
   - label: "has-tests"
     files:
       - "tests/**/*"

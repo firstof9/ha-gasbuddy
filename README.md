@@ -56,7 +56,7 @@ You probably do not want to do this! Use the HACS method above unless you know w
 
 Since May 2025, GasBuddy implemented Cloudflare which may lead to blocking of requests to GasBuddy, and cause timeout and log errors. This would lead to the occasional missed data update to obtain the latest gas prices, along with log errors.
 
-To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed via [FlareSolverr standalone installation](https://github.com/FlareSolverr/FlareSolverr) or as a [FlareSolverr Home Assistant add-on](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can re-configure your existing GasBuddy entries by clicking the 3 dots of each gas station entry and entering your FlareSolverr URL, i.e., `http://ip:port/v1`
+To circumvent this, FlareSolverr can be used to bypass Cloudflare protection. FlareSolverr can be installed via [FlareSolverr standalone installation](https://github.com/FlareSolverr/FlareSolverr) or as a [FlareSolverr Home Assistant add-on](https://github.com/alexbelgium/hassio-addons/tree/master/flaresolverr). Once your FlareSolverr instance is up and running, you can configure your FlareSolverr URL and timeout globally on the **GasBuddy Virtual Hub** by clicking **Configure** on the integration card.
 
 <img width="673" height="498" alt="image" src="https://github.com/user-attachments/assets/dbb7f99f-9f4d-4b2b-83c9-8419ba106a97" />
 
@@ -71,11 +71,20 @@ Configuration is done via the Home Assistant UI. When adding the integration, yo
 *   **Search by Postal Code**: Enter a specific Zip or Postal Code to find stations in that area.
 *   **Track Cheapest Nearby Gas**: Instead of a fixed station, follow whichever nearby station is currently cheapest for a fuel type and price type you choose (see [Cheapest gas tracker](#cheapest-gas-tracker)).
 
-You can configure the following options by clicking **Configure** on the integration card:
-*   **Polling interval**: Polling frequency in seconds.
+### Global Options (Virtual Hub)
+By clicking **Configure** on the main **GasBuddy Virtual Hub** integration card, you can manage global settings that apply across all tracked stations:
+*   **FlareSolverr URL**: The URL to your FlareSolverr instance.
+*   **FlareSolverr timeout**: Timeout value in milliseconds.
+*   **Brand Price Adjustments**: YAML or JSON map for per-brand discounts or markups (see [Brand Price Adjustments](#brand-price-adjustments)).
+
+### Station Options (Subentries)
+Tracked gas stations are managed as **subentries** under the GasBuddy Virtual Hub. You can configure station-specific settings by clicking **Reconfigure** next to the specific station subentry under the Virtual Hub device/integration card:
+*   **Polling interval**: Polling frequency in seconds (default is 3600).
 *   **Show per liter/gallon in unit of measure**: Standardizes price representation.
 *   **Show stations on map**: Enables rendering of stations on the Map panel.
 *   **Enable EV charging sensors**: Toggles dedicated EV charging sensors that report connector counts and charging power per connector type (see [Sensors](#sensors) for details).
+*   **Fetch Gas Prices**: Toggles retrieving fuel prices for the station.
+*   **Display discounted price**: Toggles showing the discounted price as the state value of the sensor (applying brand adjustments).
 
 ### Cheapest gas tracker
 
@@ -91,6 +100,34 @@ When you add it, choose:
     *   **Deal/GasBuddy Pay**: the GasBuddy Pay / deal price.
 
 Leave the postal code blank to search around your Home Assistant home coordinates, or enter a specific Zip/Postal Code to track the cheapest station in that area.
+
+You can optionally configure inclusion and exclusion filters to restrict tracking to specific brands or stations.
+
+#### Brand Price Adjustments
+
+You can configure price adjustments (e.g. discounts or markups) per brand when setting up the cheapest station or configuring the integration options for any tracked station. These adjustments apply when determining which station is cheapest or show up as the `discounted_price` attribute on the price sensors. By default, the reported state remains the actual retail price at the pump.
+
+If you want the sensor state value itself to show the discounted price, you can enable the **Display discounted price** option in the station's reconfigure screen.
+
+Specify adjustments as a YAML or JSON map, where the key is either the brand name (case-insensitive) or the brand ID, and the value is the adjustment amount (a negative number for a discount, or positive for a markup).
+
+> [!IMPORTANT]
+> **Adjustment Units**: The adjustment value must use the same unit as the station's raw price before any metric conversions.
+> - For dollar-based stations (e.g. USD/gallon), use dollar amounts (e.g., `-0.10` for $0.10).
+> - For cents-based stations (e.g. CAD/cents-per-liter), use cents (e.g., `-5.0` for a 5¢ discount).
+
+For example, if you receive a $0.10 discount at Walmart and a $0.05 discount at Costco (on a US/dollar-based station):
+```yaml
+Walmart: -0.10
+Costco: -0.05
+```
+
+For Canadian/metric stations where prices are retrieved in cents-per-liter (e.g. a 5¢ per liter discount at Costco):
+```yaml
+Costco: -5.0
+```
+
+This ensures a Walmart station with a posted price of $3.50 will be compared as $3.40 (or reported as $3.40 state value if the discount display toggle is active), while also exposing the `discounted_price` attribute as `3.40`.
 
 ## Sensors
 
@@ -190,6 +227,56 @@ Service | Description | Arguments
 `gasbuddy.ev_lookup_gps` | Lookup nearby EV stations using GPS coordinates from a list of entities. | `entity_id` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
 `gasbuddy.ev_lookup_zip` | Lookup nearby EV stations via ZIP/Postal code. | `zipcode` (Required), `limit` (Optional), `radius` (Optional), `solver` (Optional)
 `gasbuddy.clear_cache` | Clear the cache for specific device(s). | `device_id` (Required)
+
+## National Average Price / Trends
+
+Although the integration's standard sensors track specific physical stations, you can create a template sensor to track the national average gas price (or other regional trends) using the `gasbuddy.lookup_zip` service.
+
+To do this, add a trigger-based template sensor to your `configuration.yaml` (adjusting the postal code and polling interval to your preference):
+
+### United States Example
+```yaml
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: "/6" # Fetch data every 6 hours
+    action:
+      - action: gasbuddy.lookup_zip
+        data:
+          zipcode: "12345" # Replace with your US zip code
+        response_variable: gasbuddy_data
+    sensor:
+      - name: "National Average Gas Price"
+        unique_id: national_average_gas_price
+        state: >
+          {{ (gasbuddy_data.trend | selectattr('area', 'eq', 'United States') | first).average_price }}
+        unit_of_measurement: "USD/gal"
+        attributes:
+          lowest_price: >
+            {{ (gasbuddy_data.trend | selectattr('area', 'eq', 'United States') | first).lowest_price }}
+```
+
+### Canada Example
+```yaml
+template:
+  - trigger:
+      - platform: time_pattern
+        hours: "/6" # Fetch data every 6 hours
+    action:
+      - action: gasbuddy.lookup_zip
+        data:
+          zipcode: "M5V 2T6" # Replace with your Canadian postal code
+        response_variable: gasbuddy_data
+    sensor:
+      - name: "Canada National Average Gas Price"
+        unique_id: canada_national_average_gas_price
+        state: >
+          {{ ((gasbuddy_data.trend | selectattr('area', 'eq', 'Canada') | first).average_price / 100) | round(3) }}
+        unit_of_measurement: "CAD/L"
+        attributes:
+          lowest_price: >
+            {{ ((gasbuddy_data.trend | selectattr('area', 'eq', 'Canada') | first).lowest_price / 100) | round(3) }}
+```
 
 ## Contributions are welcome!
 

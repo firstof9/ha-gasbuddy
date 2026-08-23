@@ -22,10 +22,16 @@ CONF_FETCH_GAS = "fetch_gas"
 CONF_CHEAPEST = "cheapest"
 CONF_FUEL_KEY = "fuel_key"
 CONF_PRICE_TYPE = "price_type"
+CONF_EXCLUDE_BRANDS = "exclude_brands"
+CONF_INCLUDE_BRANDS = "include_brands"
+CONF_EXCLUDE_STATIONS = "exclude_stations"
+CONF_INCLUDE_STATIONS = "include_stations"
+CONF_BRAND_ADJUSTMENTS = "brand_adjustments"
+CONF_SHOW_DISCOUNTED = "show_discounted"
 DEFAULT_INTERVAL = 3600
 DEFAULT_NAME = "Gas Station"
 DEFAULT_TIMEOUT = 60000
-CONFIG_VER = 7
+CONFIG_VER = 9
 
 # CSRF token cache, shared across the coordinator, config flow, and services
 # so they all benefit from a single fetched token (and don't each hammer the
@@ -254,6 +260,14 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         price=False,
         entity_registry_enabled_default=False,
     ),
+    "station_address": GasBuddySensorEntityDescription(
+        key="station_address",
+        name="Station Address",
+        icon="mdi:map-marker",
+        price=False,
+        cheapest_only=True,
+        entity_registry_enabled_default=False,
+    ),
     # EV Charging Sensors
     "ev_level1": GasBuddySensorEntityDescription(
         key="ev_level1",
@@ -387,3 +401,30 @@ SENSOR_TYPES: Final[dict[str, GasBuddySensorEntityDescription]] = {
         device_class=SensorDeviceClass.TIMESTAMP,
     ),
 }
+
+
+class CoordinatorsDict(dict):  # noqa: FURB189
+    """Custom dict to support legacy test assertions and coordinator methods."""
+
+    @property
+    def data(self):
+        """Return data of the first coordinator."""
+        if self:
+            return next(iter(self.values())).data
+        return {}
+
+    @data.setter
+    def data(self, value):
+        """Set data on the first coordinator."""
+        if self:
+            next(iter(self.values())).data = value
+
+    @data.deleter
+    def data(self):
+        """No-op deleter for mocking."""
+
+    def __getattr__(self, name):
+        """Delegate attributes to the first coordinator."""
+        if self:
+            return getattr(next(iter(self.values())), name)
+        raise AttributeError(f"'CoordinatorsDict' object has no attribute '{name}'")

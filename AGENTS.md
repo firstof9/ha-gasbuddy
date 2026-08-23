@@ -77,6 +77,14 @@ Stored in `entry.options`: `CONF_INTERVAL`, `CONF_UOM`, `CONF_GPS`,
 `CONF_EV_CHARGING`, `CONF_FETCH_GAS`. `CONFIG_VER` is bumped when this
 shape changes; see `async_migrate_entry`.
 
+### Virtual Hub Configuration
+
+A special config entry with `unique_id = "hub"` acts as the Virtual Hub.
+- **Global Settings**: It holds global settings (`solver`, `timeout`, and `brand_adjustments`).
+- **Coordinator Fallback**: The update coordinator retrieves these settings via `_get_hub_setting(key, default)` dynamically. If no Hub is configured, it falls back to the individual station's configuration.
+- **UI & Device Nesting**: The hub registers a device in the Home Assistant device registry. Station devices link to the Hub using `via_device=(DOMAIN, "hub")` in their `DeviceInfo` to nest them under the Hub device in the UI.
+- **Automatic Migration**: A setup routine automatically imports settings from existing station entries into the Hub upon creation, and cleans them up from the station entries.
+
 ### Coordinator's two-path update
 
 `_async_update_data` honors `CONF_FETCH_GAS`:
@@ -159,6 +167,8 @@ files give good templates:
 - `test_sensor.py` — sensor state and attribute assertions
 - `test_ev_coverage.py` — EV-charging-specific paths
 - `test_diagnostics.py` — diagnostics output snapshot
+
+- **Patch Test Coverage**: All patch/added code in the PR must have **100% test coverage** before submission.
 
 Common helpers in `tests/common.py` + `tests/const.py`; HTTP fixtures
 under `tests/fixtures/`.

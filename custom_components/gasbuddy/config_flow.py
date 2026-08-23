@@ -11,24 +11,42 @@ from py_gasbuddy.exceptions import APIError, CSRFTokenMissing, LibraryError, Mis
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlowResult,
+    ConfigSubentryFlow,
+    SubentryFlowResult,
+)
+from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig, SelectSelectorMode
+from homeassistant.helpers.selector import (
+    ObjectSelector,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     CACHE_FILE_NAME,
+    CONF_BRAND_ADJUSTMENTS,
     CONF_CHEAPEST,
     CONF_EV_CHARGING,
+    CONF_EXCLUDE_BRANDS,
+    CONF_EXCLUDE_STATIONS,
     CONF_FETCH_GAS,
     CONF_FUEL_KEY,
     CONF_GPS,
+    CONF_INCLUDE_BRANDS,
+    CONF_INCLUDE_STATIONS,
     CONF_INTERVAL,
     CONF_NAME,
     CONF_POSTAL,
     CONF_PRICE_TYPE,
+    CONF_SHOW_DISCOUNTED,
     CONF_SOLVER,
     CONF_STATION_ID,
     CONF_TIMEOUT,
@@ -120,6 +138,9 @@ async def validate_station(
     lon: float | None = None,
 ) -> dict[str, Any] | bool:
     """Validate station ID."""
+    if str(station).strip().lower() == "hub":
+        raise InvalidStation("Station ID cannot be 'hub'")
+
     price_error = None
     gb = py_gasbuddy.GasBuddy(
         solver_url=solver,
@@ -140,8 +161,8 @@ async def validate_station(
 
             return {
                 "type": "gas",
-                "latitude": gas_lat,
-                "longitude": gas_lon,
+                CONF_LATITUDE: gas_lat,
+                CONF_LONGITUDE: gas_lon,
             }
     except CSRFTokenMissing as ex:
         # Forward-compat: a future py_gasbuddy release may propagate
@@ -183,10 +204,12 @@ async def validate_station(
         if matching:
             return {
                 "type": "ev",
-                "latitude": matching.get("latitude"),
-                "longitude": matching.get("longitude"),
+                CONF_LATITUDE: matching.get("latitude"),
+                CONF_LONGITUDE: matching.get("longitude"),
             }
-    except Exception as ev_ex:  # noqa: BLE001
+    except Exception as ev_ex:
+        if _csrf_blocked_via_state(ev_gb):
+            raise CloudflareBlocked from ev_ex
         _LOGGER.warning("Error validating EV station: %s", ev_ex)
 
     if price_error is not None:
@@ -294,6 +317,61 @@ async def _get_station_list(  # noqa: PLR0914
     return stations_list
 
 
+async def _get_nearby_brands_and_stations(
+    hass: HomeAssistant,
+    postal: str | None,
+    solver: str | None,
+    timeout: int,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Fetch nearby stations and return unique brands and stations dicts."""
+    lat = None
+    lon = None
+    if not postal:
+        lat = hass.config.latitude
+        lon = hass.config.longitude
+
+    gb = py_gasbuddy.GasBuddy(
+        solver_url=solver,
+        cache_file=_cache_path(hass),
+        timeout=timeout,
+        session=async_get_clientsession(hass),
+    )
+    try:
+        result = await gb.price_lookup_service(lat=lat, lon=lon, zipcode=postal, limit=20)
+    except CSRFTokenMissing as ex:
+        raise CloudflareBlocked from ex
+    except (APIError, LibraryError) as ex:
+        if _csrf_blocked_via_state(gb):
+            raise CloudflareBlocked from ex
+        _LOGGER.warning("Error fetching nearby stations for filtering: %s", ex)
+        return {}, {}
+    except Exception as ex:  # noqa: BLE001
+        _LOGGER.warning("Unexpected error fetching nearby stations for filtering: %s", ex)
+        return {}, {}
+
+    brands = {}
+    stations = {}
+    for station in result.get("results") or []:
+        station_id = station.get("station_id") or station.get("id")
+        if not station_id:
+            continue
+        station_id = str(station_id)
+        addr = (station.get("address") or {}).get("line1", "")
+        name = station.get("name", "Unknown")
+        stations[station_id] = f"{name} ({addr})" if addr else name
+
+        for brand in station.get("brands", []):
+            brand_id = brand.get("brandId")
+            brand_name = brand.get("name")
+            if brand_id and brand_name:
+                brands[str(brand_id)] = str(brand_name)
+
+    return brands, stations
+
+
+# ── Schema helpers ──────────────────────────────────────────────────────────
+
+
 def _get_schema_manual(  # pylint: disable-next=unused-argument
     hass: Any, user_input: dict[str, Any], default_dict: dict[str, Any]
 ) -> Any:
@@ -312,65 +390,22 @@ def _get_schema_manual(  # pylint: disable-next=unused-argument
         vol.Required(CONF_NAME, default=_get_default(CONF_NAME, DEFAULT_NAME)): vol.All(
             cv.string, vol.Strip, vol.Length(max=100)
         ),
-        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
-            cv.string, vol.Strip
+        vol.Required(CONF_INTERVAL, default=_get_default(CONF_INTERVAL, 3600)): vol.All(
+            cv.positive_int, vol.Range(min=900, max=14400)
         ),
-        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
-            cv.positive_int, vol.Range(min=1000, max=300000)
-        ),
-    })
-
-
-def _get_schema_home(
-    hass: Any,  # pylint: disable=unused-argument
-    user_input: dict[str, Any],
-    default_dict: dict[str, Any],
-) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema({
-        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
-            cv.string, vol.Strip
-        ),
-        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
-            cv.positive_int, vol.Range(min=1000, max=300000)
-        ),
-    })
-
-
-def _get_schema_postal(  # pylint: disable-next=unused-argument
-    hass: Any, user_input: dict[str, Any], default_dict: dict[str, Any]
-) -> Any:
-    """Get a schema using the default_dict as a backup."""
-    if user_input is None:
-        user_input = {}
-
-    def _get_default(key: str, fallback_default: Any = None) -> Any | None:
-        """Get default value for key."""
-        return user_input.get(key, default_dict.get(key, fallback_default))
-
-    return vol.Schema({
-        vol.Required(CONF_POSTAL, default=_get_default(CONF_POSTAL)): vol.All(
-            vol.Coerce(str), vol.Strip
-        ),
-        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
-            cv.string, vol.Strip
-        ),
-        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
-            cv.positive_int, vol.Range(min=1000, max=300000)
-        ),
+        vol.Optional(CONF_UOM, default=_get_default(CONF_UOM, True)): cv.boolean,
+        vol.Optional(CONF_GPS, default=_get_default(CONF_GPS, True)): cv.boolean,
+        vol.Optional(CONF_EV_CHARGING, default=_get_default(CONF_EV_CHARGING, False)): cv.boolean,
+        vol.Optional(CONF_FETCH_GAS, default=_get_default(CONF_FETCH_GAS, True)): cv.boolean,
+        vol.Optional(
+            CONF_SHOW_DISCOUNTED, default=_get_default(CONF_SHOW_DISCOUNTED, False)
+        ): cv.boolean,
     })
 
 
 def _get_schema_station_list(
     hass: Any,  # pylint: disable=unused-argument
-    user_input: dict[str, Any],
+    user_input: dict[str, Any] | None,
     default_dict: dict[str, Any],
     station_list: dict[str, Any],
 ) -> Any:
@@ -412,7 +447,7 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
             CONF_FUEL_KEY, default=_get_default(CONF_FUEL_KEY, "regular_gas")
         ): SelectSelector(
             SelectSelectorConfig(
-                options=[{"value": k, "label": v} for k, v in FUEL_KEY_CHOICES.items()],
+                options=[SelectOptionDict(value=k, label=v) for k, v in FUEL_KEY_CHOICES.items()],
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
@@ -420,15 +455,67 @@ def _get_schema_cheapest(  # pylint: disable-next=unused-argument
             CONF_PRICE_TYPE, default=_get_default(CONF_PRICE_TYPE, "best")
         ): SelectSelector(
             SelectSelectorConfig(
-                options=[{"value": k, "label": v} for k, v in PRICE_TYPE_CHOICES.items()],
+                options=[SelectOptionDict(value=k, label=v) for k, v in PRICE_TYPE_CHOICES.items()],
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Optional(CONF_SOLVER, default=_get_default(CONF_SOLVER, "")): vol.All(
-            cv.string, vol.Strip
+    })
+
+
+def _get_schema_cheapest_filters(
+    hass: Any,
+    brands: dict[str, str],
+    stations: dict[str, str],
+    user_input: dict[str, Any] | None,
+    default_dict: dict[str, Any],
+) -> Any:
+    """Get a schema for Cheapest Gas brand and station filters."""
+    if user_input is None:
+        user_input = {}
+
+    def _get_default(key: str, fallback_default: Any = None) -> Any | None:
+        """Get default value for key."""
+        return user_input.get(key, default_dict.get(key, fallback_default))
+
+    brand_options = [SelectOptionDict(value=k, label=v) for k, v in brands.items()]
+    station_options = [SelectOptionDict(value=k, label=v) for k, v in stations.items()]
+
+    return vol.Schema({
+        vol.Optional(
+            CONF_EXCLUDE_BRANDS, default=_get_default(CONF_EXCLUDE_BRANDS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=brand_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
         ),
-        vol.Optional(CONF_TIMEOUT, default=_get_default(CONF_TIMEOUT, DEFAULT_TIMEOUT)): vol.All(
-            cv.positive_int, vol.Range(min=1000, max=300000)
+        vol.Optional(
+            CONF_INCLUDE_BRANDS, default=_get_default(CONF_INCLUDE_BRANDS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=brand_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(
+            CONF_EXCLUDE_STATIONS, default=_get_default(CONF_EXCLUDE_STATIONS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=station_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(
+            CONF_INCLUDE_STATIONS, default=_get_default(CONF_INCLUDE_STATIONS, [])
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=station_options,
+                multiple=True,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
         ),
     })
 
@@ -452,7 +539,13 @@ def _get_schema_options(  # pylint: disable-next=unused-argument
         vol.Optional(CONF_GPS, default=_get_default(CONF_GPS)): cv.boolean,
         vol.Optional(CONF_EV_CHARGING, default=_get_default(CONF_EV_CHARGING, False)): cv.boolean,
         vol.Optional(CONF_FETCH_GAS, default=_get_default(CONF_FETCH_GAS, True)): cv.boolean,
+        vol.Optional(
+            CONF_SHOW_DISCOUNTED, default=_get_default(CONF_SHOW_DISCOUNTED, False)
+        ): cv.boolean,
     })
+
+
+# ── Main Config Flow (Hub only) ────────────────────────────────────────────
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -465,39 +558,118 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._data: dict[Any, Any] = {}
         self._errors = {}
-        self._entry: dict[Any, Any] = {}
-        self._station_list: dict[str, Any] = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Handle the flow initialized by the user."""
-        return self.async_show_menu(step_id="user", menu_options=MENU_OPTIONS)
+        """Handle the flow initialized by the user — creates the hub entry."""
+        # Only one hub allowed
+        await self.async_set_unique_id("hub")
+        self._abort_if_unique_id_configured()
 
-    # Manual Station ID input
-    async def async_step_manual(self, user_input=None):
-        """Handle a flow initialized by the user."""
         self._errors = {}
 
         if user_input is not None:
-            user_input.setdefault(CONF_SOLVER)
-            user_input.setdefault(CONF_INTERVAL, 3600)
-            user_input.setdefault(CONF_UOM, True)
-            user_input.setdefault(CONF_GPS, True)
+            user_input.setdefault(CONF_NAME, "GasBuddy Hub")
+            user_input.setdefault(CONF_SOLVER, "")
             user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            user_input.setdefault(CONF_BRAND_ADJUSTMENTS, {})
             if user_input.get(CONF_SOLVER):
                 url_valid = validate_url(user_input[CONF_SOLVER])
-                _LOGGER.debug("URL valid: %s", url_valid)
                 if not url_valid:
                     self._errors[CONF_SOLVER] = "invalid_url"
-                    return await self._show_config_manual(user_input)
 
+            if not self._errors:
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME],
+                    data=user_input,
+                )
+
+        defaults = {
+            CONF_NAME: "GasBuddy Hub",
+            CONF_SOLVER: "",
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+            CONF_BRAND_ADJUSTMENTS: {},
+        }
+        if user_input:
+            defaults.update(user_input)
+
+        schema = vol.Schema({
+            vol.Required(CONF_NAME, default=defaults[CONF_NAME]): vol.All(
+                cv.string, vol.Strip, vol.Length(max=100)
+            ),
+            vol.Optional(CONF_SOLVER, default=defaults[CONF_SOLVER]): vol.All(cv.string, vol.Strip),
+            vol.Optional(CONF_TIMEOUT, default=defaults[CONF_TIMEOUT]): vol.All(
+                cv.positive_int, vol.Range(min=1000, max=300000)
+            ),
+            vol.Optional(
+                CONF_BRAND_ADJUSTMENTS, default=defaults[CONF_BRAND_ADJUSTMENTS]
+            ): ObjectSelector(),
+        })
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=schema,
+            errors=self._errors,
+        )
+
+    @classmethod
+    @callback
+    def async_get_supported_subentry_types(
+        cls, config_entry: ConfigEntry
+    ) -> dict[str, type[ConfigSubentryFlow]]:
+        """Return subentries supported by this integration."""
+        return {"station": GasBuddySubentryFlowHandler}
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Enable option flow."""
+        return GasBuddyOptionsFlow()
+
+
+# ── Subentry Flow (Station management) ─────────────────────────────────────
+
+
+class GasBuddySubentryFlowHandler(ConfigSubentryFlow):
+    """Flow for managing GasBuddy station subentries."""
+
+    def __init__(self) -> None:
+        """Initialize."""
+        self._data: dict[str, Any] = {}
+        self._errors: dict[str, str] = {}
+        self._station_list: dict[str, Any] = {}
+
+    @property
+    def _is_new(self) -> bool:
+        """Return if this is a new subentry."""
+        return self.source == "user"
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Show station type menu when adding a new subentry."""
+        return self.async_show_menu(step_id="user", menu_options=MENU_OPTIONS)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle reconfiguration of a station subentry."""
+        subentry = self._get_reconfigure_subentry()
+        self._data = dict(subentry.data)
+        self._errors = {}
+
+        if self._data.get(CONF_CHEAPEST):
+            return await self.async_step_reconfigure_cheapest(user_input)
+
+        if user_input is not None:
+            self._data.update(user_input)
             station_id = str(user_input.get(CONF_STATION_ID, "")).strip()
             if not _STATION_ID_RE.match(station_id):
                 self._errors[CONF_STATION_ID] = "station_id"
-                return await self._show_config_manual(user_input)
+                return await self._show_reconfig_form(user_input)
 
             try:
                 validate = await validate_station(
-                    self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
+                    self.hass,
+                    user_input[CONF_STATION_ID],
+                    self._get_entry().data.get(CONF_SOLVER),
                 )
             except CloudflareBlocked:
                 self._errors[CONF_STATION_ID] = "cloudflare"
@@ -506,168 +678,151 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 validate = False
 
             if not validate:
-                # Keep a more specific error (e.g. "cloudflare") if a handler
-                # above already set one; otherwise fall back to "station_id".
+                self._errors.setdefault(CONF_STATION_ID, "station_id")
+
+            if len(self._errors) == 0:
+                if str(subentry.data.get(CONF_STATION_ID)) != station_id:
+                    if isinstance(validate, dict):
+                        self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+                        self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
+                        self._data[CONF_EV_CHARGING] = validate["type"] == "ev"
+                        self._data[CONF_FETCH_GAS] = validate["type"] != "ev"
+                    else:
+                        self._data[CONF_EV_CHARGING] = False
+                        self._data[CONF_FETCH_GAS] = True
+                elif isinstance(validate, dict):
+                    self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+                    self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
+
+                return self.async_update_and_abort(
+                    self._get_entry(),
+                    self._get_reconfigure_subentry(),
+                    data=self._data,
+                    title=self._data.get(CONF_NAME, subentry.title),
+                    unique_id=str(self._data[CONF_STATION_ID]),
+                )
+
+            return await self._show_reconfig_form(user_input)
+        return await self._show_reconfig_form(user_input)
+
+    async def _show_reconfig_form(self, user_input) -> SubentryFlowResult:
+        """Show the configuration form to edit configuration data."""
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_get_schema_manual(self.hass, user_input, self._data),
+            errors=self._errors,
+        )
+
+    # ── Manual station ─────────────────────────────────────────────────
+
+    async def async_step_manual(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle manual station ID input."""
+        self._errors = {}
+
+        if user_input is not None:
+            station_id = str(user_input.get(CONF_STATION_ID, "")).strip()
+            if not _STATION_ID_RE.match(station_id):
+                self._errors[CONF_STATION_ID] = "station_id"
+                return await self._show_config_manual(user_input)
+
+            try:
+                validate = await validate_station(
+                    self.hass,
+                    user_input[CONF_STATION_ID],
+                    self._get_entry().data.get(CONF_SOLVER),
+                )
+            except CloudflareBlocked:
+                self._errors[CONF_STATION_ID] = "cloudflare"
+                validate = False
+            except InvalidStation:
+                validate = False
+
+            if not validate:
                 self._errors.setdefault(CONF_STATION_ID, "station_id")
             else:
                 self._data.update(user_input)
                 if isinstance(validate, dict):
-                    self._data["latitude"] = validate.get("latitude")
-                    self._data["longitude"] = validate.get("longitude")
-                    ev_charging = validate["type"] == "ev"
+                    self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+                    self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
+                    if validate["type"] == "ev":
+                        self._data[CONF_EV_CHARGING] = True
+                        self._data[CONF_FETCH_GAS] = False
+                    else:
+                        self._data[CONF_EV_CHARGING] = self._data.get(CONF_EV_CHARGING, False)
+                        self._data[CONF_FETCH_GAS] = self._data.get(CONF_FETCH_GAS, True)
                 else:
-                    ev_charging = False
-                await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
-                self._abort_if_unique_id_configured()
+                    self._data[CONF_EV_CHARGING] = self._data.get(CONF_EV_CHARGING, False)
+                    self._data[CONF_FETCH_GAS] = self._data.get(CONF_FETCH_GAS, True)
+
+                subentry_data = {
+                    CONF_STATION_ID: self._data[CONF_STATION_ID],
+                    CONF_NAME: self._data.get(CONF_NAME, DEFAULT_NAME),
+                    CONF_LATITUDE: self._data.get(CONF_LATITUDE),
+                    CONF_LONGITUDE: self._data.get(CONF_LONGITUDE),
+                    CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
+                    CONF_UOM: self._data.get(CONF_UOM, True),
+                    CONF_GPS: self._data.get(CONF_GPS, True),
+                    CONF_EV_CHARGING: self._data[CONF_EV_CHARGING],
+                    CONF_FETCH_GAS: self._data[CONF_FETCH_GAS],
+                    CONF_SHOW_DISCOUNTED: self._data.get(CONF_SHOW_DISCOUNTED, False),
+                }
                 return self.async_create_entry(
-                    title=self._data[CONF_NAME],
-                    data=self._build_entry_data(),
-                    options={
-                        CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
-                        CONF_UOM: self._data.get(CONF_UOM, True),
-                        CONF_GPS: self._data.get(CONF_GPS, True),
-                        CONF_EV_CHARGING: ev_charging,
-                        CONF_FETCH_GAS: not ev_charging,
-                    },
+                    title=subentry_data[CONF_NAME],
+                    data=subentry_data,
+                    unique_id=str(subentry_data[CONF_STATION_ID]),
                 )
         return await self._show_config_manual(user_input)
 
-    async def _show_config_manual(self, user_input):
+    async def _show_config_manual(self, user_input) -> SubentryFlowResult:
         """Show the configuration form to edit location data."""
-        # Defaults
         defaults = {
             CONF_NAME: DEFAULT_NAME,
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_GPS: True,
+            CONF_EV_CHARGING: False,
+            CONF_FETCH_GAS: True,
+            CONF_SHOW_DISCOUNTED: False,
         }
-
         return self.async_show_form(
             step_id="manual",
             data_schema=_get_schema_manual(self.hass, user_input, defaults),
             errors=self._errors,
         )
 
-    # Search option
+    # ── Search menu ────────────────────────────────────────────────────
+
     async def async_step_search(
-        self,
-        user_input: dict[str, Any] | None = None,  # pylint: disable=unused-argument
-    ) -> ConfigFlowResult:
-        """Handle the flow initialized by the user."""
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle the search sub-menu."""
         return self.async_show_menu(step_id="search", menu_options=MENU_SEARCH)
 
-    # Use lat/lon from HA
-    async def async_step_home(self, user_input=None):
-        """Handle a flow initialized by the user."""
+    # ── Search by home coordinates ─────────────────────────────────────
+
+    async def async_step_home(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Handle search by home coordinates."""
         self._errors = {}
-
         if user_input is not None:
-            user_input.setdefault(CONF_SOLVER)
-            user_input.setdefault(CONF_INTERVAL, 3600)
-            user_input.setdefault(CONF_UOM, True)
-            user_input.setdefault(CONF_GPS, True)
-            user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
             self._data.update(user_input)
-            if user_input.get(CONF_SOLVER):
-                url_valid = validate_url(user_input[CONF_SOLVER])
-                _LOGGER.debug("URL valid: %s", url_valid)
-                if not url_valid:
-                    self._errors[CONF_SOLVER] = "invalid_url"
-                    return await self._show_config_home(user_input)
-
             return await self.async_step_home2()
-        return await self._show_config_home(user_input)
+        return self.async_show_form(step_id="home", data_schema=vol.Schema({}))
 
-    async def _show_config_home(self, user_input):
-        """Show the configuration form to edit location data."""
-        defaults: dict[Any, Any] = {}
-
-        return self.async_show_form(
-            step_id="home",
-            data_schema=_get_schema_home(self.hass, user_input, defaults),
-            errors=self._errors,
-        )
-
-    def _build_entry_data(self) -> dict[str, Any]:
-        """Return only the keys that belong in entry.data (not options)."""
-        return {
-            k: self._data[k]
-            for k in (
-                CONF_STATION_ID,
-                CONF_NAME,
-                CONF_SOLVER,
-                CONF_TIMEOUT,
-                "latitude",
-                "longitude",
-            )
-            if k in self._data
-        }
-
-    async def _async_validate_and_create_entry(self) -> ConfigFlowResult | None:
-        """Validate selected station and create config entry. Returns None on failure."""
-        flow_cache = (
-            self.hass.data
-            .get(DOMAIN, {})
-            .get("station_coordinates_by_flow", {})
-            .pop(self.flow_id, {})
-        )
-        cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
-        lat, lon = cached_coords or (None, None)
-
-        try:
-            validate = await validate_station(
-                self.hass,
-                self._data[CONF_STATION_ID],
-                self._data.get(CONF_SOLVER),
-                lat=lat,
-                lon=lon,
-            )
-        except CloudflareBlocked:
-            self._errors[CONF_STATION_ID] = "cloudflare"
-            validate = False
-        except InvalidStation:
-            validate = False
-
-        if not validate:
-            self._errors.setdefault(CONF_STATION_ID, "station_id")
-            return None
-
-        if isinstance(validate, dict):
-            self._data["latitude"] = validate.get("latitude")
-            self._data["longitude"] = validate.get("longitude")
-            ev_charging = validate["type"] == "ev"
-        else:
-            ev_charging = False
-
-        await self.async_set_unique_id(str(self._data[CONF_STATION_ID]))
-        self._abort_if_unique_id_configured()
-        return self.async_create_entry(
-            title=self._data[CONF_NAME],
-            data=self._build_entry_data(),
-            options={
-                CONF_INTERVAL: self._data.get(CONF_INTERVAL, 3600),
-                CONF_UOM: self._data.get(CONF_UOM, True),
-                CONF_GPS: self._data.get(CONF_GPS, True),
-                CONF_EV_CHARGING: ev_charging,
-                CONF_FETCH_GAS: not ev_charging,
-            },
-        )
-
-    async def async_step_home2(self, user_input=None):
-        """Handle a flow initialized by the user."""
+    async def async_step_home2(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle station selection from home search results."""
         self._errors = {}
 
         if user_input is not None:
-            user_input.setdefault(CONF_INTERVAL, 3600)
-            user_input.setdefault(CONF_UOM, True)
-            user_input.setdefault(CONF_GPS, True)
             self._data.update(user_input)
-
-            result = await self._async_validate_and_create_entry()
-            if result is not None:
-                return result
-            return await self._show_config_home2(user_input)
+            return await self._async_validate_and_create_subentry()
         return await self._show_config_home2(user_input)
 
-    async def _show_config_home2(self, user_input):
-        """Show the configuration form to edit location data."""
+    async def _show_config_home2(self, user_input) -> SubentryFlowResult:
+        """Show the station list from home search."""
         defaults: dict[Any, Any] = {}
 
         try:
@@ -685,9 +840,12 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    # User input postal code
-    async def async_step_postal(self, user_input=None):
-        """Handle a flow initialized by the user."""
+    # ── Search by postal code ──────────────────────────────────────────
+
+    async def async_step_postal(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle postal code search."""
         self._errors = {}
 
         if user_input is not None:
@@ -696,50 +854,32 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             if not _POSTAL_RE.match(postal):
                 self._errors[CONF_POSTAL] = "invalid_postal"
                 return await self._show_config_postal(user_input)
-
-            if user_input.get(CONF_SOLVER):
-                url_valid = validate_url(user_input[CONF_SOLVER])
-                _LOGGER.debug("URL valid: %s", url_valid)
-                if not url_valid:
-                    self._errors[CONF_SOLVER] = "invalid_url"
-                    return await self._show_config_postal(user_input)
-
             return await self.async_step_station_list()
         return await self._show_config_postal(user_input)
 
-    async def _show_config_postal(self, user_input):
-        """Show the configuration form to edit location data."""
-        defaults: dict[Any, Any] = {}
-
+    async def _show_config_postal(self, user_input) -> SubentryFlowResult:
+        """Show the postal code input form."""
         return self.async_show_form(
             step_id="postal",
-            data_schema=_get_schema_postal(self.hass, user_input, defaults),
+            data_schema=vol.Schema({
+                vol.Required(CONF_POSTAL): vol.All(vol.Coerce(str), vol.Strip),
+            }),
             errors=self._errors,
         )
 
-    async def async_step_station_list(self, user_input=None):
-        """Handle a flow initialized by the user."""
+    async def async_step_station_list(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle station selection from postal search results."""
         self._errors = {}
 
         if user_input is not None:
-            user_input.setdefault(CONF_INTERVAL, 3600)
-            user_input.setdefault(CONF_UOM, True)
-            user_input.setdefault(CONF_GPS, True)
-            # Pop is idempotent — if the user lands here a second time
-            # (e.g. after picking an invalid station and being shown the
-            # form again), CONF_POSTAL is already gone and an
-            # unconditional .pop() would KeyError.
-            self._data.pop(CONF_POSTAL, None)
             self._data.update(user_input)
-
-            result = await self._async_validate_and_create_entry()
-            if result is not None:
-                return result
-            return await self._show_config_station_list(user_input)
+            return await self._async_validate_and_create_subentry()
         return await self._show_config_station_list(user_input)
 
-    async def _show_config_station_list(self, user_input):
-        """Show the configuration form to edit location data."""
+    async def _show_config_station_list(self, user_input) -> SubentryFlowResult:
+        """Show the station list from postal search."""
         defaults: dict[Any, Any] = {}
 
         try:
@@ -757,26 +897,20 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    # Cheapest Nearby Gas
-    async def async_step_cheapest(self, user_input=None):
-        """Handle the cheapest gas tracker flow."""
+    # ── Cheapest gas ───────────────────────────────────────────────────
+
+    async def async_step_cheapest(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle the cheapest gas tracker flow (Step 1)."""
         self._errors = {}
 
         if user_input is not None:
-            solver = (user_input.get(CONF_SOLVER) or "").strip() or None
-            if solver:
-                url_valid = validate_url(solver)
-                if not url_valid:
-                    self._errors[CONF_SOLVER] = "invalid_url"
-                    return await self._show_config_cheapest(user_input)
-
             data: dict[str, Any] = {
                 CONF_NAME: user_input[CONF_NAME],
                 CONF_CHEAPEST: True,
                 CONF_FUEL_KEY: user_input[CONF_FUEL_KEY],
                 CONF_PRICE_TYPE: user_input[CONF_PRICE_TYPE],
-                CONF_SOLVER: solver,
-                CONF_TIMEOUT: user_input.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             }
             postal = (user_input.get(CONF_POSTAL) or "").strip()
             if postal:
@@ -785,20 +919,67 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self._show_config_cheapest(user_input)
                 data[CONF_POSTAL] = postal
 
-            return self.async_create_entry(
-                title=data[CONF_NAME],
-                data=data,
-                options={
-                    CONF_INTERVAL: 3600,
-                    CONF_UOM: True,
-                    CONF_GPS: False,
-                    CONF_EV_CHARGING: False,
-                    CONF_FETCH_GAS: True,
-                },
-            )
+            self._data.update(data)
+            return await self.async_step_cheapest_filters()
         return await self._show_config_cheapest(user_input)
 
-    async def _show_config_cheapest(self, user_input):
+    async def async_step_cheapest_filters(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle Step 2: Brand/station filters for cheapest gas tracker."""
+        self._errors = {}
+
+        if user_input is not None:
+            subentry_data: dict[str, Any] = {
+                CONF_NAME: self._data[CONF_NAME],
+                CONF_CHEAPEST: True,
+                CONF_FUEL_KEY: self._data[CONF_FUEL_KEY],
+                CONF_PRICE_TYPE: self._data[CONF_PRICE_TYPE],
+                CONF_EXCLUDE_BRANDS: user_input.get(CONF_EXCLUDE_BRANDS, []),
+                CONF_INCLUDE_BRANDS: user_input.get(CONF_INCLUDE_BRANDS, []),
+                CONF_EXCLUDE_STATIONS: user_input.get(CONF_EXCLUDE_STATIONS, []),
+                CONF_INCLUDE_STATIONS: user_input.get(CONF_INCLUDE_STATIONS, []),
+                CONF_INTERVAL: 3600,
+                CONF_UOM: True,
+                CONF_GPS: False,
+                CONF_EV_CHARGING: False,
+                CONF_FETCH_GAS: True,
+            }
+            if CONF_POSTAL in self._data:
+                subentry_data[CONF_POSTAL] = self._data[CONF_POSTAL]
+
+            return self.async_create_entry(
+                title=subentry_data[CONF_NAME],
+                data=subentry_data,
+            )
+
+        entry = self._get_entry()
+        solver = entry.data.get(CONF_SOLVER)
+        timeout = entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+
+        try:
+            brands, stations = await _get_nearby_brands_and_stations(
+                self.hass,
+                self._data.get(CONF_POSTAL),
+                solver,
+                timeout,
+            )
+        except CloudflareBlocked:
+            self._errors[CONF_SOLVER] = "cloudflare"
+            return await self._show_config_cheapest(self._data)
+
+        return self.async_show_form(
+            step_id="cheapest_filters",
+            data_schema=_get_schema_cheapest_filters(
+                self.hass, brands, stations, user_input, self._data
+            ),
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
+            errors=self._errors,
+        )
+
+    async def _show_config_cheapest(self, user_input) -> SubentryFlowResult:
         """Show the cheapest gas tracker configuration form."""
         return self.async_show_form(
             step_id="cheapest",
@@ -806,91 +987,18 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
-        """Add reconfigure step to allow to reconfigure a config entry."""
-        entry = self._get_reconfigure_entry()
-        self._data = dict(entry.data)
-        self._errors = {}
+    # ── Cheapest reconfigure ───────────────────────────────────────────
 
-        if entry.data.get(CONF_CHEAPEST):
-            return await self._async_step_reconfigure_cheapest(entry, user_input)
-
+    async def async_step_reconfigure_cheapest(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle reconfigure for a cheapest gas tracker subentry (Step 1)."""
         if user_input is not None:
-            self._data.update(user_input)
-            station_id = str(user_input.get(CONF_STATION_ID, "")).strip()
-            if not _STATION_ID_RE.match(station_id):
-                self._errors[CONF_STATION_ID] = "station_id"
-                return await self._show_reconfig_form(user_input)
-
-            if user_input[CONF_SOLVER] != "":
-                url_valid = validate_url(user_input[CONF_SOLVER])
-                _LOGGER.debug("URL valid: %s", url_valid)
-                if not url_valid:
-                    self._errors[CONF_SOLVER] = "invalid_url"
-                    return await self._show_reconfig_form(user_input)
-            else:
-                user_input[CONF_SOLVER] = None
-                self._data[CONF_SOLVER] = None
-
-            try:
-                validate = await validate_station(
-                    self.hass, user_input[CONF_STATION_ID], user_input[CONF_SOLVER]
-                )
-            except CloudflareBlocked:
-                self._errors[CONF_STATION_ID] = "cloudflare"
-                validate = False
-            except InvalidStation:
-                validate = False
-
-            if not validate:
-                # Keep a more specific error (e.g. "cloudflare") if a handler
-                # above already set one; otherwise fall back to "station_id".
-                self._errors.setdefault(CONF_STATION_ID, "station_id")
-
-            if len(self._errors) == 0:
-                options = dict(entry.options)
-                if isinstance(validate, dict):
-                    self._data["latitude"] = validate.get("latitude")
-                    self._data["longitude"] = validate.get("longitude")
-                    options[CONF_EV_CHARGING] = validate["type"] == "ev"
-                    options[CONF_FETCH_GAS] = validate["type"] != "ev"
-                else:
-                    options[CONF_EV_CHARGING] = False
-                    options[CONF_FETCH_GAS] = True
-
-                # async_update_entry already triggers a reload via the
-                # update_listener registered in async_setup_entry; the
-                # previous `async_create_task(async_reload(...))` here
-                # was a second, untracked reload that raced the listener.
-                self.hass.config_entries.async_update_entry(
-                    entry,
-                    title=self._data[CONF_NAME],
-                    data=self._build_entry_data(),
-                    options=options,
-                )
-                _LOGGER.debug("%s reconfigured.", DOMAIN)
-                return self.async_abort(reason="reconfigure_successful")
-
-            return await self._show_reconfig_form(user_input)
-        return await self._show_reconfig_form(user_input)
-
-    async def _async_step_reconfigure_cheapest(self, entry, user_input):
-        """Handle reconfigure for a cheapest gas tracker entry."""
-        if user_input is not None:
-            solver = (user_input.get(CONF_SOLVER) or "").strip() or None
-            if solver:
-                url_valid = validate_url(solver)
-                if not url_valid:
-                    self._errors[CONF_SOLVER] = "invalid_url"
-                    return await self._show_reconfig_cheapest_form(user_input)
-
             new_data: dict[str, Any] = {
                 **self._data,
                 CONF_NAME: user_input[CONF_NAME],
                 CONF_FUEL_KEY: user_input[CONF_FUEL_KEY],
                 CONF_PRICE_TYPE: user_input[CONF_PRICE_TYPE],
-                CONF_SOLVER: solver,
-                CONF_TIMEOUT: user_input.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
             }
             postal = (user_input.get(CONF_POSTAL) or "").strip()
             if postal:
@@ -901,41 +1009,135 @@ class GasBuddyFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 new_data.pop(CONF_POSTAL, None)
 
-            # async_update_entry already reloads via the update_listener;
-            # a second explicit reload here would race it (see above).
-            self.hass.config_entries.async_update_entry(
-                entry, title=new_data[CONF_NAME], data=new_data
-            )
-            _LOGGER.debug("%s cheapest entry reconfigured.", DOMAIN)
-            return self.async_abort(reason="reconfigure_successful")
+            self._data = new_data
+            return await self.async_step_reconfigure_cheapest_filters()
 
         return await self._show_reconfig_cheapest_form(user_input)
 
-    async def _show_reconfig_cheapest_form(self, user_input):
-        """Show the cheapest reconfigure form pre-filled with current entry data."""
+    async def async_step_reconfigure_cheapest_filters(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle Step 2 filters for cheapest gas tracker reconfiguration."""
+        self._errors = {}
+
+        if user_input is not None:
+            new_data: dict[str, Any] = {
+                **self._data,
+                CONF_EXCLUDE_BRANDS: user_input.get(CONF_EXCLUDE_BRANDS, []),
+                CONF_INCLUDE_BRANDS: user_input.get(CONF_INCLUDE_BRANDS, []),
+                CONF_EXCLUDE_STATIONS: user_input.get(CONF_EXCLUDE_STATIONS, []),
+                CONF_INCLUDE_STATIONS: user_input.get(CONF_INCLUDE_STATIONS, []),
+            }
+
+            return self.async_update_and_abort(
+                self._get_entry(),
+                self._get_reconfigure_subentry(),
+                data=new_data,
+                title=new_data[CONF_NAME],
+            )
+
+        entry = self._get_entry()
+        solver = entry.data.get(CONF_SOLVER)
+        timeout = entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+
+        try:
+            brands, stations = await _get_nearby_brands_and_stations(
+                self.hass,
+                self._data.get(CONF_POSTAL),
+                solver,
+                timeout,
+            )
+        except CloudflareBlocked:
+            self._errors[CONF_SOLVER] = "cloudflare"
+            return await self._show_reconfig_cheapest_form(self._data)
+
         return self.async_show_form(
-            step_id="reconfigure",
+            step_id="reconfigure_cheapest_filters",
+            data_schema=_get_schema_cheapest_filters(
+                self.hass, brands, stations, user_input, self._data
+            ),
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
+            errors=self._errors,
+        )
+
+    async def _show_reconfig_cheapest_form(self, user_input) -> SubentryFlowResult:
+        """Show the cheapest reconfigure form pre-filled with current subentry data."""
+        return self.async_show_form(
+            step_id="reconfigure_cheapest",
             data_schema=_get_schema_cheapest(self.hass, user_input, self._data),
             errors=self._errors,
         )
 
-    async def _show_reconfig_form(self, user_input):
-        """Show the configuration form to edit configuration data."""
-        return self.async_show_form(
-            step_id="reconfigure",
-            data_schema=_get_schema_manual(self.hass, user_input, self._data),
-            errors=self._errors,
+    # ── Shared helper ──────────────────────────────────────────────────
+
+    async def _async_validate_and_create_subentry(self) -> SubentryFlowResult:
+        """Validate selected station and create subentry."""
+        flow_cache = (
+            self.hass.data
+            .get(DOMAIN, {})
+            .get("station_coordinates_by_flow", {})
+            .pop(self.flow_id, {})
+        )
+        cached_coords = flow_cache.get(str(self._data[CONF_STATION_ID]))
+        lat, lon = cached_coords or (None, None)
+
+        try:
+            validate = await validate_station(
+                self.hass,
+                self._data[CONF_STATION_ID],
+                self._get_entry().data.get(CONF_SOLVER),
+                lat=lat,
+                lon=lon,
+            )
+        except CloudflareBlocked:
+            self._errors[CONF_STATION_ID] = "cloudflare"
+            validate = False
+        except InvalidStation:
+            validate = False
+
+        if not validate:
+            self._errors.setdefault(CONF_STATION_ID, "station_id")
+            # Return to the last shown form
+            if self._station_list:
+                return self.async_show_form(
+                    step_id="home2" if CONF_POSTAL not in self._data else "station_list",
+                    data_schema=_get_schema_station_list(self.hass, None, {}, self._station_list),
+                    errors=self._errors,
+                )
+            return await self._show_config_manual(None)
+
+        if isinstance(validate, dict):
+            self._data[CONF_LATITUDE] = validate.get(CONF_LATITUDE)
+            self._data[CONF_LONGITUDE] = validate.get(CONF_LONGITUDE)
+            ev_charging = validate["type"] == "ev"
+        else:
+            ev_charging = False
+
+        subentry_data = {
+            CONF_STATION_ID: self._data[CONF_STATION_ID],
+            CONF_NAME: self._data.get(CONF_NAME, DEFAULT_NAME),
+            CONF_LATITUDE: self._data.get(CONF_LATITUDE),
+            CONF_LONGITUDE: self._data.get(CONF_LONGITUDE),
+            CONF_INTERVAL: 3600,
+            CONF_UOM: True,
+            CONF_GPS: True,
+            CONF_EV_CHARGING: ev_charging,
+            CONF_FETCH_GAS: not ev_charging,
+        }
+        return self.async_create_entry(
+            title=subentry_data[CONF_NAME],
+            data=subentry_data,
+            unique_id=str(subentry_data[CONF_STATION_ID]),
         )
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        """Enable option flow."""
-        return GasBuddyOptionsFlow()
+
+# ── Options Flow (Hub settings) ────────────────────────────────────────────
 
 
 class GasBuddyOptionsFlow(config_entries.OptionsFlow):
-    """Options flow for GasBuddy."""
+    """Options flow for GasBuddy Hub."""
 
     def __init__(self) -> None:
         """Initialize.
@@ -949,18 +1151,58 @@ class GasBuddyOptionsFlow(config_entries.OptionsFlow):
         self._errors: dict[str, str] = {}
 
     async def async_step_init(self, user_input=None):
-        """Manage GasBuddy options."""
+        """Manage GasBuddy Hub options."""
         if not self._data:
-            self._data = dict(self.config_entry.options)
+            self._data = {
+                CONF_NAME: self.config_entry.data.get(CONF_NAME, "GasBuddy Hub"),
+                CONF_SOLVER: self.config_entry.data.get(CONF_SOLVER, ""),
+                CONF_TIMEOUT: self.config_entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
+                CONF_BRAND_ADJUSTMENTS: self.config_entry.data.get(CONF_BRAND_ADJUSTMENTS, {}),
+            }
+        self._errors = {}
         if user_input is not None:
-            self._data.update(user_input)
-            return self.async_create_entry(title="", data=self._data)
-        return await self._show_options_form(user_input)
+            user_input.setdefault(CONF_NAME, "GasBuddy Hub")
+            user_input.setdefault(CONF_SOLVER, "")
+            user_input.setdefault(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+            user_input.setdefault(CONF_BRAND_ADJUSTMENTS, {})
+            if user_input.get(CONF_SOLVER):
+                url_valid = validate_url(user_input[CONF_SOLVER])
+                if not url_valid:
+                    self._errors[CONF_SOLVER] = "invalid_url"
 
-    async def _show_options_form(self, user_input):
-        """Show the configuration form to edit options."""
+            if not self._errors:
+                self._data.update(user_input)
+                # Store hub settings in entry.data (not options)
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    title=self._data[CONF_NAME],
+                    data={
+                        **self.config_entry.data,
+                        **self._data,
+                    },
+                )
+                return self.async_create_entry(title="", data={})
+
+        schema = vol.Schema({
+            vol.Required(CONF_NAME, default=self._data[CONF_NAME]): vol.All(
+                cv.string, vol.Strip, vol.Length(max=100)
+            ),
+            vol.Optional(CONF_SOLVER, default=self._data[CONF_SOLVER]): vol.All(
+                cv.string, vol.Strip
+            ),
+            vol.Optional(CONF_TIMEOUT, default=self._data[CONF_TIMEOUT]): vol.All(
+                cv.positive_int, vol.Range(min=1000, max=300000)
+            ),
+            vol.Optional(
+                CONF_BRAND_ADJUSTMENTS, default=self._data[CONF_BRAND_ADJUSTMENTS]
+            ): ObjectSelector(),
+        })
+
         return self.async_show_form(
             step_id="init",
-            data_schema=_get_schema_options(self.hass, user_input, self._data),
+            data_schema=schema,
+            description_placeholders={
+                "brand_adjustments_url": "https://github.com/firstof9/ha-gasbuddy#brand-price-adjustments"
+            },
             errors=self._errors,
         )
