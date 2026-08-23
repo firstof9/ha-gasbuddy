@@ -3,89 +3,145 @@ tag-template: "$RESOLVED_VERSION"
 change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
 sort-direction: ascending
 categories:
+  # 1. Version Resolver Categories (New Schema)
+  - type: "version-resolver"
+    when:
+      labels:
+        - "breaking-change"
+    semver-increment: "major"
+
+  - type: "version-resolver"
+    when:
+      labels:
+        - "feature"
+        - "enhancement"
+    semver-increment: "minor"
+
+  - type: "version-resolver"
+    when:
+      labels:
+        - "bug"
+        - "fix"
+        - "bugfix"
+        - "performance"
+        - "refactor"
+        - "style"
+        - "build"
+        - "chore"
+        - "documentation"
+        - "CI"
+        - "test"
+        - "code-quality"
+        - "revert"
+    semver-increment: "patch"
+
+  - type: "version-resolver"
+    semver-increment: "patch" # Default fallback
+
+  # 2. Changelog Grouping Categories (Updated 'when' syntax)
   - title: "💥 Breaking Change 💥"
-    labels:
-      - "breaking-change"
+    when:
+      labels:
+        - "breaking-change"
+
   - title: "✨ New Features ✨"
-    labels:
-      - "enhancement"
-      - "feature"
+    when:
+      labels:
+        - "enhancement"
+        - "feature"
+
   - title: "🐛 Bug Fixes 🐛"
-    labels:
-      - "fix"
-      - "bugfix"
-      - "bug"
+    when:
+      labels:
+        - "fix"
+        - "bugfix"
+        - "bug"
+
   - title: "⚡ Performance ⚡"
-    labels:
-      - "performance"
+    when:
+      labels:
+        - "performance"
+
   - title: "🔧 Maintenance 🔧"
-    labels:
-      - "chore"
-      - "documentation"
-      - "maintenance"
-      - "repo"
-      - "dependencies"
-      - "github_actions"
-      - "refactor"
-      - "build"
-      - "revert"
+    when:
+      labels:
+        - "chore"
+        - "documentation"
+        - "maintenance"
+        - "repo"
+        - "dependencies"
+        - "github_actions"
+        - "refactor"
+        - "style"
+        - "build"
+        - "revert"
+        - "translations"
     collapse-after: 1
+
   - title: "🎓 Code Quality 🎓"
-    labels:
-      - "code-quality"
-      - "CI"
-      - "test"
+    when:
+      labels:
+        - "code-quality"
+        - "CI"
+        - "test"
+        - "has-tests"
+
 autolabeler:
   - label: "breaking-change"
     title:
-      - '/^[a-z]+(\([^)]+\))?!:/i'
+      - '/^[^\\s!]+!(\\([^)]+\\))?:/i'
   - label: "feature"
     branch:
       - "feat-*"
       - "feature-*"
     title:
-      - '/^feat(\([^)]+\))?:/i'
+      - '/^feat(\\([^)]+\\))?:/i'
   - label: "bugfix"
     branch:
       - "fix-*"
       - "bugfix-*"
     title:
-      - '/^fix(\([^)]+\))?:/i'
+      - '/^fix(\\([^)]+\\))?:/i'
   - label: "refactor"
     branch:
       - "refactor-*"
     title:
-      - '/^refactor(\([^)]+\))?:/i'
+      - '/^refactor(\\([^)]+\\))?:/i'
   - label: "code-quality"
     branch:
       - "test-*"
     title:
-      - '/^test(\([^)]+\))?:/i'
+      - '/^test(\\([^)]+\\))?:/i'
   - label: "CI"
     title:
-      - '/^ci(\([^)]+\))?:/i'
+      - '/^ci(\\([^)]+\\))?:/i'
   - label: "chore"
     branch:
       - "chore-*"
     title:
-      - '/^chore(\([^)]+\))?:/i'
+      - '/^chore(\\([^)]+\\))?:/i'
   - label: "documentation"
     branch:
       - "docs-*"
     title:
-      - '/^docs(\([^)]+\))?:/i'
+      - '/^docs(\\([^)]+\\))?:/i'
+    files:
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "LICENSE"
+      - "docs/**/*"
   - label: "style"
     title:
-      - '/^style(\([^)]+\))?:/i'
+      - '/^style(\\([^)]+\\))?:/i'
   - label: "performance"
     title:
-      - '/^perf(\([^)]+\))?:/i'
+      - '/^perf(\\([^)]+\\))?:/i'
   - label: "revert"
     title:
-      - '/^revert(\([^)]+\))?:/i'
+      - '/^revert(\\([^)]+\\))?:/i'
   - label: "build"
     title:
-      - '/^build(\([^)]+\))?:/i'
+      - '/^build(\\([^)]+\\))?:/i'
   - label: "dependencies"
     branch:
       - "deps-*"
@@ -99,30 +155,6 @@ autolabeler:
   - label: "translations"
     files:
       - "custom_components/gasbuddy/translations/**/*"
-version-resolver:
-  major:
-    labels:
-      - "breaking-change"
-  minor:
-    labels:
-      - "feature"
-      - "enhancement"
-  patch:
-    labels:
-      - "bug"
-      - "fix"
-      - "bugfix"
-      - "performance"
-      - "refactor"
-      - "style"
-      - "build"
-      - "chore"
-      - "documentation"
-      - "CI"
-      - "test"
-      - "code-quality"
-      - "revert"
-  default: patch
 template: |
   [![Downloads for this release](https://img.shields.io/github/downloads/firstof9/ha-gasbuddy/$RESOLVED_VERSION/total.svg)](https://github.com/firstof9/ha-gasbuddy/releases/$RESOLVED_VERSION)
 
