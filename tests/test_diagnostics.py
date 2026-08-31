@@ -41,7 +41,10 @@ async def test_diagnostics(
     device_registry = dr.async_get(hass)
     # The integration registers devices via identifiers (DOMAIN, unique_id)
     # The unique_id of the subentry is 999001
-    device = device_registry.async_get_device(identifiers={(DOMAIN, "999001")})
+    device = device_registry.async_get_device_by_identifier(
+        identifier=(DOMAIN, "999001"),
+        config_entry_id=entry.entry_id,
+    )
     assert device is not None
 
     device_diagnostics = await async_get_device_diagnostics(hass, entry, device)

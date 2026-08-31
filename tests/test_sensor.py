@@ -1321,12 +1321,18 @@ async def test_sensor_device_registered_under_hub_entry(hass, mock_gasbuddy):
     device_registry = dr.async_get(hass)
 
     # Station device must exist, scoped to the subentry
-    station_device = device_registry.async_get_device(identifiers={(DOMAIN, "test_subentry_id")})
+    station_device = device_registry.async_get_device_by_identifier(
+        identifier=(DOMAIN, "test_subentry_id"),
+        config_entry_id=entry.entry_id,
+    )
     assert station_device is not None
     assert station_device.manufacturer == "GasBuddy"
 
     # No phantom hub device should exist
-    hub_device = device_registry.async_get_device(identifiers={(DOMAIN, "hub")})
+    hub_device = device_registry.async_get_device_by_identifier(
+        identifier=(DOMAIN, "hub"),
+        config_entry_id=entry.entry_id,
+    )
     assert hub_device is None
 
     # Station device has no via_device parent
