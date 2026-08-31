@@ -381,7 +381,10 @@ async def test_subentry_removal_cleanup(hass, mock_gasbuddy):
     dev_reg = dr.async_get(hass)
     ent_reg = er.async_get(hass)
 
-    device = dev_reg.async_get_device(identifiers={(DOMAIN, subentry.subentry_id)})
+    device = dev_reg.async_get_device_by_identifier(
+        identifier=(DOMAIN, subentry.subentry_id),
+        config_entry_id=entry.entry_id,
+    )
     assert device is not None
     assert subentry.subentry_id in device.config_entries_subentries.get(entry.entry_id, set())
 
@@ -398,7 +401,13 @@ async def test_subentry_removal_cleanup(hass, mock_gasbuddy):
     await hass.async_block_till_done()
 
     # Verify device and entities are purged
-    assert dev_reg.async_get_device(identifiers={(DOMAIN, subentry.subentry_id)}) is None
+    assert (
+        dev_reg.async_get_device_by_identifier(
+            identifier=(DOMAIN, subentry.subentry_id),
+            config_entry_id=entry.entry_id,
+        )
+        is None
+    )
     entities_post = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
     sub_entities_post = [e for e in entities_post if e.config_subentry_id == subentry.subentry_id]
     assert len(sub_entities_post) == 0
