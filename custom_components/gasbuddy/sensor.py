@@ -329,7 +329,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             elif data[self._type].get("price") is None:
                 return False
 
-        return self.coordinator.last_update_success
+        return True
 
     @property
     def should_poll(self) -> bool:

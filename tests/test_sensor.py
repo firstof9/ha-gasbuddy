@@ -1391,3 +1391,16 @@ async def test_get_setting_falls_back_to_config_data(hass, mock_gasbuddy):
         # Clean up for the next loop iteration
         await hass.config_entries.async_unload(entry.entry_id)
         await hass.async_block_till_done()
+
+
+async def test_sensor_available_when_coordinator_update_fails(hass, mock_gasbuddy, integration):
+    """Test sensor remains available when coordinator update fails but cached data is present."""
+    coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
+    subentry = next(iter(integration.subentries.values()))
+    sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration, subentry)
+
+    # Coordinator update failed
+    coordinator.last_update_success = False
+
+    # Sensor should still be available because cached data exists and regular_gas price is valid
+    assert sensor.available is True
