@@ -6,9 +6,9 @@ import dataclasses
 import logging
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import RestoreSensor, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
-from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.const import ATTR_ATTRIBUTION, ATTR_ENTITY_PICTURE, ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -100,7 +100,7 @@ async def async_setup_entry(
         async_add_entities(sensors, False, config_subentry_id=subentry.subentry_id)
 
 
-class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-many-instance-attributes
+class GasBuddySensor(CoordinatorEntity[GasBuddyUpdateCoordinator], RestoreSensor):  # pylint: disable=too-many-instance-attributes
     """Implementation of a GasBuddy sensor."""
 
     coordinator: GasBuddyUpdateCoordinator
@@ -128,6 +128,9 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         self._data = coordinator.data
         self.coordinator = coordinator
         self._state = None
+        self._restored_native_value: Any = None
+        self._restored_unit: str | None = None
+        self._restored_attributes: dict[str, Any] = {}
         self._cash = sensor_description.cash
         self._deal = sensor_description.deal
         self._price = sensor_description.price
@@ -135,6 +138,22 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         self._attr_icon = sensor_description.icon
         self._attr_name = f"{self._subentry.data.get(CONF_NAME, subentry.title)} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if not self.coordinator.data:
+            if last_sensor_data := await self.async_get_last_sensor_data():
+                self._restored_native_value = last_sensor_data.native_value
+                self._restored_unit = last_sensor_data.native_unit_of_measurement
+            if last_state := await self.async_get_last_state():
+                if self._restored_native_value is None and last_state.state not in {
+                    None,
+                    "unknown",
+                    "unavailable",
+                }:
+                    self._restored_native_value = last_state.state
+                self._restored_attributes = dict(last_state.attributes)
 
     def _get_setting(self, key: str, default: Any = None) -> Any:
         """Get a setting from the subentry, falling back to the hub options/data."""
@@ -162,7 +181,10 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        if not (data := self.coordinator.data) or self._type not in data:
+        if not (data := self.coordinator.data):
+            return self._restored_native_value
+
+        if self._type not in data:
             return None
 
         if not self._price:
@@ -205,6 +227,8 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
     def native_unit_of_measurement(self) -> Any:
         """Return the unit of measurement."""
         if not (data := self.coordinator.data) or not self._price:
+            if not data and self._price and self._restored_unit is not None:
+                return self._restored_unit
             return None
 
         uom = data.get("unit_of_measure")
@@ -250,7 +274,7 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
     def extra_state_attributes(self) -> dict | None:
         """Return sesnsor attributes."""
         if not (data := self.coordinator.data):
-            return None
+            return self._restored_attributes or None
 
         if not self._price:
             return self._ev_attributes(data)
@@ -306,6 +330,10 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
         """Return the entity picture to use in the frontend."""
         if (data := self.coordinator.data) and data.get(ATTR_IMAGEURL):
             return data[ATTR_IMAGEURL]
+        if not self.coordinator.data:
+            return self._restored_attributes.get(
+                ATTR_IMAGEURL, self._restored_attributes.get(ATTR_ENTITY_PICTURE)
+            )
         return None
 
     @property
@@ -316,6 +344,8 @@ class GasBuddySensor(CoordinatorEntity, SensorEntity):  # pylint: disable=too-ma
             or self._type not in data
             or data[self._type] is None
         ):
+            if not data:
+                return self._restored_native_value is not None
             # station_address may be absent (station has no address data) — treat as unavailable
             return False
 

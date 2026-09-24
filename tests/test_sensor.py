@@ -38,8 +38,9 @@ from custom_components.gasbuddy.coordinator import (
     format_address,
 )
 from custom_components.gasbuddy.sensor import GasBuddySensor
-from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN, RestoreSensor
 from homeassistant.const import ATTR_ENTITY_ID, ATTR_LATITUDE, ATTR_LONGITUDE
+from homeassistant.core import State
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util.dt import as_utc, parse_datetime
@@ -1404,3 +1405,73 @@ async def test_sensor_available_when_coordinator_update_fails(hass, mock_gasbudd
 
     # Sensor should still be available because cached data exists and regular_gas price is valid
     assert sensor.available is True
+
+
+async def test_sensor_state_restoration(hass, integration):
+    """Test sensor restores previous state and attributes when coordinator data is empty."""
+    coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
+    coordinator.data = {}
+    subentry = next(iter(integration.subentries.values()))
+
+    sensor = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration, subentry)
+    sensor.hass = hass
+    sensor.entity_id = "sensor.gas_station_regular_gas"
+
+    assert isinstance(sensor, RestoreSensor)
+
+    # Before restoration with empty coordinator data
+    assert sensor.native_value is None
+    assert sensor.native_unit_of_measurement is None
+    assert sensor.extra_state_attributes is None
+    assert sensor.entity_picture is None
+    assert sensor.available is False
+
+    # Mock get_last_sensor_data and get_last_state
+    fake_state = State(
+        "sensor.gas_station_regular_gas",
+        "3.45",
+        attributes={
+            "unit_of_measurement": "USD/gallon",
+            "entity_picture": "https://example.com/logo.png",
+            "station_id": 999001,
+        },
+    )
+
+    with (
+        patch.object(sensor, "async_get_last_sensor_data", return_value=None),
+        patch.object(sensor, "async_get_last_state", return_value=fake_state),
+    ):
+        await sensor.async_added_to_hass()
+
+    assert sensor.native_value == "3.45"
+    assert sensor.entity_picture == "https://example.com/logo.png"
+    assert sensor.extra_state_attributes == {
+        "unit_of_measurement": "USD/gallon",
+        "entity_picture": "https://example.com/logo.png",
+        "station_id": 999001,
+    }
+    assert sensor.available is True
+
+    # Test async_get_last_sensor_data with native_value and native_unit_of_measurement
+    sensor2 = GasBuddySensor(SENSOR_TYPES["regular_gas"], coordinator, integration, subentry)
+    sensor2.hass = hass
+    sensor2.entity_id = "sensor.gas_station_regular_gas"
+
+    class MockSensorExtraStoredData:
+        def __init__(self, native_value, native_unit_of_measurement):
+            self.native_value = native_value
+            self.native_unit_of_measurement = native_unit_of_measurement
+
+    mock_sensor_data = MockSensorExtraStoredData(
+        native_value=3.19, native_unit_of_measurement="USD/gallon"
+    )
+
+    with (
+        patch.object(sensor2, "async_get_last_sensor_data", return_value=mock_sensor_data),
+        patch.object(sensor2, "async_get_last_state", return_value=None),
+    ):
+        await sensor2.async_added_to_hass()
+
+    assert sensor2.native_value == 3.19
+    assert sensor2.native_unit_of_measurement == "USD/gallon"
+    assert sensor2.available is True
