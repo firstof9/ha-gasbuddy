@@ -247,12 +247,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     for device_entry in dr.async_entries_for_config_entry(device_registry, config_entry.entry_id):
-        subentry_ids = device_entry.config_entries_subentries.get(config_entry.entry_id)
-        if subentry_ids and any(sub_id not in config_entry.subentries for sub_id in subentry_ids):
+        if (
+            device_entry.config_subentry_id is not None
+            and device_entry.config_subentry_id not in config_entry.subentries
+        ):
             _LOGGER.debug(
-                "Removing device %s as its subentries %s were removed",
+                "Removing device %s as its subentry %s was removed",
                 device_entry.name,
-                subentry_ids,
+                device_entry.config_subentry_id,
             )
             device_registry.async_remove_device(device_entry.id)
 
