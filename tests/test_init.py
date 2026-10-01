@@ -386,7 +386,7 @@ async def test_subentry_removal_cleanup(hass, mock_gasbuddy):
         config_entry_id=entry.entry_id,
     )
     assert device is not None
-    assert subentry.subentry_id in device.config_entries_subentries.get(entry.entry_id, set())
+    assert device.config_subentry_id == subentry.subentry_id
 
     entities = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
     sub_entities = [e for e in entities if e.config_subentry_id == subentry.subentry_id]
