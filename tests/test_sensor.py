@@ -75,8 +75,8 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     await hass.async_block_till_done()
 
     # With enriched COORDINATOR_DATA: regular_gas, premium_gas, premium_gas_cash,
-    # e85, e15, e15_cash, regular_gas_deal, last_updated = 8 enabled sensors
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    # e85, e15, e15_cash, regular_gas_deal, last_updated, station_name = 9 enabled sensors
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 9
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -86,9 +86,15 @@ async def test_sensors(hass, mock_gasbuddy, entity_registry: er.EntityRegistry):
     assert state
     assert state.state == "2.95"
     assert state.attributes["unit_of_measurement"] == "USD/gallon"
-    assert state.attributes[ATTR_LATITUDE] == 41.8781
-    assert state.attributes[ATTR_LONGITUDE] == -87.6298
+    assert ATTR_LATITUDE not in state.attributes
+    assert ATTR_LONGITUDE not in state.attributes
     assert state.attributes[ATTR_ENTITY_PICTURE] == "https://images.gasbuddy.io/b/test.png"
+
+    state_name = hass.states.get("sensor.gas_station_station_name")
+    assert state_name
+    assert state_name.state == "Test Gas Station"
+    assert state_name.attributes[ATTR_LATITUDE] == 41.8781
+    assert state_name.attributes[ATTR_LONGITUDE] == -87.6298
 
     # midgrade_gas not in station data → disabled by dynamic enabled_default → no state
     assert hass.states.get("sensor.gas_station_midgrade_gas") is None
@@ -137,7 +143,7 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 9
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -147,8 +153,13 @@ async def test_sensors_no_uom(hass, mock_gasbuddy, entity_registry: er.EntityReg
     assert state
     assert state.state == "2.95"
     assert state.attributes["unit_of_measurement"] == "USD"
-    assert state.attributes[ATTR_LATITUDE] == 41.8781
-    assert state.attributes[ATTR_LONGITUDE] == -87.6298
+    assert ATTR_LATITUDE not in state.attributes
+    assert ATTR_LONGITUDE not in state.attributes
+
+    state_name = hass.states.get("sensor.gas_station_station_name")
+    assert state_name
+    assert state_name.attributes[ATTR_LATITUDE] == 41.8781
+    assert state_name.attributes[ATTR_LONGITUDE] == -87.6298
 
     # midgrade_gas not in station data → disabled by dynamic enabled_default → no state
     assert hass.states.get("sensor.gas_station_midgrade_gas") is None
@@ -191,8 +202,8 @@ async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRe
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    # CAD data has regular_gas + premium_gas + premium_gas_cash (cash=145.2) + last_updated = 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 4
+    # CAD data has regular_gas + premium_gas + premium_gas_cash (cash=145.2) + last_updated + station_name = 5
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 5
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -202,9 +213,14 @@ async def test_sensors_cad(hass, mock_gasbuddy_cad, entity_registry: er.EntityRe
     assert state
     assert state.state == "1.439"
     assert state.attributes["unit_of_measurement"] == "CAD/liter"
-    assert state.attributes[ATTR_LATITUDE] == 41.8781
-    assert state.attributes[ATTR_LONGITUDE] == -87.6298
+    assert ATTR_LATITUDE not in state.attributes
+    assert ATTR_LONGITUDE not in state.attributes
     assert ATTR_ENTITY_PICTURE not in state.attributes
+
+    state_name = hass.states.get("sensor.gas_station_station_name")
+    assert state_name
+    assert state_name.attributes[ATTR_LATITUDE] == 41.8781
+    assert state_name.attributes[ATTR_LONGITUDE] == -87.6298
 
     state = hass.states.get("sensor.gas_station_midgrade_gas")
     assert state is None
@@ -358,8 +374,8 @@ async def test_ev_sensors(hass, mock_gasbuddy, integration):
         assert attrs["network"] == "TestNetwork"
         assert attrs["pricing"] == "Free"
         assert attrs["access_hours"] == "24/7"
-        assert attrs[ATTR_LATITUDE] == 41.8781
-        assert attrs[ATTR_LONGITUDE] == -87.6298
+        assert ATTR_LATITUDE not in attrs
+        assert ATTR_LONGITUDE not in attrs
         assert "website" not in attrs
 
         # Test ev_network sensor which has the website attribute
@@ -481,12 +497,19 @@ async def test_open_status_sensor(hass, mock_gasbuddy, integration):
 
 
 async def test_station_name_sensor(hass, mock_gasbuddy, integration):
-    """Test station_name sensor returns the station name string."""
+    """Test station_name sensor returns the station name string and GPS attributes."""
     coordinator = hass.data[DOMAIN][integration.entry_id][COORDINATOR]
 
     sensor = GasBuddySensor(SENSOR_TYPES["station_name"], coordinator, integration)
     assert sensor.native_value == "Test Gas Station"
-    assert sensor.extra_state_attributes is None
+    assert sensor.extra_state_attributes == {
+        ATTR_LATITUDE: 41.8781,
+        ATTR_LONGITUDE: -87.6298,
+    }
+
+    # When CONF_GPS is disabled, extra_state_attributes should be None
+    with patch.object(sensor, "_get_setting", return_value=False):
+        assert sensor.extra_state_attributes is None
 
 
 async def test_extra_attrs_richer(hass, mock_gasbuddy, integration):
