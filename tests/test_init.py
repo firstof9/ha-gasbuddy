@@ -41,13 +41,13 @@ async def test_hub_setup_and_unload(hass, mock_gasbuddy):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 9
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
     assert await hass.config_entries.async_unload(entries[0].entry_id)
     await hass.async_block_till_done()
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 8
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 9
     assert len(hass.states.async_entity_ids(DOMAIN)) == 0
 
     assert await hass.config_entries.async_remove(entries[0].entry_id)

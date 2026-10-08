@@ -185,6 +185,8 @@ class GasBuddySensor(CoordinatorEntity[GasBuddyUpdateCoordinator], RestoreSensor
             return self._restored_native_value
 
         if self._type not in data:
+            if self._type == "name":
+                return self._subentry.data.get(CONF_NAME, self._subentry.title)
             return None
 
         if not self._price:
@@ -243,13 +245,17 @@ class GasBuddySensor(CoordinatorEntity[GasBuddyUpdateCoordinator], RestoreSensor
 
     def _ev_attributes(self, data: dict) -> dict[str, Any] | None:
         """Return EV and non-price sensor attributes."""
-        if not self._type.startswith("ev_") and self._type not in {
+        if self._type == "name":
+            if not self._get_setting(CONF_GPS):
+                return None
+            return {
+                ATTR_LATITUDE: data.get(ATTR_LATITUDE),
+                ATTR_LONGITUDE: data.get(ATTR_LONGITUDE),
+            }
+        if not self._type.startswith("ev_") or self._type in {
             "open_status",
-            "name",
             "station_address",
         }:
-            return None
-        if self._type in {"open_status", "name", "station_address"}:
             return None
         attrs: dict[str, Any] = {}
         attrs[CONF_STATION_ID] = data.get(CONF_STATION_ID)
@@ -265,9 +271,6 @@ class GasBuddySensor(CoordinatorEntity[GasBuddyUpdateCoordinator], RestoreSensor
             attrs["pricing"] = data.get("ev_pricing")
         if data.get("ev_access_hours") is not None:
             attrs["access_hours"] = data.get("ev_access_hours")
-        if self._get_setting(CONF_GPS):
-            attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
-            attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
         return attrs
 
     @property
@@ -304,10 +307,6 @@ class GasBuddySensor(CoordinatorEntity[GasBuddyUpdateCoordinator], RestoreSensor
         if amenities := data.get("amenities"):
             attrs["amenities"] = ", ".join(a["name"] for a in amenities if a.get("name"))
 
-        if self._get_setting(CONF_GPS):
-            attrs[ATTR_LATITUDE] = data.get(ATTR_LATITUDE)
-            attrs[ATTR_LONGITUDE] = data.get(ATTR_LONGITUDE)
-
         if self._deal:
             price = data[self._type].get("deal_price")
         elif self._cash:
@@ -339,13 +338,13 @@ class GasBuddySensor(CoordinatorEntity[GasBuddyUpdateCoordinator], RestoreSensor
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        if (
-            not (data := self.coordinator.data)
-            or self._type not in data
-            or data[self._type] is None
-        ):
-            if not data:
-                return self._restored_native_value is not None
+        if not (data := self.coordinator.data):
+            return self._restored_native_value is not None
+
+        if self._type == "name":
+            return True
+
+        if self._type not in data or data[self._type] is None:
             # station_address may be absent (station has no address data) — treat as unavailable
             return False
 
