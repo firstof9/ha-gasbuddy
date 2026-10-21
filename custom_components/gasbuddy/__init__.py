@@ -247,26 +247,27 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     for device_entry in dr.async_entries_for_config_entry(device_registry, config_entry.entry_id):
-        if (
-            device_entry.config_subentry_id is not None
-            and device_entry.config_subentry_id not in config_entry.subentries
-        ):
+        subentry_id = getattr(device_entry, "config_subentry_id", None)
+        if subentry_id is None and hasattr(device_entry, "config_entries_subentries"):
+            subentry_ids = device_entry.config_entries_subentries.get(config_entry.entry_id)
+            if subentry_ids:
+                subentry_id = next(iter(subentry_ids), None)
+
+        if subentry_id is not None and subentry_id not in config_entry.subentries:
             _LOGGER.debug(
                 "Removing device %s as its subentry %s was removed",
                 device_entry.name,
-                device_entry.config_subentry_id,
+                subentry_id,
             )
             device_registry.async_remove_device(device_entry.id)
 
     for entity_entry in er.async_entries_for_config_entry(entity_registry, config_entry.entry_id):
-        if (
-            entity_entry.config_subentry_id is not None
-            and entity_entry.config_subentry_id not in config_entry.subentries
-        ):
+        subentry_id = getattr(entity_entry, "config_subentry_id", None)
+        if subentry_id is not None and subentry_id not in config_entry.subentries:
             _LOGGER.debug(
                 "Removing entity %s as its subentry %s was removed",
                 entity_entry.entity_id,
-                entity_entry.config_subentry_id,
+                subentry_id,
             )
             entity_registry.async_remove(entity_entry.entity_id)
 
