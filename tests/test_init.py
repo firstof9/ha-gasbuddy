@@ -3,7 +3,7 @@
 
 import contextlib
 from types import MappingProxyType
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -797,3 +797,41 @@ async def test_legacy_migration_entry_exception_skipped(hass, mock_gasbuddy, cap
     updated_hub = hass.config_entries.async_get_entry(hub_entry.entry_id)
     sub_unique_ids = {sub.unique_id for sub in updated_hub.subentries.values()}
     assert "111002" in sub_unique_ids
+
+
+async def test_legacy_device_subentry_cleanup(hass, mock_gasbuddy):
+    """Test device cleanup backward compatibility when DeviceEntry lacks config_subentry_id."""
+    entry = _make_hub_entry(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    dev_reg = dr.async_get(hass)
+    subentry = next(iter(entry.subentries.values()))
+
+    device = dev_reg.async_get_device_by_identifier(
+        identifier=(DOMAIN, subentry.subentry_id),
+        config_entry_id=entry.entry_id,
+    )
+    assert device is not None
+
+    # Simulate older HA version where DeviceEntry has config_entries_subentries and no config_subentry_id
+    legacy_device = MagicMock(spec=["id", "name", "config_entries_subentries"])
+    legacy_device.id = device.id
+    legacy_device.name = device.name
+    legacy_device.config_entries_subentries = {entry.entry_id: {"removed_subentry_id"}}
+
+    with (
+        patch.object(
+            dr,
+            "async_entries_for_config_entry",
+            return_value=[legacy_device],
+        ),
+        patch.object(
+            dev_reg,
+            "async_remove_device",
+        ) as mock_remove,
+    ):
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+
+        mock_remove.assert_called_once_with(legacy_device.id)
