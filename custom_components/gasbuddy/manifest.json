@@ -1,6 +1,9 @@
 {
   "domain": "gasbuddy",
   "name": "GasBuddy",
+  "categories": [
+    "vehicles_transport"
+  ],
   "codeowners": [
     "@firstof9"
   ],
