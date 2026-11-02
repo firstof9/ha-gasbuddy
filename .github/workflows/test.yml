@@ -20,13 +20,19 @@ jobs:
       - name: 📥 Checkout the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v6
 
-      - name: 🛠️ Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # @v7.1.0
+      - name: 🛠️ Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # @v10.3.3
         with:
-          python-version: "3.14.2"
+          enable-cache: true
+
+      - name: 🛠️ Set up Python
+        run: uv python install 3.14
+
+      - name: 📦 Install pre-commit
+        run: uv tool install pre-commit
 
       - name: 🔍 Run pre-commit hooks
-        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # @v3.0.1
+        run: pre-commit run --all-files --show-diff-on-failure
 
       - name: 🔍 Hassfest validation
         uses: "home-assistant/actions/hassfest@86d4564712fa02543c808e3a693dd04f9d3f8361"
