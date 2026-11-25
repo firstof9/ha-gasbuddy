@@ -247,8 +247,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     for device_entry in dr.async_entries_for_config_entry(device_registry, config_entry.entry_id):
-        subentry_id = getattr(device_entry, "config_subentry_id", None)
-        if subentry_id is None and hasattr(device_entry, "config_entries_subentries"):
+        subentry_id = None
+        if hasattr(device_entry, "config_subentry_id"):
+            subentry_id = device_entry.config_subentry_id
+        elif hasattr(device_entry, "config_entries_subentries"):
             subentry_ids = device_entry.config_entries_subentries.get(config_entry.entry_id)
             if subentry_ids:
                 subentry_id = next(iter(subentry_ids), None)
