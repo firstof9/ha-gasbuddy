@@ -835,3 +835,27 @@ async def test_legacy_device_subentry_cleanup(hass, mock_gasbuddy):
         await hass.async_block_till_done()
 
         mock_remove.assert_called_once_with(legacy_device.id)
+
+
+async def test_device_with_none_subentry_id_does_not_access_deprecated_attr(hass, mock_gasbuddy):
+    """Test that a device with config_subentry_id=None does not access deprecated config_entries_subentries."""
+    entry = _make_hub_entry(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    class ModernDeviceEntry:
+        id = "hub_device_id"
+        name = "GasBuddy Hub"
+        config_subentry_id = None
+
+        @property
+        def config_entries_subentries(self):
+            raise AssertionError("Deprecated config_entries_subentries should not be accessed")
+
+    with patch.object(
+        dr,
+        "async_entries_for_config_entry",
+        return_value=[ModernDeviceEntry()],
+    ):
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
